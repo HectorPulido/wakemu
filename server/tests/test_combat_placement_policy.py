@@ -338,3 +338,128 @@ class PlacementPolicyTests(PostgresCase):
         self.assertEqual(
             self.store.character(self.account, self.character["id"]), before
         )
+
+
+class OrdinaryNestPlacementPersistenceTests(PostgresCase):
+    def test_real_nest_room_arena_filters_and_persists_ordinary_point_zones(self):
+        import json
+        from pathlib import Path
+
+        from wakfu_server.combat_terrain import local_arena
+        from wakfu_server.combat_placement_policy import freeze
+        from wakfu_server.fight_store import create
+
+        source = (
+            Path(__file__).parents[1]
+            / "wakfu_server/maps/owned_story_profiles/astrub-nest-728.configuration.json"
+        )
+        room = json.loads(source.read_text())["topology"]["rooms"][1]
+        cells = {tuple(cell) for cell in room["cells"]}
+        player = (-1, 18, 0)
+        npc = (0, 18, 0)
+        account = self.store.register("nest-placement-owner", "isolated-test-password")[
+            "id"
+        ]
+        character = self.store.create_character(account, "Nest placement")
+        generation = self.store.begin_session(account)
+        self.store.select_character(account, generation, character["id"])
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET map_id=728,instance_id=0,x=%s,y=%s,z=%s WHERE id=%s",
+                (*player, character["id"]),
+            )
+
+        with self.store.connection() as db:
+            before_fights = db.execute(
+                "SELECT count(*) AS n FROM combat_fights"
+            ).fetchone()["n"]
+        with self.assertRaises(ValueError):
+            local_arena(
+                728,
+                0,
+                (0, 20, 0),
+                [npc],
+                allowed_cells=cells,
+                member_radii=[0],
+                player_radius=0,
+                ordinary_npc_placement=True,
+                ordinary_generated_placement=True,
+                full_room_scope=True,
+            )
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute("SELECT count(*) AS n FROM combat_fights").fetchone()["n"],
+                before_fights,
+            )
+
+        arena_row = local_arena(
+            728,
+            0,
+            player,
+            [npc],
+            allowed_cells=cells,
+            member_radii=[0],
+            player_radius=0,
+            ordinary_npc_placement=True,
+            ordinary_generated_placement=True,
+            full_room_scope=True,
+        )
+        self.assertEqual(set(arena_row["validated_cells"]), cells)
+        self.assertIn((0, 20, 0), cells)
+        self.assertEqual(
+            arena_row["native_ordinary_point_placement"]["player_point_only"], True
+        )
+        self.assertEqual(
+            arena_row["native_ordinary_point_placement"]["npc_point_only"], True
+        )
+        self.assertEqual(tuple(arena_row["participant_positions"][0][0]), npc)
+        self.assertEqual(len(arena_row["native_party_reserved_cells"]), 6)
+        eligible_player_cells = {
+            tuple(cell)
+            for cell in arena_row["native_ordinary_point_placement"]["player_cells"]
+        }
+        self.assertTrue(
+            {tuple(cell) for cell in arena_row["native_party_reserved_cells"]}
+            <= eligible_player_cells
+        )
+        fight_id = create(self.store, account, generation, character["id"])
+        frozen = freeze(
+            self.store,
+            account_id=account,
+            generation=generation,
+            character_id=character["id"],
+            fight_id=fight_id,
+            map_id=728,
+            instance_id=0,
+            selected_arena=arena_row,
+            seeds={0: {player}, 1: {npc}},
+        )
+        with self.store.connection() as db:
+            position = db.execute(
+                "SELECT x,y,z FROM characters WHERE id=%s", (character["id"],)
+            ).fetchone()
+        self.assertEqual((position["x"], position["y"], position["z"]), player)
+        with self.store.connection() as db:
+            row = db.execute(
+                "SELECT layout FROM fight_placement_layouts WHERE fight_id=%s",
+                (fight_id,),
+            ).fetchone()
+        self.assertIsNotNone(row)
+        durable = row["layout"]
+        self.assertEqual(durable["cells"], [list(cell) for cell in sorted(cells)])
+        self.assertEqual(
+            durable["edges"],
+            [list(map(list, edge)) for edge in sorted(arena_row["valid_edges"])],
+        )
+        self.assertEqual(
+            durable["placement"],
+            {
+                str(team): [list(cell) for cell in sorted(group)]
+                for team, group in frozen["placement_cells"].items()
+            },
+        )
+        for group in durable["placement"].values():
+            self.assertNotIn([0, 20, 0], group)
+        self.assertIn(list(player), durable["placement"]["0"])
+        npc_destination = tuple(arena_row["participant_positions"][0][1])
+        self.assertIn(list(npc_destination), durable["placement"]["1"])

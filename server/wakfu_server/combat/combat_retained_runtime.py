@@ -1629,6 +1629,9 @@ class NativeRetainedRuntime:
         from .combat_summon_initialization import detached_actor
 
         constructor = detached_actor(self.fight, invocation.caster_id)
+        from .combat_scene_controlled_states import placement_stat_context
+
+        controlled_placement = placement_stat_context(self.fight, invocation)
         if _damage_uid is None and _healing_uid is None:
             validate_group_registration_flags(
                 effect["native_effect_flags"],
@@ -1642,7 +1645,8 @@ class NativeRetainedRuntime:
                         None,
                         constructor.id,
                     )
-                ),
+                )
+                or controlled_placement,
             )
         if not native["retained"]:
             return None

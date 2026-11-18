@@ -61,11 +61,32 @@ def _scope_digest(state):
     ).hexdigest()
 
 
+def proposal_dependencies(map_id):
+    """Native inputs read by the configured Rust/world population proposal."""
+    if type(map_id) is not int or not 0 < map_id < 2**31:
+        raise ValueError("Invalid initial population source map")
+    return (
+        "initial-monster-population.json",
+        "ecology-regions.json",
+        "monsters.json",
+        "native-actor-characteristics.json",
+        "monster-encyclopedia.json",
+        f"combat-maps/{map_id}.json",
+        f"planting-maps/{map_id}.json",
+    )
+
+
 def apply_prepared(store, groups, proposal):
     """World-only bounded registration; all geometry was checked by worker."""
-    if proposal["catalog_revision"] != protocol_catalog.release():
-        return "stale"
     plan, policy = proposal["plan"], proposal["policy"]
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    try:
+        require_source_revision(
+            proposal["catalog_revision"], proposal_dependencies(plan["map_id"])
+        )
+    except ValueError:
+        return "stale"
     catalog = protocol_catalog.load(DATA_ROOT / "initial-monster-population.json")
     if plan not in catalog["plans"]:
         raise ValueError("Initial monster proposal is not configured")

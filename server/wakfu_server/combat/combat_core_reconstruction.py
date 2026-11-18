@@ -42,7 +42,7 @@ def decode_timeline(body):
     """SU prefix, Tc/SX/SY membership and removed statuses, then feN bonuses."""
     reader = _Reader(body)
     value = dict(zip(("round", "turn", "phase", "deadline"), reader.read("hibq")))
-    if value["phase"] not in (0, 1):
+    if value["phase"] not in (0, 1, 2):
         raise UnknownCoreLayout("Unmodeled native SU phase")
     for name in ("available", "next_order"):
         value[name] = [reader.read("q") for _ in range(reader.count("b"))]
@@ -80,6 +80,10 @@ def decode_timeline(body):
     if value["phase"] == 0:
         if index != -1:
             raise MalformedPacket("INITIAL native timeline has a current member")
+        value["current"] = None
+    elif value["phase"] == 2:
+        if not -1 <= index < len(value["available"]):
+            raise MalformedPacket("Invalid native BETWEEN cursor")
         value["current"] = None
     else:
         if not 0 <= index < len(value["available"]):

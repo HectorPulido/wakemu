@@ -1,0 +1,62 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting.",
+  "speakers": [
+    {
+      "actor_id": -2251799934953592,
+      "action_id": 678,
+      "quest_ids": [
+        2549
+      ],
+      "native_marker": {
+        "quest_id": 2549,
+        "objective_id": 5048
+      },
+      "placement": {
+        "quest_id": 2549,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934953592,
+          "reference_id": 3592,
+          "map_id": 943,
+          "instance_id": 0,
+          "x": -176,
+          "y": -57,
+          "z": -15,
+          "direction": 3,
+          "dialogue_root": 3150,
+          "action_ids": [
+            678
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting."
+        },
+        "interaction_anchor": {
+          "x": -175,
+          "y": -57,
+          "z": -15
+        },
+        "interaction_anchor_evidence": "Original Kelba943 Sm6 bidirectional adjacent floor; exact native protector282 and quest waypoint; native server actor-to-protector association remains reconstructed.",
+        "graph": []
+      },
+      "graph": [
+        [
+          3150,
+          7805,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2549,
+          "objective_id": 5048,
+          "node_id": 3150,
+          "choice_id": 7805,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ]
+    }
+  ]
+}

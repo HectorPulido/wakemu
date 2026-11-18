@@ -1,0 +1,81 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Finite Astrub tour5569 final hand-in only. Preserve all three authentic child objectives and original11519 terminal choice guard; no NPC duplication, no quest admission on open, no native display-level inference. Requires generic captured-dialogue provider overlay capability.",
+  "speakers": [
+    {
+      "actor_id": -1776810790485981,
+      "action_id": 969,
+      "quest_ids": [
+        5569
+      ],
+      "native_marker": {
+        "quest_id": 5569,
+        "objective_id": 11519
+      },
+      "placement": {
+        "quest_id": 5569,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -1776810790485981,
+          "reference_id": 4688,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 11,
+          "y": 155,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 4149,
+          "action_ids": [
+            969
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: Virtual reviewed native5569 final branch on the unchanged capturedGoultard4688/action969 actor; original physicalroot7119/provider retained. Nativeguarded4149/15237 to7142/15246 is a reviewed graph join, not a captured server dialogue transition.",
+          "native_capture_id": -1776810790485981,
+          "native_publication_authorized": true
+        },
+        "graph": [],
+        "existing_dialogue_actor": {
+          "source_sha256": "bf84a92d0c33851c8ecc74367dfb6035844a65979be9c6bfd069db8b4f5de325",
+          "quest_ids": [
+            5569
+          ],
+          "evidence": "Exact current captured authorized world_dialogue_npcs row forGoultard. Conditional virtual story root is selected only after native15237 predicate passes; source actor/root7119 remains unchanged."
+        },
+        "provider_overlay_criterion": "IsAchievementRunning(5569)\r\nand IsAchievementObjectiveComplete(11516)\r\nand IsAchievementObjectiveComplete(11517)\r\nand IsAchievementObjectiveComplete(11518)\r\nand not IsAchievementObjectiveComplete(11519)"
+      },
+      "graph": [
+        [
+          4149,
+          15237,
+          7142
+        ],
+        [
+          4149,
+          10349,
+          0
+        ],
+        [
+          7142,
+          15246,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 5569,
+          "objective_id": 11519,
+          "node_id": 7142,
+          "choice_id": 15246,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            11516,
+            11517,
+            11518
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1319 @@
+{
+  "schema": "quest-chest-supply-batch-v1",
+  "id": "frigost-taroudium-cores",
+  "rules": [
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18166,
+      "position": [
+        -6,
+        -35,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffffaffffffdd00000001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -6,
+          -34,
+          0
+        ],
+        [
+          -6,
+          -36,
+          0
+        ],
+        [
+          -7,
+          -35,
+          0
+        ],
+        [
+          -5,
+          -35,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2427,
+        "bbn": -6,
+        "bbo": -35,
+        "bbl": 0,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18166,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1484,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18167,
+      "position": [
+        5,
+        -50,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d00000101f800000005ffffffce00000001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          5,
+          -49,
+          0
+        ],
+        [
+          5,
+          -51,
+          0
+        ],
+        [
+          4,
+          -50,
+          0
+        ],
+        [
+          6,
+          -50,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2426,
+        "bbn": 5,
+        "bbo": -50,
+        "bbl": 0,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18167,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1485,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18168,
+      "position": [
+        -7,
+        -73,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffff9ffffffb700110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -7,
+          -72,
+          17
+        ],
+        [
+          -7,
+          -74,
+          17
+        ],
+        [
+          -8,
+          -73,
+          17
+        ],
+        [
+          -6,
+          -73,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2425,
+        "bbn": -7,
+        "bbo": -73,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18168,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1486,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18169,
+      "position": [
+        -12,
+        -67,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffff4ffffffbd00110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -12,
+          -66,
+          17
+        ],
+        [
+          -12,
+          -68,
+          17
+        ],
+        [
+          -13,
+          -67,
+          17
+        ],
+        [
+          -11,
+          -67,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2423,
+        "bbn": -12,
+        "bbo": -67,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18169,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1488,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18170,
+      "position": [
+        -19,
+        -67,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8ffffffedffffffbd00110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -19,
+          -66,
+          17
+        ],
+        [
+          -19,
+          -68,
+          17
+        ],
+        [
+          -20,
+          -67,
+          17
+        ],
+        [
+          -18,
+          -67,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2424,
+        "bbn": -19,
+        "bbo": -67,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18170,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1487,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18171,
+      "position": [
+        -4,
+        -48,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffffcffffffd000000001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -4,
+          -47,
+          0
+        ],
+        [
+          -4,
+          -49,
+          0
+        ],
+        [
+          -5,
+          -48,
+          0
+        ],
+        [
+          -3,
+          -48,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2422,
+        "bbn": -4,
+        "bbo": -48,
+        "bbl": 0,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18171,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1489,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18172,
+      "position": [
+        -8,
+        -83,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffff8ffffffad00110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -8,
+          -82,
+          17
+        ],
+        [
+          -8,
+          -84,
+          17
+        ],
+        [
+          -9,
+          -83,
+          17
+        ],
+        [
+          -7,
+          -83,
+          16
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2421,
+        "bbn": -8,
+        "bbo": -83,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18172,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1490,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18173,
+      "position": [
+        0,
+        -86,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f800000000ffffffaa00110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          0,
+          -85,
+          17
+        ],
+        [
+          0,
+          -87,
+          17
+        ],
+        [
+          -1,
+          -86,
+          17
+        ],
+        [
+          1,
+          -86,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2420,
+        "bbn": 0,
+        "bbo": -86,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18173,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1491,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18174,
+      "position": [
+        -25,
+        -79,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8ffffffe7ffffffb100110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -25,
+          -78,
+          17
+        ],
+        [
+          -25,
+          -80,
+          17
+        ],
+        [
+          -26,
+          -79,
+          17
+        ],
+        [
+          -24,
+          -79,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2419,
+        "bbn": -25,
+        "bbo": -79,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18174,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1492,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18175,
+      "position": [
+        8,
+        -58,
+        8
+      ],
+      "payload_hex": "02000000000b010000000d00000101f800000008ffffffc600080001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          8,
+          -57,
+          8
+        ],
+        [
+          8,
+          -59,
+          8
+        ],
+        [
+          7,
+          -58,
+          8
+        ],
+        [
+          9,
+          -58,
+          8
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2418,
+        "bbn": 8,
+        "bbo": -58,
+        "bbl": 8,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18175,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1493,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18196,
+      "position": [
+        -15,
+        -74,
+        15
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffff1ffffffb6000f0001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -15,
+          -73,
+          15
+        ],
+        [
+          -15,
+          -75,
+          15
+        ],
+        [
+          -16,
+          -74,
+          15
+        ],
+        [
+          -14,
+          -74,
+          15
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2417,
+        "bbn": -15,
+        "bbo": -74,
+        "bbl": 15,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18196,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1494,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18197,
+      "position": [
+        -16,
+        -82,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f8fffffff0ffffffae00110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -16,
+          -81,
+          17
+        ],
+        [
+          -16,
+          -83,
+          17
+        ],
+        [
+          -17,
+          -82,
+          17
+        ],
+        [
+          -15,
+          -82,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2416,
+        "bbn": -16,
+        "bbo": -82,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18197,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1483,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-taroudium-core-supply",
+      "version": 1,
+      "authority": "Reviewed server-side quest supply association: native source/prototype260/held16073 and positive original POI stage1227 are proven; item16071 output joins original quest2197/counter258 and guide, not serialized chest loot. Explicit reviewed1000ms server occupation; efm20 is not interpreted as duration.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 504,
+      "object_id": 18198,
+      "position": [
+        5,
+        -78,
+        17
+      ],
+      "payload_hex": "02000000000b010000000d00000101f800000005ffffffb200110001010101000f0000000332363000000046f50001",
+      "native_state_payload_hex": "01020000000602000101010000010000000000",
+      "geometry_sha256": "8d825d9b3dadef5e76b68ee24a33ec1bfad630d9329107a6b36a472d05917b5e",
+      "physical_sha256": "97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b",
+      "native_definition": 260,
+      "native_prototype": {
+        "p": 260,
+        "egY": 9,
+        "efm": 20,
+        "ema": 0,
+        "emb": 16073,
+        "emc": 1,
+        "ejK": true,
+        "emd": 1,
+        "eme": false,
+        "ejL": 1,
+        "ehu": ""
+      },
+      "source_stage": "IsAchievementRunning(1227)",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "threshold": 10,
+      "output_reference": 16071,
+      "output_quantity": 1,
+      "held_tool_reference": 16073,
+      "held_tool_quantity": 1,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          5,
+          -77,
+          17
+        ],
+        [
+          5,
+          -79,
+          17
+        ],
+        [
+          4,
+          -78,
+          17
+        ],
+        [
+          6,
+          -78,
+          17
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "native_poi": {
+        "p": 2415,
+        "bbn": 5,
+        "bbo": -78,
+        "bbl": 17,
+        "asQ": 4,
+        "che": -1,
+        "chf": -1,
+        "chg": 0,
+        "chh": 0,
+        "chi": 1,
+        "chj": 18198,
+        "chk": 0,
+        "chl": [
+          {
+            "p": 1482,
+            "chm": 85,
+            "chn": "IsAchievementRunning(1227)",
+            "bKa": {
+              "NT": 1227,
+              "bnH": false,
+              "cHd": true
+            }
+          }
+        ]
+      },
+      "poi_source": {
+        "native_archive": "client/contents/maps/data.jar",
+        "native_entry": "poi/504/map.poi",
+        "native_entry_sha256": "312c91142112173c42ad01c3543b75f6b221cd19ede7acb7a18cd45390fc9402",
+        "native_entry_size": 2074,
+        "native_reader": "aIm.b(aoG.dx(bytes),false)",
+        "decoder_source": ".runtime/quest-archetypes/ExportFrigostPoi.java"
+      },
+      "scene_scope": "public"
+    }
+  ]
+}

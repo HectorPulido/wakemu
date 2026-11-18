@@ -1,4 +1,5 @@
 """Bounded fight terrain selected from installed-client map exports."""
+
 from wakfu_server import native_catalog as protocol_catalog
 import json
 import os
@@ -91,6 +92,7 @@ def local_arena(
     member_radii=None,
     player_radius=0,
     ordinary_npc_placement=False,
+    ordinary_generated_placement=False,
     full_room_scope=False,
     initial_obstacle_cells=(),
     fixed_member_positions=None,
@@ -185,6 +187,14 @@ def local_arena(
     radii = radii_for(members, member_radii, player_radius)
     if type(ordinary_npc_placement) is not bool:
         raise ValueError("Invalid ordinary NPC placement policy")
+    if (
+        type(ordinary_generated_placement) is not bool
+        or ordinary_generated_placement
+        and not ordinary_npc_placement
+    ):
+        raise ValueError(
+            "Ordinary generated placement requires native NPC qualification"
+        )
     placement_ground_cells = None
     bulk_ground = False
     if full_room_scope or compact:
@@ -213,6 +223,7 @@ def local_arena(
                 )
             )
     member_point_cells = None
+    player_point_cells = None
     if ordinary_npc_placement:
         from .combat_sn_path import NativeSnColumns
         from .combat_walk_surface_policy import native_npc_point_placement_allowed
@@ -239,6 +250,24 @@ def local_arena(
                 for cell in prepare_geometry(geometry).cells
                 if native_npc_point_placement_allowed(columns, cell)
             )
+        if ordinary_generated_placement and player_radius == 0:
+            from .combat_walk_surface_policy import (
+                native_player_point_placement_allowed,
+            )
+
+            player_point_cells = frozenset(
+                cell
+                for cell in prepare_geometry(geometry).cells
+                if native_player_point_placement_allowed(
+                    columns,
+                    cell,
+                    _ground_supported=(
+                        cell in placement_ground_cells
+                        if placement_ground_cells is not None
+                        else None
+                    ),
+                )
+            )
     if bulk_ground and protocol_catalog.release() != revision:
         raise ValueError("Native ground catalog changed during arena selection")
     configured_radius = int(os.environ.get("WAKFU_COMBAT_ARENA_RADIUS", "89"))
@@ -251,6 +280,7 @@ def local_arena(
             player_radius=player_radius,
             player_slots=6,
             member_point_cells=member_point_cells,
+            player_point_cells=player_point_cells,
             reserved_cells=initial_obstacles,
             placement_ground_cells=placement_ground_cells,
             fixed_member_positions=fixed_member_positions,
@@ -282,9 +312,11 @@ def local_arena(
                 geometry,
                 player_position,
                 members,
-                minimum_cells=(width - 2) * (height - 2)
-                if dimensions_include_border
-                else width * height,
+                minimum_cells=(
+                    (width - 2) * (height - 2)
+                    if dimensions_include_border
+                    else width * height
+                ),
                 minimum_dimensions=(width, height),
                 dimensions_include_border=dimensions_include_border,
                 member_radii=radii,
@@ -294,6 +326,7 @@ def local_arena(
                 allow_border_footprints=allow_border_footprints,
                 player_slots=player_slots,
                 member_point_cells=member_point_cells,
+                player_point_cells=player_point_cells,
                 placement_ground_cells=placement_ground_cells,
             )
 
@@ -493,19 +526,50 @@ def local_arena(
         validated_cells=selected["cells"],
         valid_edges=selected["edges"],
         placement_cells=placement,
-        native_qi_surface_provenance=native_qi_surface_provenance(map_id)
-        if provenance is None
-        else provenance,
+        native_qi_surface_provenance=(
+            native_qi_surface_provenance(map_id) if provenance is None else provenance
+        ),
         participant_positions=selected.get("participant_positions", []),
         native_los_gap_policy=EMPTY_GAP_POLICY,
         native_los_gap_surfaces=[
             [x, y, index] for (x, y), index in sorted(gap_indices.items())
         ],
         native_border_cells=borders,
-        native_border_policy="wakemu.compact-cardinal-perimeter-v1"
-        if compact
-        else None,
+        native_border_policy=(
+            "wakemu.compact-cardinal-perimeter-v1" if compact else None
+        ),
     )
+    if ordinary_generated_placement:
+        # Carry role-specific slot authority across the later durable zone
+        # expansion. Native terrain and walking edges remain complete.
+        from .combat_walk_surface_policy import native_player_point_placement_allowed
+
+        result["native_ordinary_point_placement"] = dict(
+            schema="wakemu-ordinary-point-placement-v1",
+            map_id=map_id,
+            source_sha256=columns.source_sha256,
+            player_point_only=player_radius == 0,
+            npc_point_only=all(radius == 0 for radius in radii),
+            player_cells=sorted(
+                cell
+                for cell in selected["cells"]
+                if player_radius != 0
+                or native_player_point_placement_allowed(
+                    columns,
+                    cell,
+                    _ground_supported=(
+                        cell in placement_ground_cells
+                        if placement_ground_cells is not None
+                        else None
+                    ),
+                )
+            ),
+            npc_cells=sorted(
+                set(selected["cells"]) & member_point_cells
+                if all(radius == 0 for radius in radii)
+                else selected["cells"]
+            ),
+        )
     if full_room_scope:
         result["native_full_room_scope"] = True
         for key in ("participant_player_position", "native_initial_player_relocation"):

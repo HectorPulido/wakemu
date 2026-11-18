@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "whisper-crisper-1302",
+  "version": 1,
+  "map_id": 1302,
+  "entry": {
+    "map_id": 1295,
+    "object_id": 32825,
+    "destination_id": 4433
+  },
+  "native_entry_criterion": "IsAchievementActive(4871) and #IsAchievementObjectiveComplete(10041)#",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    32852
+  ],
+  "controller_file": "whisper-crisper-1302.json",
+  "encounters_file": "whisper-crisper-1302-encounters.json",
+  "exploration_file": "whisper-crisper-1302.exploration.json",
+  "provenance": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed."
+}

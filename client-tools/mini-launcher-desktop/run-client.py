@@ -224,7 +224,9 @@ def main():
     java = source / (
         "jre/Contents/Home/bin/java"
         if macos
-        else "jre/bin/java.exe" if sys.platform == "win32" else "jre/bin/java"
+        else "jre/bin/java.exe"
+        if sys.platform == "win32"
+        else "jre/bin/java"
     )
     if not java.is_file():
         raise ValueError("Installed Wakfu Java runtime not found")
@@ -317,11 +319,11 @@ def main():
         "-Dsun.awt.noerasebackground=true",
         "-Dsun.java2d.noddraw=true",
         "-Djogl.disable.openglarbcontext",
-        "-Dsun.java2d.metal=false",
-        "-Dsun.java2d.opengl=true",
+        *(["-Dsun.java2d.metal=false", "-Dsun.java2d.opengl=true"] if macos else []),
         "--add-opens=java.desktop/sun.awt=ALL-UNNAMED",
         *(["--add-opens=java.desktop/com.apple.eawt=ALL-UNNAMED"] if macos else []),
-        "-Dsun.java2d.uiScale.enabled=true",
+        "-Dsun.java2d.uiScale.enabled="
+        + ("false" if sys.platform == "win32" else "true"),
         "-Djava.library.path=natives/",
         "@classpath",
         "com.ankamagames.wakfu.client.WakfuClient",

@@ -1,0 +1,120 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "astrub-temple-four-encounters",
+  "map_id": 887,
+  "provenance": "Reviewed reconstruction, NOT original captured formations. Scenario1722 proves four encounter stages in physical rooms1/2/4/5; boss3234 is exactnative sprite165303234 in14265. Other species are explicitly selected from original samefamily658 combat-capable native cohort, with no level/stat/spell overrides. Counts, arena bounds and positions are local authored policy on actual native cells.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "arena_seed": [
+        0,
+        -6,
+        0
+      ],
+      "bounds": [
+        -5,
+        -11,
+        5,
+        -2
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 3236,
+          "count": 2,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "room1-gate"
+      ],
+      "arena_seed": [
+        0,
+        -20,
+        0
+      ],
+      "bounds": [
+        -5,
+        -24,
+        5,
+        -15
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 3236,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 3237,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "physical_room": 4,
+      "requires": [
+        "puzzle-second-lever"
+      ],
+      "arena_seed": [
+        16,
+        -25,
+        0
+      ],
+      "bounds": [
+        12,
+        -31,
+        22,
+        -20
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 3235,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 3237,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "physical_room": 5,
+      "requires": [
+        "boss-intro-done"
+      ],
+      "arena_seed": [
+        0,
+        -60,
+        12
+      ],
+      "bounds": [
+        -4,
+        -66,
+        4,
+        -54
+      ],
+      "z": 12,
+      "monsters": [
+        {
+          "reference": 3234,
+          "count": 1,
+          "role": "boss"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 728,
+  "objects": [
+    {
+      "x": 0.0,
+      "y": 52.0,
+      "z": 0.0,
+      "id": 20652,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_2",
+      "map_id": 728,
+      "payload_hex": "02000000000b010000000d00000102d800000000000000340000000101010100000001000000000000003400000004313331330000003baf0001"
+    },
+    {
+      "x": -1.0,
+      "y": 34.0,
+      "z": 0.0,
+      "id": 24969,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_1",
+      "map_id": 728,
+      "payload_hex": "02000000000b010000000d00000102d8ffffffff00000022000000010100030000000000000000000b870101"
+    },
+    {
+      "x": -1.0,
+      "y": 9.0,
+      "z": 0.0,
+      "id": 24971,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_0",
+      "map_id": 728,
+      "payload_hex": "02000000000b010000000d00000102d8ffffffff000000090000000101000300000000000000000000000101"
+    },
+    {
+      "x": -1.0,
+      "y": -16.0,
+      "z": 0.0,
+      "id": 26431,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_-1",
+      "map_id": 728,
+      "payload_hex": "02000000000b010000000d00000102d8fffffffffffffff00000000100000100000001fffffffffffffff000000004313331330000003baf0001"
+    }
+  ],
+  "scenario_id": 0,
+  "scenario_events": [],
+  "scenes": {},
+  "source_sha256": {
+    "client/contents/maps/env/728.jar": "35f3701f3bce58c323a971f7af1193e1b98241993948107bf1a1234abb14baef"
+  }
+}

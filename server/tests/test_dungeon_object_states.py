@@ -1,6 +1,9 @@
 import copy
+import json
+import os
 import struct
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from wakfu_server.dungeon_object_states import (
@@ -242,3 +245,200 @@ class DungeonObjectStateTests(unittest.TestCase):
         topology["completed_exit_witness"]["source_id"] = 999
         with self.assertRaisesRegex(ValueError, "intermediate room"):
             self.hydrate(3, completed=True, sources=sources, topology=topology)
+
+    def test_pinned_crypt_and_nest_exits_hydrate_at_the_initial_frontier(self):
+        root = Path(__file__).parent
+        fixture = json.loads(
+            (root / "fixtures/native_astrub_crypt_nest_sources.json").read_text()
+        )
+        configs = (
+            root.parent
+            / "wakfu_server/maps/owned_story_profiles/astrub-crypt-889.configuration.json",
+            root.parent
+            / "wakfu_server/maps/owned_story_profiles/astrub-nest-728.configuration.json",
+        )
+        expected = {889: (23618,), 728: (20652, 26431)}
+        for path in configs:
+            document = json.loads(path.read_text())
+            topology = document["topology"]
+            map_id = topology["asset_map_id"]
+            sources = [row for row in fixture if row["map_id"] == map_id]
+            indexed = {row["id"]: row for row in sources}
+            self.assertEqual(
+                {row["source_id"] for row in topology["native_story_exits"]},
+                set(expected[map_id]),
+            )
+            with patch(
+                "wakfu_server.generic_transports.source",
+                side_effect=lambda asset, identity: indexed.get(identity)
+                if asset == map_id
+                else None,
+            ):
+                states = self.flags(
+                    packets(
+                        topology,
+                        sources,
+                        map_id=map_id,
+                        instance_id=144115188075855924,
+                        unlocked_room=1,
+                        completed=False,
+                    )
+                )
+            for source_id in expected[map_id]:
+                self.assertEqual(states[source_id], (1, 1))
+
+    def test_zinit_reef_shared_arena_uses_pinned_native_story_exits(self):
+        root = Path(__file__).parent.parent / "wakfu_server/maps/owned_story_profiles"
+        configuration = json.loads(
+            (root / "zinit-reef-980.configuration.json").read_text()
+        )
+        native = json.loads((root / "zinit-reef-980.native.v1.json").read_text())
+        topology = configuration["topology"]
+        self.assertEqual(topology["doors"], [])
+        self.assertEqual(len(topology["rooms"]), 6)
+        self.assertEqual(topology["rooms"][0]["cells"], topology["rooms"][1]["cells"])
+
+        sources = list(native["teleporters"].values())
+        indexed = {source["id"]: source for source in sources}
+        with patch(
+            "wakfu_server.generic_transports.source",
+            side_effect=lambda asset, identity: indexed.get(identity)
+            if asset == 980
+            else None,
+        ):
+            states = self.flags(
+                packets(
+                    topology,
+                    sources,
+                    map_id=980,
+                    instance_id=144115188075855924,
+                    unlocked_room=1,
+                    completed=False,
+                )
+            )
+
+        # These are the two actual story exits, and their native asset
+        # ownership/source guards are checked by packets(). Other portal
+        # availability is deliberately left to the native criteria.
+        self.assertEqual(states[25420], (1, 1))
+        self.assertEqual(states[25401], (1, 1))
+        self.assertTrue(set(states) <= set(indexed))
+        self.assertNotIn(25402, states)
+
+        with patch(
+            "wakfu_server.generic_transports.source",
+            side_effect=lambda asset, identity: indexed.get(identity)
+            if asset == 980
+            else None,
+        ):
+            completed_states = self.flags(
+                packets(
+                    topology,
+                    sources,
+                    map_id=980,
+                    instance_id=144115188075855924,
+                    unlocked_room=6,
+                    completed=True,
+                )
+            )
+        self.assertEqual(completed_states[25420], (1, 1))
+        self.assertEqual(completed_states[25401], (1, 1))
+        self.assertTrue(set(completed_states) <= set(indexed))
+
+        tampered = copy.deepcopy(topology)
+        tampered["native_story_exits"][0]["source_sha256"] = "0" * 64
+        with patch(
+            "wakfu_server.generic_transports.source",
+            side_effect=lambda asset, identity: indexed.get(identity)
+            if asset == 980
+            else None,
+        ), self.assertRaises(ValueError):
+            packets(
+                tampered,
+                sources,
+                map_id=980,
+                instance_id=144115188075855924,
+                unlocked_room=1,
+                completed=False,
+            )
+
+        # Shared cells are accepted only for the typed, map-bound story whose
+        # real victory dependencies attest the sequential arena reuse.
+        for mutate in (
+            lambda value: value.pop("owned_story_controller"),
+            lambda value: value["owned_story_controller"].update(map_id=981),
+            lambda value: value["rooms"][2].update(requires=[]),
+        ):
+            invalid = copy.deepcopy(topology)
+            mutate(invalid)
+            with patch(
+                "wakfu_server.generic_transports.source",
+                side_effect=lambda asset, identity: indexed.get(identity)
+                if asset == 980
+                else None,
+            ), self.assertRaises(ValueError):
+                packets(
+                    invalid,
+                    sources,
+                    map_id=980,
+                    instance_id=144115188075855924,
+                    unlocked_room=1,
+                    completed=False,
+                )
+
+        ordinary = copy.deepcopy(self.topology)
+        ordinary["rooms"][1]["cells"] = ordinary["rooms"][0]["cells"]
+        with self.assertRaises(ValueError):
+            self.hydrate(1, topology=ordinary)
+
+        # Adding optional-room policy restores strict ambiguity rejection even
+        # when the owned story controller is otherwise valid.
+        optional = copy.deepcopy(topology)
+        optional["optional_room_policy"] = {"schema": "ambiguous-guard"}
+        with patch(
+            "wakfu_server.generic_transports.source",
+            side_effect=lambda asset, identity: indexed.get(identity)
+            if asset == 980
+            else None,
+        ), self.assertRaises(ValueError):
+            packets(
+                optional,
+                sources,
+                map_id=980,
+                instance_id=144115188075855924,
+                unlocked_room=1,
+                completed=False,
+            )
+
+    @unittest.skipUnless(
+        os.environ.get("WAKFU_DATABASE_URL"), "requires native teleporter catalog"
+    )
+    def test_huppermage_platform_hides_unclaimed_exterior_sources_but_keeps_story_exit(
+        self,
+    ):
+        # Replace the synthetic small-map source registry from setUp with the
+        # real pinned generic transport catalog for this source-bound case.
+        self.native.stop()
+        root = Path(__file__).parent.parent / "wakfu_server/maps/owned_story_profiles"
+        configuration = json.loads(
+            (root / "huppermage-platform-1030.configuration.json").read_text()
+        )
+        from wakfu_server.generic_transports import source as native_source
+
+        identities = (25668, 25671, 25674, 25677)
+        sources = [native_source(1030, identity) for identity in identities]
+        self.assertTrue(all(source is not None for source in sources))
+        states = self.flags(
+            packets(
+                configuration["topology"],
+                sources,
+                map_id=1030,
+                instance_id=144115188075855952,
+                unlocked_room=1,
+                completed=False,
+            )
+        )
+        self.assertEqual(states[25668], (0, 0))
+        self.assertEqual(states[25671], (0, 0))
+        self.assertEqual(states[25677], (0, 0))
+        self.assertEqual(states[25674], (1, 1))

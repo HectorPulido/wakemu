@@ -64,6 +64,7 @@ class NativeOwnedCastingContext:
         self.normal_mode = False
         self._portal = None
         self.los_diagnostic = None
+        self._reviewed_cellless_validation = False
 
     def registry(self):
         if self._registry is None:
@@ -89,6 +90,8 @@ class NativeOwnedCastingContext:
         return self.rule["minimum"], self.rule["maximum"]
 
     def cell_and_qi_present(self):
+        if self._reviewed_cellless_validation:
+            return False
         # The cell is actual aBn. Missing serialization is unknown, not null QI.
         if not isinstance(getattr(self.fight, "native_qi_snapshot", None), dict):
             raise UnknownCondition("Missing actual native casting QI")
@@ -288,7 +291,11 @@ class NativeOwnedCastingContext:
         if not isinstance(raw, str) or not raw:
             raise UnknownCondition("Missing native casting criterion text")
         context = cast_cell_condition(
-            self.adapter, self.fight, self.plan, self.source.id, self.cell
+            self.adapter,
+            self.fight,
+            self.plan,
+            self.source.id,
+            None if self._reviewed_cellless_validation else self.cell,
         )
         return evaluate_condition(raw, context)
 
@@ -549,13 +556,19 @@ class NativeOwnedCastingContext:
         )
 
     def eligibility(self, *, trace=None):
+        from .combat_scene_cellless_casting import authorized
+
         flags = NativeCastingFlags(
             line_of_sight=self.rule["line_of_sight"],
             free_cell=self.rule["free_cell"],
             forbid_qi_p=self.rule["forbid_QI_P"],
             allow_self=self.rule["allow_self"],
         )
-        result = native_casting_eligibility(self, flags, trace=trace)
+        self._reviewed_cellless_validation = authorized(self)
+        try:
+            result = native_casting_eligibility(self, flags, trace=trace)
+        finally:
+            self._reviewed_cellless_validation = False
         if trace is not None and self.los_diagnostic is not None:
             trace.append(dict(stage="native_los_detail", value=self.los_diagnostic))
         return result

@@ -92,6 +92,30 @@ class Fixture(ScopeDatabase):
             raise
 
     def execute(self, sql, params=()):
+        if "payload @>" in sql:
+            character_id, prefix_length, prefix, expected = params
+            expected = getattr(expected, "obj", expected)
+            excluded = getattr(params[4], "obj", params[4]) if len(params) > 4 else None
+            matched = False
+            for key, payload in self.receipts.items():
+                if not (
+                    key.startswith(prefix)
+                    and len(key[:prefix_length]) == prefix_length
+                    and payload.get("owner") == character_id
+                    and all(
+                        payload.get(name) == value for name, value in expected.items()
+                    )
+                ):
+                    continue
+                if excluded and all(
+                    payload.get(name) == value for name, value in excluded.items()
+                ):
+                    continue
+                matched = True
+                break
+            return SimpleNamespace(
+                fetchone=lambda: ({"present": 1} if matched else None)
+            )
         if "SELECT e.fight_id,e.result FROM dungeon_room_encounters" in sql:
             value = self.victories.get(params[1]) if params[2:] == (7, 2) else None
             return SimpleNamespace(fetchone=lambda: copy.deepcopy(value))
@@ -111,7 +135,12 @@ class Fixture(ScopeDatabase):
                 )
             )
         if "UPDATE characters SET x=" in sql:
-            if params[-4:] != (7, 2, 312, 99):
+            if params[-4:] != (
+                self.character["id"],
+                self.character["account_id"],
+                312,
+                self.character["instance_id"],
+            ):
                 raise AssertionError("Position write escaped its owner")
             self.character.update(zip(("x", "y", "z"), params[:3]))
             return SimpleNamespace(rowcount=1)
@@ -129,14 +158,31 @@ class Fixture(ScopeDatabase):
                 ]
             )
             return SimpleNamespace(fetchall=lambda: values)
+        if "SELECT m.* FROM dungeon_instance_members" in sql:
+            expected = (
+                self.character["instance_id"],
+                self.character["id"],
+                self.character["account_id"],
+            )
+            row = self.member if params == expected else None
+            return SimpleNamespace(fetchone=lambda: copy.deepcopy(row))
+        if "FROM combat_groups " in sql:
+            expected = (312, self.character["instance_id"], self.spawn["group_id"])
+            row = self.group if params == expected else None
+            return SimpleNamespace(fetchone=lambda: copy.deepcopy(row))
         return super().execute(sql, params)
 
     def record(self, _db, owner, key, payload):
-        if owner != 7:
+        if owner != self.character["id"]:
             raise AssertionError("Foreign story receipt")
-        if key in self.receipts:
+        stored_key = (
+            key
+            if key.startswith("astrub-cat-story:")
+            else f"tutorial-owner:{owner}:{key}"
+        )
+        if stored_key in self.receipts:
             return False
-        self.receipts[key] = copy.deepcopy(payload)
+        self.receipts[stored_key] = copy.deepcopy(payload)
         return True
 
     @contextmanager
@@ -163,6 +209,12 @@ class Fixture(ScopeDatabase):
                 )
             )
             stack.enter_context(patch("wakfu_server.achievements.service._owner"))
+            self.earned_links = stack.enter_context(
+                patch(
+                    "wakfu_server.achievements.earned_achievement_links.settle",
+                    return_value=[],
+                )
+            )
             stack.enter_context(
                 patch(
                     "wakfu_server.achievements.service.drain_rewards", return_value=[]
@@ -194,7 +246,9 @@ class Fixture(ScopeDatabase):
             "generation",
             dict(self.character),
             struct.pack(">i", event),
-            pending_event=kwargs.pop("pending_event", (99, event)),
+            pending_event=kwargs.pop(
+                "pending_event", (self.character["instance_id"], event)
+            ),
             **kwargs,
         )
 
@@ -216,6 +270,85 @@ def scenario_events(packets):
 
 
 class AstrubCatStoryTests(unittest.TestCase):
+    @staticmethod
+    def _new_instance(character_id, instance_id, global_receipts=None):
+        fixture = Fixture()
+        fixture.character.update(id=character_id, instance_id=instance_id)
+        fixture.run["instance_id"] = instance_id
+        fixture.member.update(
+            instance_id=instance_id,
+            character_id=character_id,
+            party_id=fixture.run["party_id"],
+            status="active",
+        )
+        fixture.progress["instance_id"] = instance_id
+        fixture.progress["party_id"] = fixture.run["party_id"]
+        fixture.spawn["instance_id"] = instance_id
+        fixture.receipts = copy.deepcopy(global_receipts or {})
+        first_room_ids = [member["id"] for member in fixture.room_members[1]]
+        fixture.receipts[story._key(instance_id, "start")] = dict(
+            schema=story.SCHEMA,
+            owner=character_id,
+            instance_id=instance_id,
+            cat_ids=first_room_ids + [-(1000 + index) for index in range(9)],
+            nekark_ids=[-(2000 + index) for index in range(5)],
+            authority="fixture-owned-initial-story-receipt",
+        )
+        return fixture
+
+    def test_same_character_sees_cat_scene_and_guide_once_across_instances(self):
+        first = Fixture()
+        with first.patched():
+            offered = first.poll()
+            self.assertEqual(scenario_events(offered["packets"]), [23920])
+            first.callback(23920)
+        global_receipts = {
+            key: value
+            for key, value in first.receipts.items()
+            if key.startswith("tutorial-owner:7:")
+        }
+        self.assertEqual(len(global_receipts), 2)
+
+        repeat = self._new_instance(7, 100, global_receipts)
+        with repeat.patched():
+            resumed = repeat.poll()
+            self.assertIsNone(resumed["pending_event"])
+            self.assertNotIn(23920, scenario_events(resumed["packets"]))
+            self.assertNotIn(23921, scenario_events(resumed["packets"]))
+            self.assertIn(story._key(100, "callback:23920"), repeat.receipts)
+
+        other = self._new_instance(8, 101, global_receipts)
+        with other.patched():
+            offered_other = other.poll()
+            self.assertIn(23920, scenario_events(offered_other["packets"]))
+            acknowledged = other.callback(23920)
+            self.assertIn(23921, scenario_events(acknowledged["packets"]))
+
+    def test_historical_scene_and_callback_receipts_backfill_presentation_claims(self):
+        fixture = self._new_instance(7, 100)
+        fixture.receipts.pop(story._key(100, "start"))
+        fixture.receipts.update(
+            {
+                story._key(99, "scene:23920"): dict(
+                    kind="owned_cat_story_scene",
+                    owner=7,
+                    instance_id=99,
+                    event_id=23920,
+                ),
+                story._key(99, "callback:23920"): dict(
+                    kind="owned_cat_story_callback",
+                    owner=7,
+                    instance_id=99,
+                    event_id=23920,
+                ),
+            }
+        )
+        with fixture.patched():
+            offered = fixture.poll()
+            self.assertNotIn(23920, scenario_events(offered["packets"]))
+            self.assertIn(story._key(100, "callback:23920"), fixture.receipts)
+            self.assertNotIn(23921, scenario_events(offered["packets"]))
+
     def test_full_native_phase_flow_needs_three_victories_and_completes_only_story_steps(
         self,
     ):
@@ -265,8 +398,21 @@ class AstrubCatStoryTests(unittest.TestCase):
             self.assertEqual(fixture.state["running"], [5568])
             self.assertFalse(story.defer_auto_exit(fixture, 99))
             self.assertTrue(fixture.poll()["finished"])
+            self.assertEqual(
+                {
+                    call.kwargs["source_objective"]
+                    for call in fixture.earned_links.call_args_list
+                },
+                {11511, 11513},
+            )
+            self.assertTrue(
+                all(
+                    call.kwargs["event_key"] in fixture.receipts
+                    for call in fixture.earned_links.call_args_list
+                )
+            )
 
-    def test_reconnect_resumes_only_unfinished_scene_without_advancing_again(self):
+    def test_reconnect_suppresses_seen_scene_and_commits_its_mechanics_once(self):
         fixture = Fixture()
         with fixture.patched():
             fixture.poll()
@@ -276,14 +422,19 @@ class AstrubCatStoryTests(unittest.TestCase):
             state = copy.deepcopy(fixture.state)
             receipts = copy.deepcopy(fixture.receipts)
             resumed = fixture.poll(bootstrap=True)
-            self.assertEqual(resumed["pending_event"], offered["pending_event"])
-            self.assertEqual(scenario_events(resumed["packets"]), [10021, 23922])
+            self.assertIsNone(resumed["pending_event"])
+            self.assertEqual(scenario_events(resumed["packets"]), [10021, 23923])
             self.assertEqual(fixture.state, state)
-            self.assertEqual(fixture.receipts, receipts)
-            fixture.callback(23922)
+            callback_key = story._key(99, "callback:23922")
+            self.assertNotIn(callback_key, receipts)
+            self.assertIn(callback_key, fixture.receipts)
+            self.assertEqual(sum(key == callback_key for key in fixture.receipts), 1)
             self.assertEqual(fixture.poll()["packets"], ())
-            with self.assertRaisesRegex(ValueError, "out of order"):
-                fixture.callback(23922)
+            replay_before = copy.deepcopy((fixture.state, fixture.receipts))
+            duplicate = fixture.callback(23922)
+            self.assertEqual(duplicate["packets"], ())
+            self.assertEqual(duplicate["pending_event"], (99, 23922))
+            self.assertEqual((fixture.state, fixture.receipts), replay_before)
 
     def test_malformed_stale_and_out_of_order_callbacks_cannot_mutate_progress(self):
         fixture = Fixture()

@@ -4,14 +4,20 @@ An accepted mission must be in the published, reviewed combat binding set. The
 same authenticated winning event that first matches its target may then advance
 it. No history is backfilled and no mission state is inferred from client text.
 """
+
+from . import native_effective_eligibility
 from copy import deepcopy
 
 from wakfu_server import dungeon_criteria
-from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+from wakfu_server.dungeon_achievement_authority import queries_from_state
 from .mission_progress import auto_track
 
 
 def _matches(rule, event):
+    if rule["kind"] == "victory":
+        # This event comes only from service._event's durable owned PvE win.
+        # Requiring an original enemy also excludes empty/admin encounters.
+        return bool(event.get("original_breeds"))
     if rule["kind"] == "monster":
         return rule["target_id"] in event.get("original_breeds", ())
     if rule["kind"] == "dungeon":
@@ -21,6 +27,13 @@ def _matches(rule, event):
             "dungeon_id"
         ] == event.get("completed_dungeon_id")
     return False
+
+
+def _level_matches(rule, character):
+    minimum = rule.get("minimum_level")
+    return minimum is None or (
+        type(character.get("level")) is int and character["level"] >= minimum
+    )
 
 
 def auto_accept(state, event, rules, definitions, *, character, store, now_ms):
@@ -37,9 +50,7 @@ def auto_accept(state, event, rules, definitions, *, character, store, now_ms):
         raise ValueError("Missing character real level")
     before = deepcopy(state)
     result = deepcopy(state)
-    queries = queries_from_snapshot(
-        {k: before[k] for k in ("running", "completed", "objectives")}
-    )
+    queries = queries_from_state(before)
     started = set()
     for rule in rules:
         if rule.get("acceptance", "on_matching_victory") != "on_matching_victory":
@@ -67,7 +78,7 @@ def auto_accept(state, event, rules, definitions, *, character, store, now_ms):
         try:
             allowed = dungeon_criteria.evaluate(
                 store,
-                definition["cjI"],
+                native_effective_eligibility.criterion(definition),
                 character=character,
                 queries=queries,
                 now_ms=now_ms,

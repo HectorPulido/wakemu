@@ -1,5 +1,6 @@
 """Authoritative native exterior return with durable per-member delivery."""
 
+from contextlib import nullcontext
 from .dungeon_transition_recovery import DungeonExitDeferred
 
 import struct
@@ -358,6 +359,7 @@ def _leave(
     in_fight,
     destination_for,
     positions=None,
+    _db=None,
 ):
     if not callable(in_fight):
         raise ValueError("Authoritative combat check is required")
@@ -378,7 +380,7 @@ def _leave(
                 destination_for=destination_for,
             ),
         )
-    with store.connection() as db:
+    with store.connection() if _db is None else nullcontext(_db) as db:
         # Match entry and party mutation ordering before taking session rows.
         player_parties._lock_members(db, [character_id])
         store.lock_character(db, account_id, generation, character_id)
@@ -412,15 +414,24 @@ def _leave(
                 "Dungeon member cannot leave in its current state"
             )
         destination = destination_for(db, character, run)
+        destination_instance = destination.get("instance_id", 0)
+        if type(destination_instance) is not int:
+            raise ValueError("Invalid native exit destination scope")
+        if destination_instance != 0:
+            from wakfu_server.intro_cinematic import private_instance_id
+
+            if destination_instance != private_instance_id(character_id):
+                raise ValueError("Private cinematic exit belongs to another owner")
         revision = run["revision"] + 1
         db.execute(
             "UPDATE dungeon_instances SET revision=%s WHERE instance_id=%s",
             (revision, run["instance_id"]),
         )
         db.execute(
-            "UPDATE characters SET map_id=%s,instance_id=0,x=%s,y=%s,z=%s WHERE id=%s",
+            "UPDATE characters SET map_id=%s,instance_id=%s,x=%s,y=%s,z=%s WHERE id=%s",
             (
                 destination["map_id"],
+                destination_instance,
                 destination["x"],
                 destination["y"],
                 destination["z"],
@@ -439,7 +450,7 @@ def _leave(
             "INSERT INTO dungeon_transition_outbox(instance_id,party_id,transition_revision,character_id,"
             "session_generation,source_map_id,source_instance_id,source_x,source_y,source_z,"
             "destination_map_id,destination_instance_id,destination_x,destination_y,destination_z,transition_kind) "
-            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,0,%s,%s,%s,'exit')",
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,'exit')",
             (
                 run["instance_id"],
                 run["party_id"],
@@ -452,6 +463,7 @@ def _leave(
                 character["y"],
                 character["z"],
                 destination["map_id"],
+                destination_instance,
                 destination["x"],
                 destination["y"],
                 destination["z"],
@@ -463,6 +475,10 @@ def _leave(
             "WHERE h.account_id=%s AND r.leader_id=%s AND m.instance_id=%s AND m.status='active'",
             (account_id, character_id, run["instance_id"]),
         ).fetchall()
+        if destination_instance and owned_heroes:
+            raise DungeonExitDeferred(
+                "Owner-only cinematic cannot include active heroes"
+            )
         for owned in owned_heroes:
             hero_id = owned["character_id"]
             store.lock_character(db, account_id, generation, hero_id, selected=False)
@@ -502,7 +518,7 @@ def _leave(
         party_change = player_parties.cleanup_dungeon_solo(db, run["party_id"])
         return dict(
             destination,
-            instance_id=0,
+            instance_id=destination_instance,
             transition_kind="exit",
             party_change=party_change,
         )

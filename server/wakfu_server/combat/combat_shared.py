@@ -440,6 +440,33 @@ class Registry:
         packets = self._synchronize_defeated_current(
             shared, candidate, runtime, packets
         )
+        if getattr(candidate, "native_order_trial", None) is not None:
+            from .native_order_trial_events import observe_pending
+
+            event_start = len(shared.fight.events)
+            if (
+                candidate.sequence < shared.fight.sequence
+                or len(candidate.events) < event_start
+                or event_start < len(candidate.events)
+                and candidate.events[event_start]["sequence"]
+                != shared.fight.sequence + 1
+            ):
+                raise ValueError(
+                    "Order action lost its native candidate event boundary"
+                )
+            current_events = tuple(candidate.events[event_start:])
+            observe_pending(candidate, events=current_events)
+            from .native_order_trial_orders import advance as advance_order_requests
+
+            advance_order_requests(candidate, events=current_events)
+            from .native_order_trial_presentation import (
+                prepare as prepare_order_markers,
+            )
+
+            packets = prepare_order_markers(candidate, runtime, packets)
+            from .native_order_trial_encounter import finish_normal
+
+            finish_normal(candidate, runtime)
         from .combat_retained_gc_boundary import prepare_retired_gc
 
         prepare_retired_gc(shared.fight, candidate, runtime, packets)
@@ -1771,9 +1798,9 @@ class Registry:
                 shared.reconnect_remaining_turn_seconds = None
             shared.participants[session.account_id] = session
             if fresh_world:
-                shared.pending_world_recoveries[session.account_id] = (
-                    PendingWorldRecovery(session, fight_id)
-                )
+                shared.pending_world_recoveries[
+                    session.account_id
+                ] = PendingWorldRecovery(session, fight_id)
             if recover_disconnected:
                 paused_at = getattr(shared, "reconnect_placement_paused_at", None)
                 if paused_at is not None:
@@ -1800,9 +1827,9 @@ class Registry:
             shared.reconnect_presentations.pop(session.account_id, None)
             shared.completed_reconnect_presentations.pop(session.account_id, None)
             if prepared.presentation is not None:
-                shared.reconnect_presentations[session.account_id] = (
-                    PendingBirthPresentation.bind(session, prepared.presentation)
-                )
+                shared.reconnect_presentations[
+                    session.account_id
+                ] = PendingBirthPresentation.bind(session, prepared.presentation)
             shared.outboxes[session.account_id] = deque(
                 [Batch(shared.sequence, packets, public_events=False)]
             )
@@ -1817,10 +1844,10 @@ class Registry:
                 shared.reconnect_presentations.pop(account, None)
                 shared.completed_reconnect_presentations.pop(account, None)
                 if account in staged_presentations:
-                    shared.reconnect_presentations[account] = (
-                        PendingBirthPresentation.bind(
-                            owner, staged_presentations[account]
-                        )
+                    shared.reconnect_presentations[
+                        account
+                    ] = PendingBirthPresentation.bind(
+                        owner, staged_presentations[account]
                     )
                 shared.outboxes[account] = deque(
                     [Batch(shared.sequence, owner_packets, public_events=False)]
@@ -2093,6 +2120,16 @@ class Registry:
             saved = persist(shared.fight)
             if not isinstance(saved, dict) or "character" not in saved:
                 raise ValueError("Invalid durable PvE withdrawal result")
+            if saved.get("order_trial_progression"):
+                from .combat_progression_delivery import defer
+
+                defer(
+                    withdrawal.private_runtime.fight,
+                    session.account_id,
+                    session.generation,
+                    session.character_id,
+                    self._packets(saved["order_trial_progression"]),
+                )
             shared.fight, shared.runtime, shared.ack = (
                 withdrawal.fight,
                 withdrawal.runtime,

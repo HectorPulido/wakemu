@@ -1,0 +1,24 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "bovis-lair-1002",
+  "version": 1,
+  "map_id": 1002,
+  "entry": {
+    "map_id": 1134,
+    "object_id": 25510,
+    "destination_id": 2260
+  },
+  "native_entry_criterion": "IsAchievementActive(2710) && IsAchievementObjectiveComplete(5359)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25520,
+    25519
+  ],
+  "controller_file": "bovis-lair-1002.json",
+  "exploration_file": "bovis-lair-1002.exploration.json",
+  "encounters_file": "bovis-lair-1002-encounters.json",
+  "provenance": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+}

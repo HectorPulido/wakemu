@@ -1,0 +1,365 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 723,
+  "objects": [
+    {
+      "x": 3.0,
+      "y": -18.0,
+      "z": 1.0,
+      "id": 20428,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000003ffffffee0001000101010100400000000332323400000000000101"
+    },
+    {
+      "x": 1.0,
+      "y": -25.0,
+      "z": 0.0,
+      "id": 20429,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-2",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000001ffffffe70000000101000100000000000000000000000101"
+    },
+    {
+      "x": 3.0,
+      "y": -25.0,
+      "z": 0.0,
+      "id": 20430,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-2",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000003ffffffe70000000101000100000000000000000000000101"
+    },
+    {
+      "x": 2.0,
+      "y": -25.0,
+      "z": 0.0,
+      "id": 20431,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-2",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000002ffffffe70000000101000100000000000000000000000101"
+    },
+    {
+      "x": 12.0,
+      "y": -8.0,
+      "z": 0.0,
+      "id": 20460,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d30000000cfffffff80000000101010100080000000332323700000000000101"
+    },
+    {
+      "x": 10.0,
+      "y": -8.0,
+      "z": 0.0,
+      "id": 20521,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d30000000afffffff80000000101010100080000000332333200000000000101"
+    },
+    {
+      "x": 9.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20658,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000009fffffffc00000001010101000800000004313331340000003baf0001"
+    },
+    {
+      "x": -2.0,
+      "y": -38.0,
+      "z": 0.0,
+      "id": 20659,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-3",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d3fffffffeffffffda00000001010101003d0000000332333400000000000101"
+    }
+  ],
+  "scenario_id": 1650,
+  "scenario_events": [
+    13127
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "13127": {
+      "argument_count": 0
+    }
+  },
+  "programs": {
+    "20428": {
+      "native_class": "aLl",
+      "descriptor_id": 224,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 249,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 249,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 474,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(1677) and IsAchievementObjectiveComplete(3105) and IsAchievementObjectiveComplete(3106) and IsAchievementObjectiveComplete(3108)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20460": {
+      "native_class": "aLl",
+      "descriptor_id": 227,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 253,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 3000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 253,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 478,
+                  "effect_type": 4,
+                  "criterion": "IsAchievementRunning(1677) and IsAchievementObjectiveComplete(3105) and IsAchievementObjectiveComplete(3106) and not IsAchievementObjectiveComplete(3108)",
+                  "parameters": [
+                    "2352"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20521": {
+      "native_class": "aLl",
+      "descriptor_id": 232,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 259,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 259,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 482,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20659": {
+      "native_class": "aLl",
+      "descriptor_id": 234,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 261,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 261,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 483,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(1677) and IsAchievementObjectiveComplete(3107) and not IsAchievementObjectiveComplete(3109)",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "474": {
+      "present": false,
+      "sha256": null
+    },
+    "482": {
+      "present": true,
+      "sha256": "9be0ef85cfe540ea8abbc842444c02ee8dc16693c823fea6ff23d8a26903e1fd"
+    },
+    "483": {
+      "present": true,
+      "sha256": "478ca36759e95c3ac89c55c31e4de2917a1e95642773aa624f89058422a672c6"
+    }
+  },
+  "teleporters": {
+    "20658": {
+      "x": 9.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20658,
+      "map_id": 723,
+      "destinations": [
+        {
+          "x": 9,
+          "y": -3,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 714,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 1443,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 8,
+      "definition_id": 1314,
+      "native_parameters": "1314",
+      "approach_positions": [
+        {
+          "x": 9,
+          "y": -3,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {
+    "20428": [
+      [
+        2,
+        -17,
+        0
+      ]
+    ],
+    "20460": [
+      [
+        12,
+        -7,
+        0
+      ]
+    ],
+    "20521": [
+      [
+        10,
+        -7,
+        0
+      ]
+    ],
+    "20659": [
+      [
+        -2,
+        -39,
+        0
+      ],
+      [
+        -1,
+        -39,
+        0
+      ],
+      [
+        -1,
+        -38,
+        0
+      ],
+      [
+        -2,
+        -37,
+        0
+      ],
+      [
+        -1,
+        -37,
+        0
+      ]
+    ]
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1650.lua": "8ba8c9c759a33e7425c8ee4809d7e5f513dd90332880f205c63ef4dec297ad8f"
+  },
+  "presentations": [
+    13127
+  ],
+  "presentation_quests": {
+    "13127": 1623
+  }
+}

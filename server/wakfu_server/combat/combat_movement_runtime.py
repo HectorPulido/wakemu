@@ -236,8 +236,16 @@ def apply_client(
     runtime.action_id += 1
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
-    final = [] if actor_id in hidden_snapshot_actor_ids(fight) else refreshes
-    return [animation, runtime._flush(), *final], event
+    hidden = actor_id in hidden_snapshot_actor_ids(fight)
+    final = [] if hidden else refreshes
+    from .combat_tackle_loss_messages import tackle_loss_messages
+
+    losses = (
+        []
+        if hidden
+        else tackle_loss_messages(fight.id, runtime.action_id, actor_id, event)
+    )
+    return [animation, *losses, runtime._flush(), *final], event
 
 
 def apply_ai(
@@ -311,8 +319,18 @@ def apply_ai(
     runtime.action_id += 1
     from .combat_snapshot_actor_visibility import hidden_snapshot_actor_ids
 
-    final = [] if actor.id in hidden_snapshot_actor_ids(fight) else refreshes
-    return [animation, runtime._flush(), *final], result
+    hidden = actor.id in hidden_snapshot_actor_ids(fight)
+    final = [] if hidden else refreshes
+    from .combat_tackle_loss_messages import tackle_loss_messages
+
+    losses = (
+        []
+        if hidden
+        else tackle_loss_messages(
+            fight.id, runtime.action_id, actor.id, result["event"]
+        )
+    )
+    return [animation, *losses, runtime._flush(), *final], result
 
 
 def _with_areas(runtime, provider, operation):
@@ -327,7 +345,25 @@ def _with_areas(runtime, provider, operation):
     callbacks = []
     action_id = candidate.action_id + 2
 
+    def ball_area_events(fight, ball, origin, destination):
+        animation = movement(
+            fight.id, action_id, ball.id, [origin, destination], ball.direction
+        )
+        preview, packets = provider(
+            fight,
+            actor_id=ball.id,
+            action_id=action_id,
+            path=[destination],
+            origin=origin,
+        )
+        adopt_fight(fight, preview)
+        return [animation, *packets]
+
     def deliver_step(fight, actor, before, cell):
+        from .combat_scene_movement_escape import prepare_committed, settle_committed
+        from .combat_scene_ball_follow import follow_paid_walk
+
+        escape = prepare_committed(fight, actor, before, cell)
         preview, packets = provider(
             fight,
             actor_id=actor.id,
@@ -338,6 +374,16 @@ def _with_areas(runtime, provider, operation):
         # execute_steps holds the current actor object between resource checks.
         adopt_fight(fight, preview)
         callbacks.extend(packets)
+        callbacks.extend(
+            follow_paid_walk(
+                fight,
+                moving_id=actor.id,
+                origin=before,
+                destination=cell,
+                area_events=ball_area_events,
+            )
+        )
+        settle_committed(fight, escape)
 
     from .combat_owned_movement_step import movement_child_preview
 

@@ -1,0 +1,87 @@
+{
+  "aHe": "",
+  "aeV": 3,
+  "aqb": false,
+  "bwX": 5047,
+  "cjG": 860,
+  "cjH": true,
+  "cjI": "GetRealLevel() >= 36",
+  "cjJ": [
+    {
+      "ckb": true,
+      "ckc": "",
+      "ckd": [],
+      "cke": "",
+      "ckf": [
+        {
+          "ckm": "GetAchievementVariable(\"nbMortsBrulesKilled\") >= 10",
+          "ckn": [
+            747
+          ],
+          "d": 763,
+          "native_class": "aJQ"
+        }
+      ],
+      "d": 10411,
+      "native_class": "aJN"
+    },
+    {
+      "ckb": true,
+      "ckc": "IsAchievementObjectiveComplete(10411)",
+      "ckd": [
+        {
+          "ckg": 15,
+          "ckh": -36,
+          "cki": -42,
+          "ckj": 1359,
+          "native_class": "aJO"
+        }
+      ],
+      "cke": "",
+      "ckf": [],
+      "d": 10412,
+      "native_class": "aJN"
+    }
+  ],
+  "cjK": [
+    {
+      "aeV": 5,
+      "ckk": false,
+      "ckl": [
+        20968,
+        8
+      ],
+      "d": 9562,
+      "native_class": "aJP"
+    },
+    {
+      "aeV": 6,
+      "ckk": false,
+      "ckl": [
+        181644
+      ],
+      "d": 9561,
+      "native_class": "aJP"
+    }
+  ],
+  "cjL": 0,
+  "cjM": false,
+  "cjN": false,
+  "cjO": false,
+  "cjP": 36,
+  "cjQ": 6,
+  "cjR": true,
+  "cjS": -1,
+  "cjT": 0,
+  "cjU": 0,
+  "cjV": false,
+  "cjW": false,
+  "cjX": 0,
+  "cjY": 0,
+  "cjZ": 0,
+  "cka": "ach.860",
+  "d": 5047,
+  "getDuration": 0,
+  "isVisible": true,
+  "native_class": "aJM"
+}

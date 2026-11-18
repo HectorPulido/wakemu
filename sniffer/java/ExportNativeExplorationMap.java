@@ -4,7 +4,9 @@ import java.util.*;
 import java.util.zip.*;
 import com.google.gson.*;
 
-/** Offline player exploration topology, separate from published combat geometry. */
+/** Offline player exploration topology, separate from published combat geometry.
+ * Optional bounds retain only a native window when auditing a large map.
+ */
 public class ExportNativeExplorationMap {
     record Cell(int x, int y, int z) implements Comparable<Cell> {
         public int compareTo(Cell b) {
@@ -20,7 +22,15 @@ public class ExportNativeExplorationMap {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path)));
     }
     public static void main(String[] args) throws Exception {
-        if (args.length != 2) throw new IllegalArgumentException("map_id output.json");
+        if (args.length != 2 && args.length != 6)
+            throw new IllegalArgumentException("map_id output.json [min_x min_y max_x max_y]");
+        boolean bounded = args.length == 6;
+        int minX = bounded ? Integer.parseInt(args[2]) : Integer.MIN_VALUE;
+        int minY = bounded ? Integer.parseInt(args[3]) : Integer.MIN_VALUE;
+        int maxX = bounded ? Integer.parseInt(args[4]) : Integer.MAX_VALUE;
+        int maxY = bounded ? Integer.parseInt(args[5]) : Integer.MAX_VALUE;
+        if (minX > maxX || minY > maxY)
+            throw new IllegalArgumentException("Native exploration window has reversed bounds");
         int map = Integer.parseInt(args[0]);
         Path archivePath = Path.of("client/contents/maps/tplg/" + map + ".jar");
         Map<Long,Column> columns = new LinkedHashMap<>();
@@ -37,6 +47,7 @@ public class ExportNativeExplorationMap {
                 chunk.a(reader);
                 chunks++;
                 for (int y=chunk.bbo; y<chunk.bbo+18; y++) for (int x=chunk.bbn; x<chunk.bbn+18; x++) {
+                    if (x < minX || y < minY || x > maxX || y > maxY) continue;
                     Vy[] surfaces = Vy.blX();
                     int count = chunk.a(x,y,surfaces,0);
                     if (count == 0) continue;
@@ -74,12 +85,14 @@ public class ExportNativeExplorationMap {
         List<int[]> orderedCells = cells.stream().map(Cell::array).toList();
         Map<String,Object> output = new LinkedHashMap<>();
         output.put("map_id",map); output.put("chunks",chunks);
+        if (bounded) output.put("bounds",new int[] {minX,minY,maxX,maxY});
         output.put("profile",Map.of("height",6,"movement_type",0,"jump_capacity",4,"native_class","Sm"));
         output.put("profile_authority","biB -> bjo -> big -> eGj; bcK=6, bcL=0, bvz=4; faz.fSR reads those actor methods");
         output.put("topology_sha256",sha(archivePath));
         output.put("client_sha256",sha(Path.of("client/lib/wakfu-client.jar")));
         output.put("cells",orderedCells); output.put("edges",edges); output.put("surfaces",surfaceFacts);
-        output.put("limits","Static cardinal exploration transitions only; no dynamic obstacle state or fight unlock authority");
+        output.put("limits",(bounded ? "Bounded native window only, not a full-map artifact; " : "")
+            + "Static cardinal exploration transitions only; no dynamic obstacle state or fight unlock authority");
         Files.writeString(Path.of(args[1]),new GsonBuilder().setPrettyPrinting().create().toJson(output)+"\n");
         System.out.println("map="+map+" chunks="+chunks+" cells="+cells.size()+" edges="+edges.size());
     }

@@ -1,0 +1,180 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 717,
+  "objects": [
+    {
+      "x": -16.0,
+      "y": 12.0,
+      "z": -12.0,
+      "id": 20563,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_0",
+      "map_id": 717,
+      "payload_hex": "02000000000b010000000d00000102cdfffffff00000000cfff4000101000300000000000000000000000101"
+    },
+    {
+      "x": -4.0,
+      "y": 18.0,
+      "z": -24.0,
+      "id": 20566,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_1",
+      "map_id": 717,
+      "payload_hex": "02000000000b010000000d00000102cdfffffffc00000012ffe8000101000100000000000000000000000101"
+    },
+    {
+      "x": 4.0,
+      "y": 10.0,
+      "z": -24.0,
+      "id": 20567,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_0",
+      "map_id": 717,
+      "payload_hex": "02000000000b010000000d00000102cd000000040000000affe8000101000100000000000000000000000101"
+    },
+    {
+      "x": 3.0,
+      "y": 10.0,
+      "z": -24.0,
+      "id": 20568,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 717,
+      "payload_hex": "02000000000b010000000d00000102cd000000030000000affe8000100000100000001000000030000000affe80004313239370000003baf0001"
+    },
+    {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 20570,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 717,
+      "payload_hex": "02000000000b010000000d00000102cd00000000000000010000000101010100000001000000000000000100000004313239390000003baf0001"
+    }
+  ],
+  "programs": {},
+  "native_scripts": {},
+  "scenario_events": [],
+  "scenes": {},
+  "event_signatures": {},
+  "teleporters": {
+    "20568": {
+      "x": 3.0,
+      "y": 10.0,
+      "z": -24.0,
+      "id": 20568,
+      "map_id": 717,
+      "destinations": [
+        {
+          "x": -2,
+          "y": 0,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1426,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1297,
+      "native_parameters": "1297",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20570": {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 20570,
+      "map_id": 717,
+      "destinations": [
+        {
+          "x": -97,
+          "y": -147,
+          "z": 4,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 1,
+          "destination_id": 1428,
+          "item_reference": 0,
+          "arrival_heights": [
+            4
+          ],
+          "display_reference": 324,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1299,
+      "native_parameters": "1299",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+  "reviewed_barrel_sources": [
+    {
+      "path": "combat-state-definitions.json",
+      "collection": "effects",
+      "record_key": "107102",
+      "sha256": "943e06e71774b9a51aba9806b16d816571dd9041c29a8f73020164cb56a86e5c"
+    },
+    {
+      "path": "combat-state-definitions.json",
+      "collection": "effects",
+      "record_key": "107114",
+      "sha256": "a553aebd00413530f83c15f13ea9b289ac97203b588b04e71fff7889627b02b2"
+    },
+    {
+      "path": "native-area-effect-trees.json",
+      "collection": "effects",
+      "record_key": "107101",
+      "sha256": "62a6acbe441e1e700a7496080d21e50080c1fec4702dd86450e858c5215ed865"
+    },
+    {
+      "path": "native-area-effect-trees.json",
+      "collection": "effects",
+      "record_key": "107415",
+      "sha256": "347810eb077659aae6c30ee316f7143410e9149f7da5fdfd3e18265960d0a1c9"
+    },
+    {
+      "path": "native-effect-areas.json",
+      "collection": "areas",
+      "record_key": "630",
+      "sha256": "c60423d7b4fa44cc5c7519c1cd7413ff25cf2d0f9857be6eaa2d901d53f4ef74"
+    },
+    {
+      "path": "native-effect-areas.json",
+      "collection": "areas",
+      "record_key": "633",
+      "sha256": "278a590faac2316f853970167677b2b39941bbf6747b317d6440d06a717ea8dd"
+    }
+  ],
+  "interaction_approaches": {}
+}

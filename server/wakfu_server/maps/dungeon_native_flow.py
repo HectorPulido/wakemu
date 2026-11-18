@@ -60,7 +60,12 @@ def disabled_source_ids(topology, sources):
     owned = {s["id"]: s for s in sources if s["map_id"] == topology["asset_map_id"]}
     mandatory = {
         b["source_id"]
-        for key in ("doors", "physical_doors", "physical_exit_objects")
+        for key in (
+            "doors",
+            "physical_doors",
+            "physical_exit_objects",
+            "owned_quest_transfers",
+        )
         for b in topology.get(key, ())
     }
     disabled = set()

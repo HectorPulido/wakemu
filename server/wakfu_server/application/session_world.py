@@ -141,6 +141,9 @@ class WorldSessionMixin:
                             self.state.service,
                             *chest_scene_packet(chest_object["id"]),
                         )
+        from . import owned_story_dispatch
+
+        owned_story_dispatch.hydrate(self)
         if validated:
             self.state.static_sync_pending = False
             self.state.static_sync_attempts = 0
@@ -163,6 +166,9 @@ class WorldSessionMixin:
     @PROFILER.profile("world.scene_sync")
     def sync_scene_world(self):
         """Hydrate newly loaded native scene partitions after local travel."""
+        from . import owned_story_dispatch
+
+        owned_story_dispatch.poll(self)
         if (
             not self.state.loaded
             or self.state.character is None
@@ -241,6 +247,10 @@ class WorldSessionMixin:
                     self.runtime.send(
                         self.state.connection, self.state.service, message_id, payload
                     )
+        if self.runtime.is_dungeon_run(self.state.character.get("instance_id", 0)):
+            owned_story_dispatch.hydrate(
+                self, chunks=self.state.scene_sync.last_regions
+            )
         self.runtime.record(
             event="scene_objects_synchronized",
             actor_id=self.state.character["id"],
@@ -331,6 +341,16 @@ class WorldSessionMixin:
 
                     with self.runtime.STORE.connection() as db:
                         groups = visible_groups(db, groups, self.state.character["id"])
+                from wakfu_server.achievements import source_quest_encounters
+
+                if any(
+                    source_quest_encounters.candidate_monsters(group["members"])
+                    for group in groups
+                ):
+                    with self.runtime.STORE.connection() as db:
+                        groups = source_quest_encounters.visible_groups(
+                            db, groups, self.state.character["id"]
+                        )
                 for group in groups:
                     self.runtime.send(
                         self.state.connection,
@@ -527,6 +547,14 @@ class WorldSessionMixin:
 
         try:
             scenario_callback = callback_id(self.state.body)
+            from . import source_quest_encounter_dispatch
+
+            if source_quest_encounter_dispatch.handle_callback(self, scenario_callback):
+                return DispatchResult.CONTINUE
+            from . import owned_story_dispatch
+
+            if owned_story_dispatch.handle_callback(self):
+                return DispatchResult.CONTINUE
             if (
                 scenario_callback in (23908, 23909, 23910, 23912)
                 and self.state.intro_cinematic_scene is not None
@@ -1084,24 +1112,31 @@ class WorldSessionMixin:
             return None if identity is None else identity[1]
 
         try:
-            self.state.emote = prepare_play(
-                self.runtime.STORE,
-                self.state.account_id,
-                self.state.generation,
-                self.state.character,
-                self.state.body,
-                resolve_target=visible_emote_target,
-                in_fight=lambda actor_id: (
-                    actor_id == self.state.character["id"]
-                    and (
-                        self.state.fight is not None
-                        or self.state.combat_session is not None
-                    )
+            with self.runtime.POSITIONS.account_barrier(self.state.account_id):
+                self.runtime.flush_positions(
+                    account_id=self.state.account_id,
+                    generation=self.state.generation,
+                    character_id=self.state.character["id"],
                 )
-                or self.runtime.COMBAT_SESSIONS.lookup_character(actor_id) is not None,
-                occupied=lambda actor_id: actor_id in self.runtime.HARVESTS.pending
-                or actor_id in self.runtime.PLANTINGS.pending,
-            )
+                self.state.emote = prepare_play(
+                    self.runtime.STORE,
+                    self.state.account_id,
+                    self.state.generation,
+                    self.state.character,
+                    self.state.body,
+                    resolve_target=visible_emote_target,
+                    in_fight=lambda actor_id: (
+                        actor_id == self.state.character["id"]
+                        and (
+                            self.state.fight is not None
+                            or self.state.combat_session is not None
+                        )
+                    )
+                    or self.runtime.COMBAT_SESSIONS.lookup_character(actor_id)
+                    is not None,
+                    occupied=lambda actor_id: actor_id in self.runtime.HARVESTS.pending
+                    or actor_id in self.runtime.PLANTINGS.pending,
+                )
             self.state.character["_emote_packet"] = self.state.emote["packet"]
             self.state.character["_emote_until"] = (
                 float("inf")
@@ -1111,6 +1146,24 @@ class WorldSessionMixin:
             self.runtime.WORLD.update(
                 self.state.generation, self.state.character, *self.state.emote["packet"]
             )
+            from wakfu_server import simultaneous_party_pads
+
+            emote_id = struct.unpack(">i", self.state.body[:4])[0]
+            aggro = simultaneous_party_pads.prepare_aggro(
+                self.runtime, self.state.character, emote_id, self.state.generation
+            )
+            if aggro is not None and self.state.pending_guardian_attack is None:
+                self.state.pending_guardian_attack = aggro["attack_body"]
+                self.runtime.send(
+                    self.state.connection, self.state.service, *aggro["packet"]
+                )
+            for actor_id, generation, packets in simultaneous_party_pads.performed(
+                self.runtime, self.state.character, emote_id
+            ):
+                for packet in packets:
+                    self.runtime.WORLD.send_to(actor_id, generation, *packet)
+            if self.state.emote.get("mission_packets"):
+                self.publish_settled_quest_packets(self.state.emote["mission_packets"])
         except ValueError as error:
             from wakfu_server.emotes import (
                 packet as emote_account_packet,
@@ -1226,7 +1279,16 @@ class WorldSessionMixin:
                     self.state.native_scene_start.validate_movement(
                         walking_config["topology"], movement
                     )
-                    if self.state.dungeon_native_flow.enabled(
+                    from wakfu_server import owned_story_controller
+
+                    story_movement = owned_story_controller.validate_movement(
+                        movement_db,
+                        self.runtime.STORE,
+                        self.state.character,
+                        movement,
+                        walking_config,
+                    )
+                    if not story_movement and self.state.dungeon_native_flow.enabled(
                         walking_config["topology"]
                     ):
                         walking_progress = movement_db.execute(
@@ -1459,6 +1521,9 @@ class WorldSessionMixin:
                 self.runtime.send(
                     self.state.connection, self.state.service, *guide_packet
                 )
+        from . import owned_story_dispatch
+
+        owned_story_dispatch.arm_movement(self, scene_path)
         self.state.scene_sync.arm(
             self.state.character["map_id"],
             self.state.character.get("instance_id", 0),

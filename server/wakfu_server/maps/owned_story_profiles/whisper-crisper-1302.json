@@ -1,0 +1,116 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "whisper-crisper-1302",
+  "map_id": 1302,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 4871,
+    "objective_id": null,
+    "continuation_quest_id": 4871
+  },
+  "provenance": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed.",
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 32856,
+      "state": 0,
+      "visible": false,
+      "usable": false,
+      "blocks_movement": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "crisper-intro",
+      "kind": "world_ready",
+      "reference": 1302,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 4871,
+          "objective_id": 10045
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2447,
+          "event": 21224,
+          "arguments": [
+            "scene_actor:sergeant"
+          ]
+        }
+      ],
+      "evidence": "Actual original entry and twenty-second2447 introduction, literal native boss model. Formation waits for the genuine timer/skip."
+    },
+    {
+      "id": "crisper-intro-done",
+      "kind": "scenario_complete",
+      "reference": 21229,
+      "requires": [
+        "crisper-intro"
+      ],
+      "effects": [],
+      "evidence": "Actual original intro ends at20000ms; reviewed server callback21229 names native MRU activation."
+    },
+    {
+      "id": "crisper-sergeant-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "crisper-intro-done"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2447,
+          "event": 21228
+        },
+        {
+          "kind": "element_state",
+          "object_id": 32856,
+          "state": 0,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": false
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 4871,
+          "objective_id": 10058
+        }
+      ],
+      "evidence": "Only actual owned original native2142 victory exposes the literal orders source32856."
+    },
+    {
+      "id": "crisper-read-orders",
+      "kind": "interactive",
+      "reference": 32856,
+      "requires": [
+        "crisper-sergeant-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2447,
+          "event": 21227
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2447,
+          "event": 21226
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 4871,
+          "objective_id": 10044
+        }
+      ],
+      "evidence": "Actual native descriptor35/action40 book source after Sergeant victory; original2447 opens32856 and displays original28736. No invented inventory item is minted from visual evidence."
+    }
+  ],
+  "interaction_approach_policy": "pinned_native_qv",
+  "native_sources": {
+    "path": "whisper-crisper-1302.native.v1.json",
+    "sha256": "7959e52dcf7f259fd8dadd96b5879aaaa1bc950b8fe305bbcdb6b6566aca6385"
+  }
+}

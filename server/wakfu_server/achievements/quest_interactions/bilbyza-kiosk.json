@@ -1,0 +1,36 @@
+{
+  "schema": "quest-interaction-batch-v1",
+  "bindings": [
+    {
+      "status": "reviewed",
+      "map_id": 458,
+      "object_id": 18974,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -2,
+      "y": 7,
+      "z": 0,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 2,
+      "approach_cells": [
+        -3,
+        7,
+        0,
+        -2,
+        8,
+        0,
+        -1,
+        7,
+        0
+      ],
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "quest_id": 1260,
+      "objective_id": 2389,
+      "native_criterion": "GetRealLevel()>=85 && GetItemQuantity(17515) == 0 && not IsAchievementComplete(1260)",
+      "native_effect_reference": 2537,
+      "evidence": "Original GenericActivable143 effect2537 has no client Lua. Reviewed server callback completes native objective2389 only under its exact original conjunction. Quest reward2630 grants program17515 once; original492/loot2316 restores a missing program after completion. Actual458 Sm6 cardinal cells are pinned in the native generic profile."
+    }
+  ]
+}

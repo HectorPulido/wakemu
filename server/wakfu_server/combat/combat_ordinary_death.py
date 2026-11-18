@@ -114,6 +114,25 @@ def _registered_death_event(fight, actor_id, *, sequence=None, event_indices=Non
             from .combat_summon_owner_death import verify_transition
 
             owner_death = verify_transition(fight, previous, event)
+        source_registered = previous.get("source_id") in fight.actors
+        if damage and not source_registered:
+            from .combat_damage_source import native_damage_source
+
+            # Native eXt accepts a real Qq source PV. The same constructor
+            # proof must survive its ordinary target's corpse registration.
+            source_registered = (
+                native_damage_source(fight, previous.get("source_id")) is not None
+            )
+        if kill_minimum and not source_registered:
+            from .combat_battleground_border import registered_border_kill_source
+
+            source_registered = registered_border_kill_source(fight, previous)
+            if not source_registered:
+                from .combat_environment_glyphs import (
+                    registered_environment_kill_source,
+                )
+
+                source_registered = registered_environment_kill_source(fight, previous)
         if (
             (
                 damage
@@ -125,7 +144,7 @@ def _registered_death_event(fight, actor_id, *, sequence=None, event_indices=Non
             )
             and previous.get("target_id") == actor_id
             and previous.get("hp") == 0
-            and previous.get("source_id") in fight.actors
+            and source_registered
             and previous.get("sequence", -2) + 1 == event.get("sequence", -1)
         ):
             return True

@@ -93,6 +93,16 @@ def spell_critical_available(spell_id, level):
         scoped = _rii_zero_critical().get(str(spell_id))
         if type(scoped) is bool:
             return scoped
+        scoped = _morph_zero_critical().get(str(spell_id))
+        if scoped is not None:
+            from .combat_morph_dependencies import zero_catalog
+
+            source = zero_catalog()
+            if source is None or str(spell_id) not in source["spells"]:
+                raise ValueError(
+                    "Missing audited native morph zero-level critical source"
+                )
+            return 0 in scoped["critical_levels"]
     row = _spell_availability().get(str(spell_id))
     if row is None:
         raise ValueError("Missing native spell critical availability")
@@ -128,4 +138,45 @@ def _spell_availability():
     import json
 
     data = protocol_catalog.load(DATA_ROOT / "native-critical-availability.json")
+    return data["spells"]
+
+
+@lru_cache(maxsize=1)
+def _morph_zero_critical():
+    """Original bPO critical observations for published zero-level morph books."""
+    import json
+    from hashlib import sha256
+    from pathlib import Path
+
+    raw = Path(__file__).with_name("native_morph_zero_critical.json").read_bytes()
+    if (
+        sha256(raw).hexdigest()
+        != "ab6cc5be23b31f0f9268fc24a400c4eb2bd4f48f6de2a2cafb7e55921447eaa2"
+    ):
+        raise ValueError("Native morph critical attestation changed")
+    data = json.loads(raw)
+    if (
+        data.get("source")
+        != "Scoped original bPO.hasCriticalEffect, explicit every level 0..native Fq"
+        or type(data.get("native_checks")) is not int
+        or data["native_checks"] <= 0
+        or not isinstance(data.get("spells"), dict)
+    ):
+        raise ValueError("Missing native morph critical attestation")
+    for reference, row in data["spells"].items():
+        if (
+            not reference.isdigit()
+            or int(reference) <= 0
+            or type(row.get("evaluated_minimum_level")) is not int
+            or row["evaluated_minimum_level"] != 0
+            or type(row.get("evaluated_maximum_level")) is not int
+            or row["evaluated_maximum_level"] < 0
+            or not isinstance(row.get("critical_levels"), list)
+            or any(
+                type(level) is not int
+                or not 0 <= level <= row["evaluated_maximum_level"]
+                for level in row["critical_levels"]
+            )
+        ):
+            raise ValueError("Invalid native morph critical observation")
     return data["spells"]

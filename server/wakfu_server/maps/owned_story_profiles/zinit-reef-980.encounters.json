@@ -1,0 +1,425 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "zinit-reef-980-encounters",
+  "map_id": 980,
+  "sequential_arenas": true,
+  "provenance": "Reviewed reconstruction, not recovered original formations: native map980 real/excarnal portal pairs and all original compass18722 gates are retained. Installed2021 declares three actual reef clears; authored local formations use native family780 sea creatures followed by native Nodule3788 with its unchanged3731/3797 innates and imprisoned souls3786/3787 with3726/2666. Native death mask1010 executes250 boss selfdamage and its own1037 replenishes adds. Counts/arena placements and exact portal-to-clear gate association are explicitly reviewed local policy, not captured official positions. Earlier boat stages are reviewed relocation onto the current native980 deck, preserving their exact scripts and allies. Only real terminal travel after all clears earns5306; no entry or talk substitutes for combat.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "bounds": [
+        -5,
+        -4,
+        5,
+        0
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -3,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3771,
+          "count": 3
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-voyage-reviewed-deck-stage-1-v1",
+        "authority": "authorized_native_content_reconstruction",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+        "fixed_actor_placements": [
+          {
+            "reference": 3771,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3771,
+            "occurrence": 1,
+            "cell": [
+              4,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3771,
+            "occurrence": 2,
+            "cell": [
+              2,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "physical_room": 1,
+      "requires": [
+        "voyage-stage-1-victory"
+      ],
+      "bounds": [
+        -5,
+        -4,
+        5,
+        0
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -3,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3783,
+          "count": 3
+        },
+        {
+          "reference": 3784,
+          "count": 2
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-voyage-reviewed-deck-stage-2-v1",
+        "authority": "authorized_native_content_reconstruction",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+        "fixed_actor_placements": [
+          {
+            "reference": 3783,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3783,
+            "occurrence": 1,
+            "cell": [
+              4,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3783,
+            "occurrence": 2,
+            "cell": [
+              2,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3784,
+            "occurrence": 0,
+            "cell": [
+              4,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3784,
+            "occurrence": 1,
+            "cell": [
+              2,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "physical_room": 1,
+      "requires": [
+        "voyage-stage-2-victory"
+      ],
+      "bounds": [
+        -5,
+        -4,
+        5,
+        0
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -3,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3769,
+          "count": 3
+        },
+        {
+          "reference": 3770,
+          "count": 3
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-voyage-reviewed-deck-stage-3-v1",
+        "authority": "authorized_native_content_reconstruction",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+        "fixed_actor_placements": [
+          {
+            "reference": 3769,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3769,
+            "occurrence": 1,
+            "cell": [
+              4,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3769,
+            "occurrence": 2,
+            "cell": [
+              2,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3770,
+            "occurrence": 0,
+            "cell": [
+              4,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3770,
+            "occurrence": 1,
+            "cell": [
+              2,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3770,
+            "occurrence": 2,
+            "cell": [
+              4,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "physical_room": 4,
+      "requires": [
+        "voyage-stage-3-victory"
+      ],
+      "arena_seed": [
+        -19,
+        -21,
+        -6
+      ],
+      "bounds": [
+        -27,
+        -28,
+        -4,
+        -19
+      ],
+      "z": -6,
+      "monsters": [
+        {
+          "reference": 3766,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 3768,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "physical_room": 5,
+      "requires": [
+        "reef-room4-victory"
+      ],
+      "arena_seed": [
+        -24,
+        -40,
+        -6
+      ],
+      "bounds": [
+        -28,
+        -45,
+        -13,
+        -32
+      ],
+      "z": -6,
+      "monsters": [
+        {
+          "reference": 3767,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 3768,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "physical_room": 6,
+      "requires": [
+        "reef-room5-victory"
+      ],
+      "arena_seed": [
+        122,
+        -56,
+        -6
+      ],
+      "bounds": [
+        107,
+        -67,
+        134,
+        -49
+      ],
+      "z": -6,
+      "monsters": [
+        {
+          "reference": 3788,
+          "count": 1,
+          "role": "boss"
+        },
+        {
+          "reference": 3786,
+          "count": 2,
+          "role": "monster"
+        },
+        {
+          "reference": 3787,
+          "count": 2,
+          "role": "monster"
+        }
+      ]
+    }
+  ]
+}

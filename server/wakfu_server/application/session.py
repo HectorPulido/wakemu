@@ -6,6 +6,7 @@ import time
 import uuid
 from types import SimpleNamespace
 from .dispatch_result import DispatchResult
+from .network_delivery import PendingSessionWork
 from .session_dispatch import SessionDispatchMixin
 from .session_protocol import ProtocolSessionMixin
 from .session_inventory import InventorySessionMixin
@@ -18,6 +19,7 @@ from .session_world import WorldSessionMixin
 from .session_ecology import EcologySessionMixin
 from .session_social import SocialSessionMixin
 from .session_admin import AdminSessionMixin
+from .session_actor_approach import ActorApproachMixin
 from .session_scheduler import SessionSchedulerMixin
 from .session_characters import CharacterSessionMixin
 from .session_private_scenes import PrivateScenesMixin
@@ -25,6 +27,7 @@ from .session_private_scenes import PrivateScenesMixin
 
 class Session(
     SessionDispatchMixin,
+    ActorApproachMixin,
     ProtocolSessionMixin,
     InventorySessionMixin,
     TravelSessionMixin,
@@ -75,7 +78,9 @@ class Session(
         self.state.paid_container_ticket = None
         self.state.guild_chest_session = None
         self.state.fight = None
+        self.state.pending_actor_approach = None
         self.state.pending_guardian_attack = None
+        self.state.owned_story_ambush_admission = None
         self.state.pending_rii_lesson_guide = None
         self.state.combat_session = None
         self.state.pending_terminal_world_recovery = None
@@ -157,6 +162,7 @@ class Session(
         self.state.flora_ticket = None
         self.state.flora_retry_body = None
         self.state.environment_ticket = None
+        self.state.quest_source_ticket = None
         self.state.pending_artifact_action = None
         self.state.environment_seat = None
         self.state.environment_scene_identity = None
@@ -309,9 +315,19 @@ class Session(
                         )
                         self.state.pending_guardian_attack = None
                     else:
+                        try:
+                            header = self.runtime.receive(
+                                self.state.connection,
+                                4,
+                                self.idle,
+                                pending_work=lambda: self.state.pending_guardian_attack
+                                is not None,
+                            )
+                        except PendingSessionWork:
+                            continue
                         length = struct.unpack(
                             ">I",
-                            self.runtime.receive(self.state.connection, 4, self.idle),
+                            header,
                         )[0]
                         if not 7 <= length <= 327670:
                             raise ValueError("Invalid frame size")
@@ -566,9 +582,9 @@ class Session(
             if self.state.character is not None and self.state.character["id"] in exits:
                 # The health/abort transaction already committed. Never let
                 # this socket's older active FSM write another checkpoint.
-                self.state.fight = self.state.fight_messages = (
-                    self.state.combat_session
-                ) = self.state.group_lease = None
+                self.state.fight = (
+                    self.state.fight_messages
+                ) = self.state.combat_session = self.state.group_lease = None
                 self.state.checkpoint_id = self.state.checkpoint_revision = None
                 self.state.checkpoint_terminal = True
         if self.state.service == "world":

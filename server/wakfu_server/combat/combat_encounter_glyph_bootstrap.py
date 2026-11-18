@@ -19,13 +19,29 @@ def constructor_source(definition):
     )
 
 
-def validate_fake_fighter_prototype(definition, *, level):
-    """Neutral point faW with no PA, Qf, activation or executable callback."""
+def validate_fake_fighter_prototype(definition, *, level, neutral_faw_constructor=None):
+    """Neutral point faW: inert obstacles or descriptive native markers."""
+    if neutral_faw_constructor is not None:
+        from .combat_neutral_faw_hp import validate
+
+        return validate(definition, level, neutral_faw_constructor)
     from collections.abc import Mapping
     from .combat_fake_fighter import fake_fighter_constructor
     from .combat_effect_area_catalog import area_effect_catalog
 
     constructor = fake_fighter_constructor(definition, level)
+    roots = definition.get("effect_ids")
+    inert = (
+        roots in ([], ())
+        and definition.get("native_area_properties") == []
+        and definition.get("raw_bde") == -1
+    )
+    marker = (
+        isinstance(roots, (list, tuple))
+        and bool(roots)
+        and definition.get("native_area_properties") == [8]
+        and definition.get("raw_bde") == 1
+    )
     if (
         constructor["kind"] != 0
         or constructor["characteristic_ids"]
@@ -40,18 +56,18 @@ def validate_fake_fighter_prototype(definition, *, level):
         or definition.get("entry_masks") != []
         or definition.get("exit_masks") != []
         or definition.get("native_fight_properties") != []
-        or definition.get("native_area_properties") != [8]
+        or not (inert or marker)
         or definition.get("raw_bdf") != 0
         or definition.get("raw_bdg") != []
         or type(definition.get("raw_bde")) is not int
-        or definition["raw_bde"] != 1
         or type(level) is not int
         or level != 0
         or type(definition.get("maximum_level")) is not int
         or definition["maximum_level"] != 0
     ):
         raise ValueError("Unsupported native neutral faW marker prototype")
-    roots = definition.get("effect_ids")
+    if inert:
+        return constructor
     if not isinstance(roots, (list, tuple)) or not roots:
         raise ValueError("Missing native neutral faW marker closure")
     effects = area_effect_catalog()["effects"]
@@ -81,11 +97,15 @@ def validate_fake_fighter_prototype(definition, *, level):
     return constructor
 
 
-def validate_environment_prototype(definition, *, level):
+def validate_environment_prototype(definition, *, level, neutral_faw_constructor=None):
     """Validate the actual subtype selected by buK's initial area carrier."""
     if definition.get("type") == "FAKE_FIGHTER":
-        validate_fake_fighter_prototype(definition, level=level)
+        validate_fake_fighter_prototype(
+            definition, level=level, neutral_faw_constructor=neutral_faw_constructor
+        )
         return
+    if neutral_faw_constructor is not None:
+        raise ValueError("Neutral HP constructor requires its actual faW prototype")
     if definition.get("type") != "TRAP":
         validate_glyph_prototype(definition, level=level)
         return
@@ -157,7 +177,11 @@ def glyph_cells(source, definition):
     """Return complete native geometry, never clipped to the arena or actors."""
     from .combat_effect_area_geometry import registered_area_cells
 
-    validate_environment_prototype(definition, level=source.get("level", 0))
+    validate_environment_prototype(
+        definition,
+        level=source.get("level", 0),
+        neutral_faw_constructor=source.get("neutral_faw_constructor"),
+    )
     return registered_area_cells(
         definition, tuple(source["cell"]), -1, reference=(0, 0, 0)
     )
@@ -208,6 +232,9 @@ def declared_environment_blockers(declarations, *, definitions=None):
             "cell",
             "level",
             "activation",
+            "neutral_faw_constructor",
+            "state_programs",
+            "marker_damage_selection",
         }:
             raise ValueError("Invalid declared native area fields")
         reference, cell = declaration.get("reference"), declaration.get("cell")
@@ -222,11 +249,19 @@ def declared_environment_blockers(declarations, *, definitions=None):
         definition = definitions.get(str(reference), {})
         level = declaration.get("level", 0)
         if definition.get("type") == "FAKE_FIGHTER":
-            constructor = validate_fake_fighter_prototype(definition, level=level)
+            constructor = validate_fake_fighter_prototype(
+                definition,
+                level=level,
+                neutral_faw_constructor=declaration.get("neutral_faw_constructor"),
+            )
             if constructor["obstacle"]:
                 blockers.add(tuple(cell))
         else:
-            validate_environment_prototype(definition, level=level)
+            validate_environment_prototype(
+                definition,
+                level=level,
+                neutral_faw_constructor=declaration.get("neutral_faw_constructor"),
+            )
     return frozenset(blockers)
 
 
@@ -290,6 +325,9 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
             "cell",
             "level",
             "activation",
+            "neutral_faw_constructor",
+            "state_programs",
+            "marker_damage_selection",
         }:
             raise ValueError("Invalid declared native glyph fields")
         reference, raw_cell = declaration.get("reference"), declaration.get("cell")
@@ -310,7 +348,11 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
         ):
             raise ValueError("Declared native glyph cell is unavailable")
         definition = definitions.get(str(reference), {})
-        validate_environment_prototype(definition, level=level)
+        validate_environment_prototype(
+            definition,
+            level=level,
+            neutral_faw_constructor=declaration.get("neutral_faw_constructor"),
+        )
         from .combat_scene_area_activation import validate_scene_activation
 
         activation = declaration.get("activation")
@@ -333,8 +375,30 @@ def prepare_declared_glyphs(fight, arena, terrain_identity, definitions):
                 source_url=source_url,
             )
         )
+        if declaration.get("state_programs") is not None:
+            from .combat_scene_area_states import declarations as state_declarations
+
+            if not declaration.get("neutral_faw_constructor"):
+                raise ValueError("Area state program lacks reviewed neutral HP faW")
+            result[-1]["state_programs"] = list(
+                state_declarations(declaration["state_programs"])
+            )
+        if declaration.get("marker_damage_selection") is not None:
+            from .combat_scene_area_states import MARKER_DAMAGE_SELECTION
+
+            if declaration[
+                "marker_damage_selection"
+            ] != MARKER_DAMAGE_SELECTION or not result[-1].get("state_programs"):
+                raise ValueError(
+                    "Marker damage selection lacks reviewed area state program"
+                )
+            result[-1]["marker_damage_selection"] = MARKER_DAMAGE_SELECTION
         if activation is not None:
             result[-1]["activation"] = dict(activation)
+        if declaration.get("neutral_faw_constructor") is not None:
+            result[-1]["neutral_faw_constructor"] = dict(
+                declaration["neutral_faw_constructor"]
+            )
     return result
 
 
@@ -379,11 +443,23 @@ def glyph_row(source, definition):
     row["native_cells_xy"] = glyph_cells(source, definition)
     if definition["type"] == "FAKE_FIGHTER":
         constructor = validate_fake_fighter_prototype(
-            definition, level=source.get("level", 0)
+            definition,
+            level=source.get("level", 0),
+            neutral_faw_constructor=source.get("neutral_faw_constructor"),
         )
         row["native_area_contract"] = "faW"
         row["native_faw_constructor"] = constructor
         row["native_running_effect_manager"] = constructor["running_effect_manager"]
+        if source.get("neutral_faw_constructor") is not None:
+            from .combat_fake_fighter_resources import install_fake_fighter_hp
+            from .combat_state_ledger import StateLedger
+
+            # faW.bkU is null before an actual a(aAS) setter. The inherited
+            # Qq.bcy null-owner getter returns NORTH_EAST7; visual fec keeps-1.
+            row["native_faw_stored_direction"] = None
+            install_fake_fighter_hp(row, definition)
+            if constructor["running_effect_manager"]:
+                row["state_ledger"] = StateLedger(row["uid"])
     if definition["type"] == "TRAP":
         from .combat_trap_area import install_trap_characteristics
 

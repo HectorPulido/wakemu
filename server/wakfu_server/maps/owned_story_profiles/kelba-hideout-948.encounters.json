@@ -1,0 +1,41 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "kelba-hideout-948-encounters",
+  "map_id": 948,
+  "provenance": "Reviewed reconstruction of native1966 Hadibal hideout: original948 arrival/exit and literal Riktus combat activation/preparation/victory plus native Hadibal intervention15699/end15700. Original private enemy roster/count/coordinates are not serialized; one each native Kelba Riktus3565/3566/3567 is explicitly reviewed formation, preserving real levels/stats/books/states. No fabricated combat mechanic, ordinary win shortcut, native party actor substitution or quest completion from a cinematic alone.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "hideout-discovered"
+      ],
+      "bounds": [
+        1,
+        -16,
+        17,
+        2
+      ],
+      "z": 0,
+      "arena_seed": [
+        8,
+        -2,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3565,
+          "count": 1
+        },
+        {
+          "reference": 3566,
+          "count": 1
+        },
+        {
+          "reference": 3567,
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "huppermage-occullege-1029",
+  "version": 1,
+  "map_id": 1029,
+  "entry": {
+    "map_id": 1017,
+    "object_id": 26218,
+    "destination_id": 2356
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    26193,
+    26198,
+    26199,
+    26200,
+    26201
+  ],
+  "controller_file": "huppermage-occullege-1029.json",
+  "encounters_file": "huppermage-occullege-1029-encounters.json",
+  "exploration_file": "huppermage-occullege-1029.exploration.json",
+  "provenance": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+}

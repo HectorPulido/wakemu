@@ -1,0 +1,139 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "huppermage-night-1020",
+  "map_id": 1020,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2777,
+    "objective_id": null,
+    "continuation_quest_id": 2777
+  },
+  "provenance": "Reviewed reconstruction on original installed dormitory asset1020. Actual native entry25682/2314 and four-cell trigger25692 qualify the sleep/ambush boundary; no invented bed interactive is added. Original2070 names three masked actor arguments and seven-second arrival choreography. Three native3918 Masq Al Capo retain native4083 backstab mechanics/stats/spells. The exact same-reference formation and floor placements are reviewed, not recovered official server roster.",
+  "native_sources": {
+    "path": "huppermage-night-1020.native.v1.json",
+    "sha256": "130e7a587ebddcf028863fc45905426fd7d80df59a6357f9ff7735222181482d"
+  },
+  "initial_elements": [],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "night-intro-done"
+    ],
+    "evidence": "Actual original group exists before native actor choreography. Normal attack admission and automatic queue wait for the seven-second native intro deadline, independently of once-suppressed presentation."
+  },
+  "steps": [
+    {
+      "id": "night-entry",
+      "kind": "world_ready",
+      "reference": 1020,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2070,
+          "event": 16410,
+          "arguments": [
+            "owner"
+          ]
+        }
+      ],
+      "evidence": "Native2070/16410 entry bubble follows actual loaded owned dormitory context."
+    },
+    {
+      "id": "night-sleep",
+      "kind": "zone_trigger",
+      "reference": 25692,
+      "requires": [
+        "night-entry"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2777,
+          "objective_id": 5652
+        }
+      ],
+      "evidence": "Exact original four-cell dormitory trigger after authentic door entry is the reviewed sleeping/ambush boundary. Native server join is unavailable; no fabricated bed click or rendering event grants progress."
+    },
+    {
+      "id": "night-intro",
+      "kind": "room_available",
+      "reference": 1,
+      "requires": [
+        "night-sleep"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2070,
+          "event": 16411,
+          "arguments": [
+            "room_actor:1:0",
+            "room_actor:1:1",
+            "room_actor:1:2"
+          ]
+        }
+      ],
+      "evidence": "Native2070/16411 uses all three real durable group actors. Its actual endCine occurs at7000ms; generic timer completion2 qualifies readiness only, never battle victory."
+    },
+    {
+      "id": "night-intro-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "night-intro"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2070,
+          "event": 16413
+        }
+      ],
+      "evidence": "Original native16413 tutorial is delivered once after actual intro deadline or mechanics-only skipped presentation."
+    },
+    {
+      "id": "night-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "night-intro-done"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2777,
+          "objective_id": 5597
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2070,
+          "event": 16417,
+          "arguments": [
+            "owner"
+          ]
+        }
+      ],
+      "evidence": "Only genuine normal terminal victory over the three pinned original masked assailants grants5597. Native4083 orientation behavior remains original."
+    }
+  ],
+  "terminal_returns": {
+    "schema": "owned-story-terminal-return-v1",
+    "room_order": 1,
+    "victory": {
+      "source_map_id": 1018,
+      "source_id": 25682,
+      "source_sha256": "5c1f94425566a6731c0d90db37f92b9847f5e7f954e2ad78344a9f718410aa6b",
+      "position": [
+        -18,
+        -68,
+        0
+      ]
+    },
+    "defeat": {
+      "kind": "recorded_entry"
+    },
+    "evidence": "Actual terminal night encounter returns normally to the original native dormitory exterior approach. Genuine loss never credits5597; recorded entry preserves the actual authenticated public source."
+  }
+}

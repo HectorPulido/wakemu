@@ -1,0 +1,51 @@
+{
+  "schema": "owned-story-instance-v1",
+  "map_id": 980,
+  "controller_file": "zinit-reef-980.json",
+  "encounters_file": "zinit-reef-980.encounters.json",
+  "exploration_file": "zinit-reef-980.exploration.json",
+  "exit_sources": [
+    {
+      "source_id": 25420,
+      "destination_id": 2249
+    },
+    {
+      "source_id": 25401,
+      "destination_id": 2255
+    }
+  ],
+  "provenance": "Reviewed reconstruction, not recovered original formations: native map980 real/excarnal portal pairs and all original compass18722 gates are retained. Installed2021 declares three actual reef clears; authored local formations use native family780 sea creatures followed by native Nodule3788 with its unchanged3731/3797 innates and imprisoned souls3786/3787 with3726/2666. Native death mask1010 executes250 boss selfdamage and its own1037 replenishes adds. Counts/arena placements and exact portal-to-clear gate association are explicitly reviewed local policy, not captured official positions. Earlier boat stages are reviewed relocation onto the current native980 deck, preserving their exact scripts and allies. Only real terminal travel after all clears earns5306; no entry or talk substitutes for combat.",
+  "id": "zinit-reef-980",
+  "version": 1,
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "entry": {
+    "kind": "native_npc_choice",
+    "map_id": 527,
+    "reference_id": 1740,
+    "action_id": 158,
+    "node_id": 3206,
+    "choice_id": 7954,
+    "position": [
+      109,
+      -20,
+      0
+    ],
+    "interaction_anchor": [
+      108,
+      -20,
+      0
+    ],
+    "interaction_range": 4,
+    "arrival": [
+      0,
+      -3,
+      0
+    ],
+    "direction": 5,
+    "evidence": "Actual native Hullcatz1740/action158 dialogue3206 choice7954 boards after real accepted conversation; native public actor527(109,-20,0), reviewed reachable approach108,-20,0. Arrival is explicitly reviewed on current980 native ship deck replacing removed290/303/304 assets; no teleporter object or synthetic client packet."
+  }
+}

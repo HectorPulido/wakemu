@@ -139,6 +139,26 @@ def permits_lesson_floor_retirement(fight, effect, invocation):
     if not isinstance(contract, dict) or contract.get("native_lesson") is not True:
         return False
     manager = fight.actors.get(contract.get(manager_role))
+    target_matches = invocation.target_id == contract.get("target")
+    if (
+        not target_matches
+        and invocation.reference == 367610
+        and invocation.target_id == contract.get("owner")
+    ):
+        # The same 8003 program refreshes obstacles at the owner's native
+        # turn start. That replay transmits the owner, whereas a shot
+        # transmits the sack. Keeping the owner as an explicit point PV
+        # makes843 remove just one rock at that cell and accumulate others.
+        from .combat_turn_events import validate_turn_boundary_context
+
+        boundary = getattr(invocation, "native_turn_boundary_context", None)
+        try:
+            validate_turn_boundary_context(boundary, fight=fight)
+        except ValueError:
+            return False
+        target_matches = boundary["phase"] == "start" and boundary[
+            "actor_id"
+        ] == contract.get("owner")
     carrier = (
         next(
             (
@@ -156,7 +176,7 @@ def permits_lesson_floor_retirement(fight, effect, invocation):
         or carrier.reference != state_reference
         or carrier.caster_id != contract.get("target")
         or invocation.caster_id != contract.get("owner")
-        or invocation.target_id != contract.get("target")
+        or not target_matches
     ):
         return False
     if (

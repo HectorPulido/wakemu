@@ -1,0 +1,357 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed reconstructed early mount chain from exact native definitions, named native NPC choices, physical bag23033 and authenticated child quest rewards. No activation is inferred from visibility; missing owned rat victory remains a real prerequisite.",
+  "speakers": [
+    {
+      "actor_id": -2251799934992013,
+      "action_id": 354,
+      "quest_ids": [
+        2013,
+        2015,
+        2018,
+        2027
+      ],
+      "native_marker": {
+        "quest_id": 2013,
+        "objective_id": 4073
+      },
+      "placement": {
+        "quest_id": 2013,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992013,
+          "reference_id": 2622,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": -89,
+          "y": -59,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 2166,
+          "action_ids": [
+            354
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Astrub mount speaker2622 REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native quest2013 navigation marker and named native speaker/action; marker is not proof of original actor coordinates; reviewed native dialogue paths, not an official captured server graph"
+        },
+        "interaction_anchor": {
+          "x": -89,
+          "y": -58,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "REVIEWED WAYPOINT-DERIVED RECONSTRUCTION: tested directed map527 terrain supports this adjacent exterior approach; NPC position is reconstructed from a navigation hint, not an official captured spawn. Preserve native actor reference and all quest criteria.",
+        "graph": [],
+        "available_quests_on_open": [
+          2013,
+          2018,
+          2027
+        ],
+        "opening_quest_criteria": {
+          "2013": "GetRealLevel() >= 35 && !IsAchievementComplete(5594)"
+        },
+        "choice_starts": [
+          {
+            "quest_id": 2015,
+            "node_id": 2708,
+            "choice_id": 6492,
+            "criterion": "GetRealLevel() >= 35 && IsAchievementComplete(2013) && !IsAchievementActive(2015) && !IsAchievementComplete(2015)",
+            "evidence": "Reviewed root2166/13311\u21922708/6492 explicitly accepts reading assignment; preserve root native gate at acceptance."
+          }
+        ],
+        "choice_criteria": [
+          {
+            "node_id": 2166,
+            "choice_id": 6483,
+            "criterion": "IsAchievementRunning(2013)",
+            "evidence": "This reviewed branch reconstructs native2013 only. Native5594 variant remains outside this handover producer; do not expose its incomplete path."
+          }
+        ]
+      },
+      "available_quests_on_open": [
+        2013,
+        2018,
+        2027
+      ],
+      "objectives": [
+        {
+          "quest_id": 2013,
+          "objective_id": 4073,
+          "node_id": 2715,
+          "choice_id": 6519,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2013
+        },
+        {
+          "quest_id": 2018,
+          "objective_id": 4086,
+          "node_id": 2166,
+          "choice_id": 6507,
+          "archetype": "talk",
+          "single_objective": true
+        },
+        {
+          "quest_id": 2027,
+          "objective_id": 4102,
+          "node_id": 2166,
+          "choice_id": 6518,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          2166,
+          6483,
+          2707
+        ],
+        [
+          2707,
+          6489,
+          2715
+        ],
+        [
+          2715,
+          6519,
+          0
+        ],
+        [
+          2166,
+          13311,
+          2708
+        ],
+        [
+          2708,
+          6492,
+          0
+        ],
+        [
+          2166,
+          6507,
+          2712
+        ],
+        [
+          2712,
+          6508,
+          0
+        ],
+        [
+          2166,
+          6518,
+          0
+        ],
+        [
+          2166,
+          5205,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992048,
+      "action_id": 436,
+      "quest_ids": [
+        2048
+      ],
+      "native_marker": {
+        "quest_id": 2048,
+        "objective_id": 4136
+      },
+      "placement": {
+        "quest_id": 2048,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992048,
+          "reference_id": 2805,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": -145,
+          "y": 123,
+          "z": -4,
+          "direction": 3,
+          "dialogue_root": 2315,
+          "action_ids": [
+            436
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Astrub mount speaker2805 REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native quest2048 navigation marker and named native speaker/action; marker is not proof of original actor coordinates; reviewed native dialogue paths, not an official captured server graph"
+        },
+        "interaction_anchor": {
+          "x": -145,
+          "y": 122,
+          "z": -3
+        },
+        "interaction_anchor_evidence": "REVIEWED WAYPOINT-DERIVED RECONSTRUCTION: tested directed map527 terrain supports this adjacent exterior approach; NPC position is reconstructed from a navigation hint, not an official captured spawn. Preserve native actor reference and all quest criteria.",
+        "graph": [],
+        "choice_starts": [
+          {
+            "quest_id": 2048,
+            "node_id": 2722,
+            "choice_id": 6533,
+            "criterion": "IsAchievementRunning(2015) && !IsAchievementActive(2048) && !IsAchievementComplete(2048)",
+            "evidence": "ReviewedJenry6497\u21922709/6498\u21922721/6532\u21922722/6533 is actual bag search acceptance; parent remains running."
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "quest_id": 2048,
+          "objective_id": 4136,
+          "node_id": 2315,
+          "choice_id": 6534,
+          "archetype": "deliver",
+          "remaining_objective": true,
+          "required_objectives": [
+            4135
+          ]
+        }
+      ],
+      "graph": [
+        [
+          2315,
+          6497,
+          2709
+        ],
+        [
+          2709,
+          6498,
+          2721
+        ],
+        [
+          2721,
+          6532,
+          2722
+        ],
+        [
+          2722,
+          6533,
+          0
+        ],
+        [
+          2315,
+          6534,
+          0
+        ],
+        [
+          2315,
+          5609,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992016,
+      "action_id": 429,
+      "quest_ids": [
+        2016
+      ],
+      "native_marker": {
+        "quest_id": 2016,
+        "objective_id": 4140
+      },
+      "placement": {
+        "quest_id": 2016,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992016,
+          "reference_id": 2775,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 25,
+          "y": -34,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 2297,
+          "action_ids": [
+            429
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Astrub mount speaker2775 REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native quest2016 navigation marker and named native speaker/action; marker is not proof of original actor coordinates; reviewed native dialogue paths, not an official captured server graph"
+        },
+        "interaction_anchor": {
+          "x": 25,
+          "y": -35,
+          "z": 4
+        },
+        "interaction_anchor_evidence": "REVIEWED WAYPOINT-DERIVED RECONSTRUCTION: tested directed map527 terrain supports this adjacent exterior approach; NPC position is reconstructed from a navigation hint, not an official captured spawn. Preserve native actor reference and all quest criteria.",
+        "graph": [],
+        "choice_starts": [
+          {
+            "quest_id": 2016,
+            "node_id": 2710,
+            "choice_id": 6500,
+            "criterion": "IsAchievementRunning(2015) && !IsAchievementActive(2016) && !IsAchievementComplete(2016)",
+            "evidence": "ReviewedYeast6499\u21922710/6500 accepts genuine rat-room assignment. Victory4084 cannot be generated by this conversation."
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "quest_id": 2016,
+          "objective_id": 4140,
+          "node_id": 2297,
+          "choice_id": 6541,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            4079,
+            4084
+          ]
+        }
+      ],
+      "graph": [
+        [
+          2297,
+          6499,
+          2710
+        ],
+        [
+          2710,
+          6500,
+          0
+        ],
+        [
+          2297,
+          6541,
+          0
+        ],
+        [
+          2297,
+          5542,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": [
+    {
+      "after_quest": 2015,
+      "start_quest": 2018,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native2018 requires level35 and complete2015; three actual child book quests must complete parent first."
+    },
+    {
+      "after_quest": 2018,
+      "start_quest": 2019,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native2019 requires level35 and complete2018; nativeMelmac2712 explicitly directs player to Missy."
+    },
+    {
+      "after_quest": 2026,
+      "start_quest": 2027,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native2027 requires level35 and complete2026; actualMelmac6518 acknowledges completed saddle without consuming it."
+    }
+  ],
+  "unsupported_prerequisites": [
+    {
+      "quest_id": 2016,
+      "objective_id": 4084,
+      "reason": "Requires owned real rat encounter/victory; no talk, proximity, visibility or item grant may synthesize victory."
+    }
+  ],
+  "toolkit_profile": "astrub-mount-books"
+}

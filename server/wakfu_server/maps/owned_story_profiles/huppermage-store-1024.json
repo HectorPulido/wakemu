@@ -1,0 +1,62 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "huppermage-store-1024",
+  "map_id": 1024,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2784,
+    "objective_id": null,
+    "continuation_quest_id": 2784
+  },
+  "provenance": "Reviewed reconstruction on original1024 School storage asset. Native25799/2348 entry and25800/2349 exit are free and remain usable with or without2784. Original2078 takes four hoodlum arguments; native3935/3936/3937/3938 retain original levels, stats, states and spell books. One of each and the original2078 final four actor positions are reviewed formation policy, not recovered server composition. The guide names the Small Dresser: actual26251 descriptor991 has only default effect2492, so joining that exact authenticated object to objective5616 is an explicit reviewed server bridge, not an encoded native quest action. Original16523 is omitted because it references undefined playedId and moves the player; no unsafe movie or fabricated callback is used. Original16524 guide remains once-only; normal real owned victory alone grants5617. External Bonta5619 and NPC debrief5618/5620 are separate producers.",
+  "native_sources": {
+    "path": "huppermage-store-1024.native.v1.json",
+    "sha256": "7b1f63e46d17e59b901f02ba5afbab12e6dbbfc4d49caa76bceae5e105548b40"
+  },
+  "initial_elements": [],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "store-clue-inspected"
+    ],
+    "evidence": "The actual four-actor group becomes eligible only after authenticated Small Dresser interaction. Normal queued battle admission preserves real combat; no movie completion grants victory."
+  },
+  "steps": [
+    {
+      "id": "store-clue-inspected",
+      "kind": "interactive",
+      "reference": 26251,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2784,
+          "objective_id": 5616
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2078,
+          "event": 16524
+        }
+      ],
+      "evidence": "Guide-derived explicit server clue bridge on exact native26251/991/default2492; no other storage interactive, proximity or scene rendering grants clue5616."
+    },
+    {
+      "id": "store-hoodlums-defeated",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "store-clue-inspected"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2784,
+          "objective_id": 5617
+        }
+      ],
+      "evidence": "Only genuine terminal victory over the four pinned native hoodlums earns5617; leaving, defeat and unrelated kills do not complete the assignment."
+    }
+  ]
+}

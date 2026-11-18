@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "id": "frigost-initial-travel",
+  "evidence": [
+    "Native1229 objective2202 asks travel by ship. Actual original Boat endpoint18259 is Chillberg504, with directed incoming contracts including623 from Kelba25153. Only a resolved native Boat link and committed exact arrival emit the transport event; a map visit is not equivalent.",
+    "Reviewed association: native1111 objective2048 asks using actual Climbing Gear15838 to reach the gorge plateau. Original504 object17999 destination1114 consumes the original15838 requirement and arrives523(-1,0,0). No new free traversal or gear grant is introduced.",
+    "Reviewed association: native1111 objective2173 asks exploring Asparah ruins. Original523 object18093 destination1065 leads forward to507(-10,21,0). Installed actual Sm6/0/4 map523 proves a directed86-cell component connecting native arrival(-1,0,0) to original exit(5,-7,0). Original objective waypoint list is empty; this physical route association is explicit reconstruction corroborated by the Frigost guide, not a claimed captured objective event."
+  ],
+  "bindings": [
+    {
+      "id": "actual-chillberg-ship-arrival",
+      "quest_id": 1229,
+      "objective_id": 2202,
+      "event": {"kind": "transport_entered", "reference": 18259},
+      "maps": [504],
+      "instances": [0],
+      "count": "operation"
+    },
+    {
+      "id": "actual-climbing-gear-gorge-entry",
+      "quest_id": 1111,
+      "objective_id": 2048,
+      "event": {"kind": "transport_entered", "reference": 1114},
+      "maps": [523],
+      "instances": [0],
+      "count": "operation"
+    },
+    {
+      "id": "actual-asparah-ruins-forward-entry",
+      "quest_id": 1111,
+      "objective_id": 2173,
+      "event": {"kind": "transport_entered", "reference": 1065},
+      "maps": [507],
+      "instances": [0],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

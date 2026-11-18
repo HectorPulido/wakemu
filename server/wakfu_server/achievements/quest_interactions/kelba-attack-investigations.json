@@ -1,0 +1,92 @@
+{
+  "schema": "quest-interaction-batch-v1",
+  "bindings": [
+    {
+      "status": "reviewed",
+      "map_id": 943,
+      "object_id": 25124,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -46,
+      "y": 9,
+      "z": -50,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 2,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        -46,
+        8,
+        -50,
+        -47,
+        9,
+        -50,
+        -45,
+        9,
+        -50
+      ],
+      "quest_id": 2539,
+      "objective_id": 5038,
+      "evidence": "Reviewed native-indexed physical attack-scene investigation: source25124/aLl848/group1058/action1078/wire0 has original running2571-or2572-or2539 criterion and one type1 server-script2232 effect. Objective5038 original map943 marker qualifies this unique attack site for quest2539. Exact source parameters and original QV direction1/mask15 were decoded; listed heights are selected by original VA.a ordered-Vy logic and filtered to actual Sm6 surfaces (topology8cc6a73f8c16f14e97bbf1176a8b592feee0d0d7633c44f9865e5acf35a954ae). Installed scripts.jar contains no genericIEActions/2232.lua; no fabricated script, scenario2232 namespace join, camera, item, fight or source visual is substituted. This binding reconstructs authenticated quest investigation progress only, through existing once objective/reward/HUD delivery. Positive raw source/program/approach proof: .runtime/quest-archetypes/kelba-investigation-native-approaches.json."
+    },
+    {
+      "status": "reviewed",
+      "map_id": 943,
+      "object_id": 25177,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -64,
+      "y": 36,
+      "z": -50,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 2,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        -64,
+        37,
+        -50,
+        -65,
+        36,
+        -50,
+        -63,
+        36,
+        -50
+      ],
+      "quest_id": 2572,
+      "objective_id": 5086,
+      "evidence": "Reviewed native-indexed physical attack-scene investigation: source25177/aLl848/group1058/action1078/wire0 has original running2571-or2572-or2539 criterion and one type1 server-script2232 effect. Objective5086 original map943 marker qualifies this unique attack site for quest2572. Exact source parameters and original QV direction1/mask15 were decoded; listed heights are selected by original VA.a ordered-Vy logic and filtered to actual Sm6 surfaces (topology8cc6a73f8c16f14e97bbf1176a8b592feee0d0d7633c44f9865e5acf35a954ae). Installed scripts.jar contains no genericIEActions/2232.lua; no fabricated script, scenario2232 namespace join, camera, item, fight or source visual is substituted. This binding reconstructs authenticated quest investigation progress only, through existing once objective/reward/HUD delivery. Positive raw source/program/approach proof: .runtime/quest-archetypes/kelba-investigation-native-approaches.json."
+    },
+    {
+      "status": "reviewed",
+      "map_id": 943,
+      "object_id": 25178,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -108,
+      "y": 44,
+      "z": -50,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 2,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        -108,
+        45,
+        -50,
+        -108,
+        43,
+        -50,
+        -107,
+        44,
+        -50
+      ],
+      "quest_id": 2571,
+      "objective_id": 5085,
+      "evidence": "Reviewed native-indexed physical attack-scene investigation: source25178/aLl848/group1058/action1078/wire0 has original running2571-or2572-or2539 criterion and one type1 server-script2232 effect. Objective5085 original map943 marker qualifies this unique attack site for quest2571. Exact source parameters and original QV direction1/mask15 were decoded; listed heights are selected by original VA.a ordered-Vy logic and filtered to actual Sm6 surfaces (topology8cc6a73f8c16f14e97bbf1176a8b592feee0d0d7633c44f9865e5acf35a954ae). Installed scripts.jar contains no genericIEActions/2232.lua; no fabricated script, scenario2232 namespace join, camera, item, fight or source visual is substituted. This binding reconstructs authenticated quest investigation progress only, through existing once objective/reward/HUD delivery. Positive raw source/program/approach proof: .runtime/quest-archetypes/kelba-investigation-native-approaches.json."
+    }
+  ]
+}

@@ -251,6 +251,28 @@ class DungeonExitTests(PostgresCase):
             run["instance_id"],
         )
         self.leave(members[1])
+        with self.store.connection() as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM dungeon_instance_members "
+                    "WHERE instance_id=%s AND status='returned'",
+                    (run["instance_id"],),
+                ).fetchone()["n"],
+                2,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM player_party_members WHERE party_id=%s",
+                    (party_id,),
+                ).fetchone()["n"],
+                2,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT leader_id FROM player_parties WHERE id=%s", (party_id,)
+                ).fetchone()["leader_id"],
+                members[0]["character"]["id"],
+            )
         for member in members:
             events = dungeon_instances.pending_transitions(
                 self.store,
@@ -286,6 +308,10 @@ class DungeonExitTests(PostgresCase):
                     events[0]["event_id"],
                 )
             )
+            selected = self.store.select_character(
+                member["account"], member["generation"], member["character"]["id"]
+            )
+            self.assertEqual((selected["map_id"], selected["instance_id"]), (527, 0))
         with self.store.connection() as db:
             row = db.execute(
                 "SELECT status FROM dungeon_instances WHERE instance_id=%s",

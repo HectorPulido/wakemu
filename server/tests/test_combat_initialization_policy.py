@@ -148,3 +148,35 @@ class DevelopmentInitializationTests(unittest.TestCase):
         self.assertNotIn("\n", text)
         self.assertIn("&lt;b&gt;", text)
         self.assertLess(len(text), 560)
+
+    def test_native_los_feedback_reports_only_qualified_blocked_cells(self):
+        from wakfu_server.combat_initialization_policy import safe_rejection_text
+
+        error = ValueError("Native spell casting eligibility rejected: twG")
+        error.native_casting_result = "twG"
+        error.native_casting_diagnostic = {
+            "selected_casting_flags": {"line_of_sight": True},
+            "trace": [
+                {
+                    "stage": "native_los_detail",
+                    "value": {
+                        "result": False,
+                        "rays": [{"blocked_probe": [-1, -13]}],
+                    },
+                }
+            ],
+        }
+        original = str(error)
+        self.assertIn("obstáculo en (-1, -13)", safe_rejection_text(error))
+        self.assertEqual(str(error), original)
+        error.native_casting_diagnostic["trace"][0]["value"]["rays"] = [
+            {"blocked_probe": [True, "<bad>"]}
+        ]
+        self.assertIn("No tienes línea de visión", safe_rejection_text(error))
+        self.assertNotIn("<bad>", safe_rejection_text(error))
+        error.native_casting_diagnostic["selected_casting_flags"][
+            "line_of_sight"
+        ] = False
+        self.assertIn("eligibility rejected: twG", safe_rejection_text(error))
+        error.native_casting_diagnostic = {"trace": "malformed"}
+        self.assertIn("eligibility rejected: twG", safe_rejection_text(error))

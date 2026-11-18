@@ -1,0 +1,816 @@
+{
+  "schema": 1,
+  "key": "astrub_pizzlarva",
+  "status": "native_rules_recovered_runtime_incomplete",
+  "enabled": false,
+  "achievement": 2149,
+  "objective": 4261,
+  "scenario": 1719,
+  "map": 885,
+  "entry": {
+    "map": 546,
+    "object": 23626,
+    "descriptor": 505,
+    "action": 1457,
+    "effect_type": 3,
+    "destination": [
+      0,
+      0,
+      0
+    ],
+    "direction": 7,
+    "ownership_policy": "reviewed server-owned arcade context; native third parameter is not instance-kind proof"
+  },
+  "modes": {
+    "normal": {
+      "object": 23619,
+      "descriptor": 502,
+      "action": 1451,
+      "spawn_area": 767,
+      "native_orientation_parameter": 3,
+      "native_orientation": "EAST"
+    },
+    "hard": {
+      "object": 23620,
+      "descriptor": 503,
+      "action": 1452,
+      "spawn_area": 787,
+      "native_orientation_parameter": 4,
+      "native_orientation": "SOUTH"
+    }
+  },
+  "player": {
+    "breed": 3217,
+    "transformation_state": 3049,
+    "ap": 6,
+    "mp": 3,
+    "wp": 4,
+    "hp": 1,
+    "spells": [
+      4535,
+      4538,
+      4537,
+      4536
+    ]
+  },
+  "larvae": {
+    "blue": 3206,
+    "red": 3239,
+    "green": 3240
+  },
+  "spells": {
+    "tenderize": 4535,
+    "pickup": 4538,
+    "garnish": 4537,
+    "bake": 4536
+  },
+  "states": {
+    "tenderized": 3045,
+    "tomato": 3046,
+    "cheese": 3047,
+    "pepper": 3048,
+    "score": 3050,
+    "order_generator": 3052
+  },
+  "recipe_states": {
+    "blue:tomato": 3051,
+    "blue:cheese": 3053,
+    "blue:pepper": 3054,
+    "red:tomato": 3055,
+    "red:cheese": 3056,
+    "red:pepper": 3057,
+    "green:tomato": 3058,
+    "green:cheese": 3059,
+    "green:pepper": 3060
+  },
+  "areas": {
+    "barrels": {
+      "tomato": 769,
+      "cheese": 770,
+      "pepper": 771
+    },
+    "native_ai_order_target_areas": [
+      768,
+      782
+    ],
+    "role_evidence": "Original 768 kills entrants and adds Failure3124 to positive native eGj actors; original782 has no effects. AI predicates query either area. Exact oven-versus-escape placement is not recovered."
+  },
+  "rules": {
+    "orders": 3,
+    "ingredient_batch": 2,
+    "strike_limit": 3,
+    "hard_score_threshold": 400,
+    "score_per_state_level": 5,
+    "spawn_caps": [
+      [
+        1,
+        1
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        10,
+        3
+      ]
+    ],
+    "double_tenderize": "destroy_without_strike",
+    "unrequested_garnished_bake": "zero_without_strike",
+    "ungarnished_bake": "strike",
+    "escape": "strike",
+    "ingredient_capacity": 10
+  },
+  "events": {
+    "start": 14163,
+    "create_arcade": 14315,
+    "transform_arcade": 14316,
+    "score_validated": 14412,
+    "fight_end": 20821,
+    "tutorial": 14916,
+    "turn_end": 14917
+  },
+  "score_weights": null,
+  "missing": [
+    "native arena area placements and spawn directions",
+    "server-owned timed spawn and conveyor movement integration",
+    "authoritative native action1451/1452 encounter start",
+    "transactional score receipt persistence and objective settlement"
+  ],
+  "authority": "Only committed server combat actions may mutate the order trial. Events14412/20821 and ordinary victory alone are insufficient. No client score input.",
+  "evidence": [
+    "installed native scenario1719",
+    "installed native descriptors502/503/505",
+    "installed native spell/effect records4535-4538 and3044-3052",
+    "installed English quest.astrub.pizzlarve localization",
+    "installed native monsters3206/3217/3239/3240"
+  ],
+  "native_sources": {
+    "entrance": {
+      "object_id": 23626,
+      "map_id": 546,
+      "position": [
+        -4.0,
+        -9.0,
+        3.0
+      ],
+      "wire_action": 0,
+      "wire_parameter": 0,
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 505,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 544,
+            "clx": 87,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 564,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1457,
+                    "effect_type": 3,
+                    "criterion": "",
+                    "parameters": [
+                      "{0,0,0}",
+                      "885",
+                      "7"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "original_payload_sha256": "f58a7a3c13083459f5885ffc53444824a8243c0d90a9e5ac069672ec65a6aa96",
+      "descriptor_sha256": "d57f12fe95b16f36b92e226c91b46b83a030d04a553e46ef42929659bb07efc0"
+    },
+    "normal": {
+      "object_id": 23619,
+      "map_id": 885,
+      "position": [
+        -2.0,
+        0.0,
+        0.0
+      ],
+      "wire_action": 0,
+      "wire_parameter": 0,
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 502,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 541,
+            "clx": 41,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 561,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1451,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "original_payload_sha256": "702250e9cde98553cbbc1aaf12d52a1d04770d3f43ae0d1c94d437be4afb1bbb",
+      "descriptor_sha256": "db935276f5b00853e23b724ad2b86ffd1014262e62d3385566bbbd2d6dca6595"
+    },
+    "hard": {
+      "object_id": 23620,
+      "map_id": 885,
+      "position": [
+        2.0,
+        0.0,
+        0.0
+      ],
+      "wire_action": 0,
+      "wire_parameter": 0,
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 503,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 542,
+            "clx": 41,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 562,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1452,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "original_payload_sha256": "c0d992650b5d99740a710128747f4493afc4a46b155ddefa191559ba80b7a3ff",
+      "descriptor_sha256": "1318e72e4f80ad077bb0401a6493ef340df84c602785747b68be6b69b568c855"
+    }
+  },
+  "native_state_roots": {
+    "3044": [
+      118957,
+      118951
+    ],
+    "3045": [
+      118968,
+      118969
+    ],
+    "3046": [
+      118973
+    ],
+    "3047": [
+      118974
+    ],
+    "3048": [
+      118975
+    ],
+    "3049": [
+      118992,
+      118993,
+      118994,
+      118995,
+      118996
+    ],
+    "3050": [
+      119003
+    ],
+    "3051": [
+      119009
+    ],
+    "3052": [
+      119030
+    ],
+    "3053": [
+      119010
+    ],
+    "3054": [
+      119011
+    ],
+    "3055": [
+      119012
+    ],
+    "3056": [
+      119013
+    ],
+    "3057": [
+      119014
+    ],
+    "3058": [
+      119015
+    ],
+    "3059": [
+      119016
+    ],
+    "3060": [
+      119017
+    ]
+  },
+  "native_area_programs": {
+    "767": {
+      "type": "GLYPH",
+      "visual": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 767,
+      "effect_ids": [
+        118943
+      ],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [
+        10000
+      ],
+      "native_class": "bcT",
+      "maximum_level": 0,
+      "native_type_id": 0,
+      "characteristics": [
+        8
+      ],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [
+        8
+      ],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "768": {
+      "type": "GLYPH",
+      "visual": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 768,
+      "effect_ids": [
+        118950,
+        120464
+      ],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [
+        10001
+      ],
+      "native_class": "bcT",
+      "maximum_level": 0,
+      "native_type_id": 0,
+      "characteristics": [
+        8
+      ],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [
+        8
+      ],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "769": {
+      "type": "FAKE_FIGHTER",
+      "visual": [
+        "8423",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [
+        0.0,
+        -1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        -1.0
+      ],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 769,
+      "effect_ids": [],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [],
+      "native_class": "bcQ",
+      "maximum_level": 0,
+      "native_type_id": 15,
+      "characteristics": [],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "770": {
+      "type": "FAKE_FIGHTER",
+      "visual": [
+        "8421",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [
+        0.0,
+        -1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        -1.0
+      ],
+      "raw_bdi": true,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 770,
+      "effect_ids": [],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [],
+      "native_class": "bcQ",
+      "maximum_level": 0,
+      "native_type_id": 15,
+      "characteristics": [],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "771": {
+      "type": "FAKE_FIGHTER",
+      "visual": [
+        "8422",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [
+        0.0,
+        -1.0,
+        0.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        -1.0
+      ],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 771,
+      "effect_ids": [],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [],
+      "native_class": "bcQ",
+      "maximum_level": 0,
+      "native_type_id": 15,
+      "characteristics": [],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "787": {
+      "type": "GLYPH",
+      "visual": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 787,
+      "effect_ids": [
+        120727
+      ],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [
+        10000
+      ],
+      "native_class": "bcT",
+      "maximum_level": 0,
+      "native_type_id": 0,
+      "characteristics": [
+        8
+      ],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [
+        8
+      ],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "782": {
+      "exit_masks": [],
+      "reference": 782,
+      "entry_masks": [
+        10001
+      ],
+      "removal_masks": [],
+      "type": "GLYPH",
+      "effect_ids": [],
+      "properties": [
+        8
+      ]
+    }
+  },
+  "native_spawn_program": {
+    "generator_state": 3044,
+    "dispatcher_effect": 118951,
+    "normal": {
+      "area": 767,
+      "branch_effect": 118952,
+      "probability_percent": 50,
+      "summon_effects": [
+        118953,
+        119966,
+        119967
+      ],
+      "orientation_parameter": 3,
+      "orientation": "EAST"
+    },
+    "hard": {
+      "area": 787,
+      "branch_effect": 120739,
+      "probability_percent": 100,
+      "summon_effects": [
+        120740,
+        120741,
+        120742
+      ],
+      "orientation_parameter": 4,
+      "orientation": "SOUTH"
+    },
+    "sequential_branch_probabilities": [
+      33,
+      50,
+      100
+    ],
+    "turn_population_caps": [
+      {
+        "first_turn": 1,
+        "cap": 1
+      },
+      {
+        "first_turn": 6,
+        "cap": 2
+      },
+      {
+        "first_turn": 10,
+        "cap": 3
+      }
+    ],
+    "summon_original_parameters": [
+      null,
+      10,
+      1,
+      -1,
+      0
+    ],
+    "wall_clock_timer": false,
+    "producer_population_limits": [
+      {
+        "effects": [
+          118952,
+          120739
+        ],
+        "limit": "native turn1/6/10 current-monster population caps1/2/3"
+      },
+      {
+        "effects": [
+          120754,
+          143616
+        ],
+        "limit": 2,
+        "source_state": 3127
+      }
+    ]
+  },
+  "native_finish_contract": {
+    "mode": "hard",
+    "score_state": 3050,
+    "score_scale": 5,
+    "threshold": 400,
+    "objective": 4261,
+    "native_objective_label_key": "content.64.4261",
+    "native_objective_labels_agree": [
+      "en",
+      "es",
+      "fr"
+    ],
+    "native_objective_condition_fields": {
+      "ckc": "",
+      "cke": "",
+      "ckf": []
+    },
+    "score_validated_event": 14412,
+    "fight_finished_event": 20821,
+    "ordinary_victory_required": false,
+    "authenticated_abandonment_supported_by_historical_video": true,
+    "disconnection_is_not_a_finish_receipt": true,
+    "score_weights_provenance": "unrecovered",
+    "score_received_from_client": false
+  },
+  "native_rewards": [
+    {
+      "reward_id": 3694,
+      "type": 6,
+      "parameters": [
+        7671
+      ]
+    },
+    {
+      "reward_id": 4660,
+      "type": 5,
+      "parameters": [
+        12686,
+        8
+      ]
+    }
+  ],
+  "evidence_notes": [
+    "Independent source/mode/form/area declarations are ready; enabled remains false until scoring and committed runtime initialization are complete.",
+    "Original aNv3049 has root118995 (op950 with masks8/8) in addition to compiled projection roots; retain original timing semantics.",
+    "Original recipe award numbers are not present in recovered effect/locale records; no synthetic matrix is accepted as native.",
+    "Current EN/ES/FR objective says finish; historical guide turn-start wording is version-qualified.",
+    "Original native help requires scoring depend on both color and ingredient; neither uniform nor arbitrary ordinal weights are claimed.",
+    "Color/ingredient-dependent scoring is native; the absence of extra turn/wave modifiers and a static nine-weight table are not proven. Existing pure reducer matrix is an implementation hypothesis.",
+    "GetMonstersInFight is actual eKK -> fbX.e IN_PLAY actor types1/2 global population, not a per-turn spawned counter; LarvaAI3127 replacement producers use limit2 independently of state3044 constructor limits.",
+    "303 is native orientation eWF, not movement distance: normal parameter3 mapsEAST and hard parameter4 mapsSOUTH. Autonomous native MP2/1 movement is separate; never push larvae by3/4 cells on this basis.",
+    "Fresh original782 has no native effects;768 roots118950kill and120464Failure3124 differ. Do not classify any118950area death as a baked order or treat768/782 as equivalent ovens without an authenticated source distinction."
+  ],
+  "native_ingredient_states": {
+    "3046": {
+      "ingredient": "tomato",
+      "additive": true,
+      "replace": false,
+      "refresh": false,
+      "maximum_level": 10
+    },
+    "3047": {
+      "ingredient": "cheese",
+      "additive": true,
+      "replace": false,
+      "refresh": false,
+      "maximum_level": 10
+    },
+    "3048": {
+      "ingredient": "pepper",
+      "additive": true,
+      "replace": false,
+      "refresh": false,
+      "maximum_level": 10
+    }
+  },
+  "native_failure_program": {
+    "state": 3124,
+    "additive": true,
+    "maximum_level": 3,
+    "duration": -1,
+    "roots": [
+      120462,
+      120463
+    ],
+    "terminal_kill": {
+      "reference": 120463,
+      "effect_class": 28,
+      "minimum_level": 3
+    },
+    "area_768_application": {
+      "reference": 120464,
+      "effect_class": 304,
+      "state": 3124,
+      "level": 1,
+      "target_selector": {
+        "class": "fcE",
+        "mask": 16
+      }
+    },
+    "area_782_effect_ids": [],
+    "evidence": "Original bounded aKa/aNv exports, not reconstructed area placement."
+  },
+  "scoring_policy": {
+    "kind": "reviewed_reconstruction",
+    "path": "astrub_pizzlarva.scoring.json",
+    "sha256": "65f46e43b50894f394704e13e098687c7f39c7c16003a7c381000cc9442eb025",
+    "original_weights_recovered": false
+  }
+}

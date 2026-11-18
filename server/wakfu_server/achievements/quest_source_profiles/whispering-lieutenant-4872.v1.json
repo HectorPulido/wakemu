@@ -1,0 +1,289 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(4872)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 649,
+      "cjG": 504,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 96",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -129,
+              "ckh": -103,
+              "cki": -5,
+              "ckj": 1295,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10046,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10046)",
+          "ckd": [
+            {
+              "ckg": -129,
+              "ckh": -103,
+              "cki": -5,
+              "ckj": 1295,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10047,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10046)",
+          "ckd": [
+            {
+              "ckg": -129,
+              "ckh": -103,
+              "cki": -5,
+              "ckj": 1295,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10048,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10047) and IsAchievementObjectiveComplete(10048)",
+          "ckd": [
+            {
+              "ckg": -213,
+              "ckh": 66,
+              "cki": -80,
+              "ckj": 1295,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10087,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10047) and IsAchievementObjectiveComplete(10048)",
+          "ckd": [
+            {
+              "ckg": -208,
+              "ckh": 63,
+              "cki": -80,
+              "ckj": 1295,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [
+            {
+              "ckm": "GetAchievementVariable(\"nbChuchoteurPaintErased\")>=10",
+              "ckn": [
+                726
+              ],
+              "d": 737,
+              "native_class": "aJQ"
+            }
+          ],
+          "d": 10088,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            10000
+          ],
+          "d": 9115,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            2880000
+          ],
+          "d": 9114,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 3,
+          "ckk": false,
+          "ckl": [
+            20107
+          ],
+          "d": 9121,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 96,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": 3,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 4,
+      "cka": "ach.504",
+      "d": 4872,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "whispering-4872-lieutenant-10087",
+      "quest_id": 4872,
+      "objective_id": 10087,
+      "source": {
+        "x": -213.0,
+        "y": 66.0,
+        "z": -80.0,
+        "id": 32826,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-12_3",
+        "map_id": 1295,
+        "payload_hex": "02000000000b010000000d000001050fffffff2b00000042ffb00001010101000f000000043134353200000000000101",
+        "native_parameters": "1452",
+        "descriptor_id": 1452
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1452,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1780,
+            "clx": 264,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1831,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3289,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(4872)\r\nand IsAchievementObjectiveComplete(10047)\r\nand IsAchievementObjectiveComplete(10048)\r\nand not IsAchievementObjectiveComplete(10087)\r\nand not IsHero()",
+                    "parameters": [
+                      "2462"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1780,
+        "clx": 264,
+        "cod": 0,
+        "coe": 0,
+        "cof": true,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1831,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3289,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(4872)\r\nand IsAchievementObjectiveComplete(10047)\r\nand IsAchievementObjectiveComplete(10048)\r\nand not IsAchievementObjectiveComplete(10087)\r\nand not IsHero()",
+                "parameters": [
+                  "2462"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1831,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3289,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(4872)\r\nand IsAchievementObjectiveComplete(10047)\r\nand IsAchievementObjectiveComplete(10048)\r\nand not IsAchievementObjectiveComplete(10087)\r\nand not IsHero()",
+            "parameters": [
+              "2462"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -212,
+          66,
+          -80
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "afe492b5bc53a992139bad1d267eb9da5d68d605647c38b08e2224e0068e18d0",
+      "roster": [
+        {
+          "reference": 2143,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 2462,
+        "begin_event": 21395,
+        "win_event": 21397,
+        "loss_event": 21398
+      },
+      "evidence": "Exact native1295 object32826 descriptor1452 effect3289/type10 scenario2462. Native2143 Teniente crujibola susurrado is a reviewed singleton formation because original server group membership is absent. Preserve native113-118 levels, HP, costs and spells. Both original10047 intentional defeat and10048 authentic Airwhisp are mandatory before admission; genuine own original encounter victory only.",
+      "timing_basis": "Reviewed server milliseconds interpreting original cog3000; native timer units remain unproven."
+    }
+  ],
+  "provenance": "Native installed object/action/quest/scenario joins; formation explicitly reviewed reconstruction. Additive dormant source candidate, no ordinary species-kill or click victory."
+}

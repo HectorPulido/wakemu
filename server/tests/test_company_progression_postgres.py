@@ -1,5 +1,9 @@
 """Owned native company score follows real character and companion progress."""
 import struct
+from pathlib import Path
+import os
+import tempfile
+from unittest.mock import patch
 import uuid
 
 from postgres_case import PostgresCase
@@ -13,6 +17,28 @@ from wakfu_server.inventory_items import grant
 
 
 class CompanyProgressionPostgresTests(PostgresCase):
+    def setUp(self):
+        migrations = Path(__file__).resolve().parents[1] / "migrations"
+        # Production still runs the canonical base374 schema. Qualify only the
+        # authorized additive SQL, without unrelated pending mission batches.
+        with tempfile.TemporaryDirectory(prefix="universal-base374-") as directory:
+            for source in migrations.glob("*.sql"):
+                if int(source.name.split("_", 1)[0]) <= 374:
+                    (Path(directory) / source.name).symlink_to(source.resolve())
+            with patch.dict(os.environ, WAKFU_MIGRATIONS_TEST_DIR=directory):
+                super().setUp()
+        # These tests qualify earned native progression independently of grants.
+        migrations = Path(__file__).resolve().parents[1] / "migrations"
+        with self.store.connection() as db:
+            for name in (
+                "382_reconstructed_mount_item_aliases.sql",
+                "383_universal_equipment_unlocks.sql",
+            ):
+                db.execute((migrations / name).read_text())
+            db.execute(
+                "UPDATE settings SET value=jsonb_set(value, '{enabled}', 'false'::jsonb) WHERE name='universal_equipment_unlocks'"
+            )
+
     def _actor(self, account, name):
         return self.store.create_character(account, name, breed=8)
 

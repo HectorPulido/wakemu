@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "frigost-village-continuation",
+  "evidence": [
+    "Finite reviewed Frigost category507 continuation: the original1112 earning criterion is GetRealLevel() >= 100 and IsAchievementComplete(1111). Existing qualified Father Doby2421/action304 dialogue acknowledges1112/2049 at1986/4589. This earned completion link admits only1112; it does not credit the village talk or admit later unsupported clinic/past/tower chapters."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "frigost-earned-1111-1112",
+      "quest_id": 1112,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1111
+      },
+      "requires_completed": [
+        1111
+      ]
+    }
+  ]
+}

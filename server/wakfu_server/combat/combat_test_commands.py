@@ -39,7 +39,39 @@ def finish(fight, runtime, *, account_id, character_id, win):
             member.hp = 0
     candidate.phase = "finished"
     candidate.winner = winner
+    if win and not administrative_victory(
+        candidate, account_id=account_id, character_id=character_id
+    ):
+        candidate._event(
+            "administrative_outcome",
+            command="!winfight",
+            account_id=account_id,
+            character_id=character_id,
+            winner=winner,
+        )
     if fight.phase != "finished" or fight.winner != winner:
         candidate._event("finished", winner=winner)
     messages.fight = candidate
     return Transition(candidate, messages, ())
+
+
+def administrative_victory(fight, *, account_id, character_id):
+    """Recognize the server operator outcome without inventing native deaths."""
+    actor = fight.actors.get(character_id)
+    if (
+        fight.phase != "finished"
+        or actor is None
+        or not actor.controlled
+        or actor.owner_id != account_id
+        or getattr(actor, "pve_withdrawn", False)
+        or fight.winner != actor.team
+    ):
+        return False
+    return any(
+        event.get("kind") == "administrative_outcome"
+        and event.get("command") == "!winfight"
+        and event.get("account_id") == account_id
+        and event.get("character_id") == character_id
+        and event.get("winner") == fight.winner
+        for event in fight.events
+    )

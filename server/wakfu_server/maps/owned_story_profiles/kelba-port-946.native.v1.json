@@ -1,0 +1,76 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 946,
+  "scenario_id": 1961,
+  "lua_sha256": "9633be496fec4dabad775635d3a1758183e822c90717c29399932299cb72f581",
+  "objects": [
+    {
+      "x": 7.0,
+      "y": -5.0,
+      "z": 6.0,
+      "id": 25147,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-1",
+      "map_id": 946,
+      "payload_hex": "02000000000b010000000d00000103b200000007fffffffb0006000101000100000000000000000000000101"
+    }
+  ],
+  "scenario_events": [
+    15690,
+    15691,
+    15772,
+    15657,
+    15773,
+    15658
+  ],
+  "scenes": {
+    "15772": {
+      "argument_count": 2,
+      "duration_ms": 18500,
+      "callback": 15772
+    },
+    "15657": {
+      "argument_count": 2,
+      "duration_ms": 41000,
+      "callback": 15658
+    }
+  },
+  "argument_sources": {
+    "15772": {
+      "story_npcs": {
+        "story_npc:1147": 1147
+      }
+    },
+    "15657": {
+      "story_npcs": {
+        "story_npc:1147": 1147
+      }
+    }
+  },
+  "native_scripts": {},
+  "programs": {},
+  "loot_tables": {},
+  "presentation_groups": [
+    {
+      "id": "kelba-port-package",
+      "start_event": 15772,
+      "initializers": {
+        "1961": 15772
+      },
+      "events": [
+        15772,
+        15657,
+        15658
+      ]
+    }
+  ],
+  "evidence": "Original installed1961 Lua. Server stage deadlines and timer-only completion associations are reviewed reconstruction; the Lua does not serialize the original server callback graph. Grouped once delivery keeps native endCine15658 with its authentic initialization context.",
+  "scene_positions": {
+    "15657": [
+      8,
+      5,
+      0
+    ]
+  }
+}

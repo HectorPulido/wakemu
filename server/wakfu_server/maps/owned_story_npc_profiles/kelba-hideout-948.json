@@ -1,0 +1,36 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "kelba-hideout-948",
+  "controller_id": "kelba-hideout-948",
+  "map_id": 948,
+  "policy_version": 1,
+  "quest_id": 2543,
+  "physical_visit": true,
+  "requires": [
+    "hideout-discovered"
+  ],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 3588,
+      "action_ids": [
+        675
+      ],
+      "action_type": 4,
+      "action_criterion": "GetInstanceId() == 948",
+      "controller_reference": 3588,
+      "x": 10,
+      "y": 0,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 4,
+      "interaction_anchor": {
+        "x": 10,
+        "y": 1,
+        "z": 0
+      },
+      "provenance": "Original nativeHadibal3588/action675 requires instance948. Actual1966/15699 needs this real noncombat UID before its film; accepted675 emits the owner-scoped npc_spoken3588 event. Only the separate controller step after genuine accomplice victory and native15700 film completion may earn2543/5042. No native dialogue root is fabricated."
+    }
+  ],
+  "render_requires": []
+}

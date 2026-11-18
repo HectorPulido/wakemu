@@ -1,0 +1,648 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1029,
+  "scenario_id": 2081,
+  "objects": [
+    {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 26193,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d000001040500000000000000010000000101010100000001000000000000000100000004323132380000003baf0001"
+    },
+    {
+      "x": -53.0,
+      "y": -26.0,
+      "z": 0.0,
+      "id": 26198,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-3_-2",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405ffffffcbffffffe60000000101010100000001ffffffcbffffffe600000004323132380000003baf0001"
+    },
+    {
+      "x": 55.0,
+      "y": 67.0,
+      "z": 0.0,
+      "id": 26199,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "3_3",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d000001040500000037000000430000000101010100000001000000370000004300000004323132380000003baf0001"
+    },
+    {
+      "x": 105.0,
+      "y": 122.0,
+      "z": 0.0,
+      "id": 26200,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "5_6",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405000000690000007a0000000101010100000001000000690000007a00000004323132380000003baf0001"
+    },
+    {
+      "x": 162.0,
+      "y": 175.0,
+      "z": 0.0,
+      "id": 26201,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "9_9",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405000000a2000000af0000000101010100000001000000a2000000af00000004323132380000003baf0001"
+    },
+    {
+      "x": 0.0,
+      "y": -16.0,
+      "z": 0.0,
+      "id": 26203,
+      "auto": false,
+      "type": "StoppingPositionTrigger",
+      "chunk": "0_-1",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d000001040500000000fffffff0000000010101010000000dfffffffafffffff1000000000004fffffff1000000000001fffffff10001fffffffbfffffff10000fffffffefffffff1000000000002fffffff1000000000006fffffff10000fffffffcfffffff1000000000003fffffff10000fffffffdfffffff10000fffffffffffffff1000100000005fffffff1000000000000fffffff10001000000000000000000"
+    },
+    {
+      "x": -53.0,
+      "y": -43.0,
+      "z": 0.0,
+      "id": 26204,
+      "auto": false,
+      "type": "StoppingPositionTrigger",
+      "chunk": "-3_-3",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405ffffffcbffffffd5000000010101010000000dffffffccffffffd60001ffffffcfffffffd60000ffffffc5ffffffd60000ffffffcaffffffd60001ffffffc9ffffffd60000ffffffc8ffffffd60000ffffffc6ffffffd60000ffffffceffffffd60000ffffffc7ffffffd60000ffffffcbffffffd60001ffffffcdffffffd60000ffffffd0ffffffd60000ffffffd1ffffffd60000000000000000000000"
+    },
+    {
+      "x": 162.0,
+      "y": 158.0,
+      "z": 0.0,
+      "id": 26206,
+      "auto": false,
+      "type": "StoppingPositionTrigger",
+      "chunk": "9_8",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405000000a20000009e000000010101010000000d0000009e0000009f0000000000a80000009f0000000000a10000009f0001000000a60000009f0000000000a20000009f00010000009c0000009f0000000000a70000009f0000000000a30000009f00010000009f0000009f0000000000a40000009f0000000000a50000009f0000000000a00000009f00000000009d0000009f0000000000000000000000"
+    },
+    {
+      "x": 105.0,
+      "y": 105.0,
+      "z": 0.0,
+      "id": 26207,
+      "auto": false,
+      "type": "StoppingPositionTrigger",
+      "chunk": "5_5",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d00000104050000006900000069000000010101010000000d0000006e0000006a0000000000670000006a0000000000650000006a00000000006a0000006a0001000000640000006a0000000000690000006a00010000006b0000006a00000000006c0000006a0000000000680000006a00010000006f0000006a0000000000660000006a0000000000630000006a00000000006d0000006a0000000000000000000000"
+    },
+    {
+      "x": 55.0,
+      "y": 50.0,
+      "z": 0.0,
+      "id": 26208,
+      "auto": false,
+      "type": "StoppingPositionTrigger",
+      "chunk": "3_2",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d00000104050000003700000032000000010101010000000d0000003100000033000000000032000000330000000000330000003300000000003a00000033000000000034000000330000000000370000003300000000003b0000003300000000003900000033000000000035000000330000000000380000003300000000003d0000003300000000003c00000033000000000036000000330000000000000000000000"
+    },
+    {
+      "x": -4.0,
+      "y": -12.0,
+      "z": 0.0,
+      "id": 26277,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_-1",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405fffffffcfffffff400000001010001000f000000043231343700000000000000"
+    },
+    {
+      "x": -4.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 26278,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_-2",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d0000010405fffffffcffffffed00000001010001000f000000043231343800000000000000"
+    },
+    {
+      "x": 4.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 26279,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-2",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d000001040500000004ffffffed00000001010001000f000000043231343900000000000000"
+    },
+    {
+      "x": 4.0,
+      "y": -12.0,
+      "z": 0.0,
+      "id": 26280,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-1",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d000001040500000004fffffff400000001010001000f000000043231353000000000000000"
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 26331,
+      "auto": false,
+      "type": "PositionTrigger",
+      "chunk": "0_0",
+      "map_id": 1029,
+      "payload_hex": "02000000000b010000000d00000104050000000000000000000000010101010000000100000000000000000000000000000000000000"
+    }
+  ],
+  "scenario_events": [
+    16531,
+    16534,
+    16536,
+    16539,
+    16541,
+    16552
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "16531": {
+      "argument_count": 0
+    },
+    "16534": {
+      "argument_count": 1
+    },
+    "16536": {
+      "argument_count": 1
+    },
+    "16539": {
+      "argument_count": 1
+    },
+    "16541": {
+      "argument_count": 1
+    },
+    "16552": {
+      "argument_count": 0
+    }
+  },
+  "teleporters": {
+    "26193": {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 26193,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": -19,
+          "y": -183,
+          "z": -34,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1017,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 2357,
+          "item_reference": 0,
+          "arrival_heights": [
+            -34
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 2128,
+      "native_parameters": "2128",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26198": {
+      "x": -53.0,
+      "y": -26.0,
+      "z": 0.0,
+      "id": 26198,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": -19,
+          "y": -183,
+          "z": -34,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1017,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 2357,
+          "item_reference": 0,
+          "arrival_heights": [
+            -34
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 2128,
+      "native_parameters": "2128",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26199": {
+      "x": 55.0,
+      "y": 67.0,
+      "z": 0.0,
+      "id": 26199,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": -19,
+          "y": -183,
+          "z": -34,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1017,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 2357,
+          "item_reference": 0,
+          "arrival_heights": [
+            -34
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 2128,
+      "native_parameters": "2128",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26200": {
+      "x": 105.0,
+      "y": 122.0,
+      "z": 0.0,
+      "id": 26200,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": -19,
+          "y": -183,
+          "z": -34,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1017,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 2357,
+          "item_reference": 0,
+          "arrival_heights": [
+            -34
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 2128,
+      "native_parameters": "2128",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26201": {
+      "x": 162.0,
+      "y": 175.0,
+      "z": 0.0,
+      "id": 26201,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": -19,
+          "y": -183,
+          "z": -34,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1017,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 2357,
+          "item_reference": 0,
+          "arrival_heights": [
+            -34
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 2128,
+      "native_parameters": "2128",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26277": {
+      "x": -4.0,
+      "y": -12.0,
+      "z": 0.0,
+      "id": 26277,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": 162,
+          "y": 162,
+          "z": 0,
+          "cof": false,
+          "cvd": false,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": false,
+          "cyZ": -1,
+          "map_id": 1029,
+          "criterion": "",
+          "direction": 7,
+          "destination_id": 2376,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 15,
+      "definition_id": 2147,
+      "native_parameters": "2147",
+      "approach_positions": [
+        {
+          "x": -3,
+          "y": -12,
+          "z": 0
+        },
+        {
+          "x": -5,
+          "y": -12,
+          "z": 0
+        },
+        {
+          "x": -4,
+          "y": -13,
+          "z": 0
+        },
+        {
+          "x": -4,
+          "y": -11,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26278": {
+      "x": -4.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 26278,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": 105,
+          "y": 109,
+          "z": 0,
+          "cof": false,
+          "cvd": false,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": false,
+          "cyZ": -1,
+          "map_id": 1029,
+          "criterion": "",
+          "direction": 7,
+          "destination_id": 2377,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 15,
+      "definition_id": 2148,
+      "native_parameters": "2148",
+      "approach_positions": [
+        {
+          "x": -3,
+          "y": -19,
+          "z": 0
+        },
+        {
+          "x": -5,
+          "y": -19,
+          "z": 0
+        },
+        {
+          "x": -4,
+          "y": -20,
+          "z": 0
+        },
+        {
+          "x": -4,
+          "y": -18,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26279": {
+      "x": 4.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 26279,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": 55,
+          "y": 54,
+          "z": 0,
+          "cof": false,
+          "cvd": false,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": false,
+          "cyZ": -1,
+          "map_id": 1029,
+          "criterion": "",
+          "direction": 7,
+          "destination_id": 2378,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 15,
+      "definition_id": 2149,
+      "native_parameters": "2149",
+      "approach_positions": [
+        {
+          "x": 5,
+          "y": -19,
+          "z": 0
+        },
+        {
+          "x": 3,
+          "y": -19,
+          "z": 0
+        },
+        {
+          "x": 4,
+          "y": -20,
+          "z": 0
+        },
+        {
+          "x": 4,
+          "y": -18,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "26280": {
+      "x": 4.0,
+      "y": -12.0,
+      "z": 0.0,
+      "id": 26280,
+      "map_id": 1029,
+      "destinations": [
+        {
+          "x": -53,
+          "y": -39,
+          "z": 0,
+          "cof": false,
+          "cvd": false,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": false,
+          "cyZ": -1,
+          "map_id": 1029,
+          "criterion": "",
+          "direction": 7,
+          "destination_id": 2379,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 15,
+      "definition_id": 2150,
+      "native_parameters": "2150",
+      "approach_positions": [
+        {
+          "x": 5,
+          "y": -12,
+          "z": 0
+        },
+        {
+          "x": 3,
+          "y": -12,
+          "z": 0
+        },
+        {
+          "x": 4,
+          "y": -13,
+          "z": 0
+        },
+        {
+          "x": 4,
+          "y": -11,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "reviewed_stage_positions": {
+    "16536": {
+      "position": [
+        0,
+        -13,
+        0
+      ],
+      "authority": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    },
+    "16539": {
+      "position": [
+        0,
+        -13,
+        0
+      ],
+      "authority": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    },
+    "16541": {
+      "position": [
+        0,
+        -13,
+        0
+      ],
+      "authority": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    }
+  },
+  "version_boundary": {
+    "reason": "Unsafe cinematic hideAll/actor IDs are not replayed as mechanics. Original physical portals and real room outcomes own progression; finite stage joins are declared reviewed reconstruction.",
+    "omitted_events": [
+      16532,
+      16537,
+      16538,
+      16540,
+      16542,
+      16543
+    ]
+  }
+}

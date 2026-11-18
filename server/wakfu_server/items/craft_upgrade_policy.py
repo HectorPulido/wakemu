@@ -4,6 +4,7 @@ raw_cvj identifies the native precursor relationship, not an original server
 inheritance algorithm. Compatible state is retained; unsupported state fails
 before material debit. Ordinary resource sacrifice semantics are unchanged.
 """
+
 import hashlib
 import json
 
@@ -16,8 +17,10 @@ def _rich(metadata, reference):
             if row["damage_elements"] or row["resistance_elements"]:
                 return True
         elif table == "inventory_item_bindings":
-            if row["template_reference"] != reference or (
-                row["bound"] and not _template_bound(reference)
+            if (
+                row.get("binding_type") is not None
+                or row["template_reference"] != reference
+                or (row["bound"] and not _template_bound(reference))
             ):
                 return True
         elif table == "inventory_item_recycling_state":

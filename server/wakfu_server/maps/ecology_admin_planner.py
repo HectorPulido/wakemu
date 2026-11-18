@@ -10,6 +10,30 @@ from functools import lru_cache
 from types import MappingProxyType
 
 
+def require_prepared_revision(revision, map_id, *, domain="monsters"):
+    """Keep a prepared habitat pin when all of its actual inputs are unchanged."""
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    if type(map_id) is not int or not 0 < map_id < 2**31:
+        raise ValueError("Invalid administrative source map")
+    shared = (
+        "ecology-regions.json",
+        f"combat-maps/{map_id}.json",
+        f"planting-maps/{map_id}.json",
+    )
+    if domain == "monsters":
+        paths = shared + ("monster-growth-catalog.json", "monsters.json")
+    elif domain == "flora":
+        paths = shared + (
+            "plant-resources.json",
+            "seed-actions.json",
+            "planting-grounds.json",
+        )
+    else:
+        raise ValueError("Unsupported administrative source domain")
+    require_source_revision(revision, paths)
+
+
 def prepare(map_id, region_id):
     """Prewarm immutable native habitat data outside world gameplay fences."""
     from wakfu_server import native_catalog
@@ -175,10 +199,7 @@ def plan(map_id, region_id, counts, occupied, *, target, capacity, prepared=None
     native = prepare(map_id, region_id) if prepared is None else prepared
     if (native["map_id"], native["region_id"]) != (map_id, region_id):
         raise ValueError("Prepared administrative habitat belongs to another region")
-    from wakfu_server import native_catalog
-
-    if native["revision"] != native_catalog.release():
-        raise ValueError("Prepared administrative habitat catalog is stale")
+    require_prepared_revision(native["revision"], map_id)
     candidates = native["candidates"]
     if not candidates:
         return []
@@ -243,7 +264,6 @@ def plan_groups(
     """
     import random
     from collections import deque
-    from wakfu_server import native_catalog
 
     integers = (
         target_groups,
@@ -281,12 +301,9 @@ def plan_groups(
             raise ValueError("Invalid administrative occupied cell")
         blocked.add(tuple(point))
     native = prepare(map_id, region_id) if prepared is None else prepared
-    if (native["map_id"], native["region_id"], native["revision"]) != (
-        map_id,
-        region_id,
-        native_catalog.release(),
-    ):
+    if (native["map_id"], native["region_id"]) != (map_id, region_id):
         raise ValueError("Prepared administrative habitat is stale or foreign")
+    require_prepared_revision(native["revision"], map_id)
     candidates = native["all_candidates"]
     if not candidates:
         return []

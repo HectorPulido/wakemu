@@ -127,7 +127,7 @@ def validate_capacity(character, index, data):
         raise ValueError("Non-permanent build capacity exceeded")
 
 
-def validate(character, index, blobs):
+def validate(character, index, blobs, *, prepare_equipment=None):
     if not valid_index(index):
         raise ValueError("Invalid build index")
     fields = list(proto_fields(blobs["sheet"]))
@@ -164,6 +164,11 @@ def validate(character, index, blobs):
                 index: {key: blobs[key].hex() for key in KEYS},
             },
         )
+        from wakfu_server.mount_inventory import validate_equipment
+
+        if prepare_equipment is not None:
+            prepare_equipment(physical)
+        validate_equipment(candidate, physical)
         if any(
             "GetCharac"
             in (
@@ -199,11 +204,11 @@ def validate(character, index, blobs):
         validate_deck(blobs["deck"], character["breed"], cap, character=character)
 
 
-def validated_saved_blobs(character, index, blobs):
+def validated_saved_blobs(character, index, blobs, *, prepare_equipment=None):
     """Validate the exact replacement record, including retained empty fields."""
     previous = character.get("builds", {}).get(index, {})
     merged = {key: blobs[key] or bytes.fromhex(previous.get(key, "")) for key in KEYS}
-    validate(character, index, merged)
+    validate(character, index, merged, prepare_equipment=prepare_equipment)
     return merged
 
 

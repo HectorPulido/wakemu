@@ -6,11 +6,14 @@ import com.google.gson.*;
 /** Original typed closure from class2 captured books and native initial states only. */
 public final class ExportCapturedClassMechanicGraph extends ExportClassMechanicGraph {
     public static void main(String[] args) throws Exception {
-        if (args.length < 2) throw new IllegalArgumentException("output-jsonl.gz scoped-profile-json...");
+        if (args.length < 2) throw new IllegalArgumentException("output-jsonl.gz [--morph-books-only] scoped-profile-json...");
+        boolean morphBooksOnly = args[1].equals("--morph-books-only");
         profiles = new JsonObject();
         Set<Integer> seeds = new TreeSet<>();
-        for (int index=1; index<args.length; index++) {
+        for (int index=morphBooksOnly ? 2 : 1; index<args.length; index++) {
             JsonObject source = JsonParser.parseString(Files.readString(Path.of(args[index]))).getAsJsonObject();
+            if (morphBooksOnly && !source.get("schema").getAsString().equals("native-class-morph-profiles-v1"))
+                throw new IllegalArgumentException("Native eWG book-only scope requires morphology source");
             JsonObject records = source.getAsJsonObject("profiles");
             for (var entry : records.entrySet()) {
                 if (profiles.has(entry.getKey()) && !profiles.get(entry.getKey()).equals(entry.getValue()))
@@ -31,7 +34,10 @@ public final class ExportCapturedClassMechanicGraph extends ExportClassMechanicG
             for (int id:seeds) {
                 enqueue("profile",id);
                 JsonArray triples=profiles.getAsJsonObject(Integer.toString(id)).getAsJsonArray("initial_state_triples");
-                for (int index=0;index<triples.size();index+=3)enqueue("state",triples.get(index).getAsInt());
+                // big.a/bPu copies dvR abilities; eWG never applies the NPC's
+                // initial states. Capture exports retain their original path.
+                if (!morphBooksOnly)
+                    for (int index=0;index<triples.size();index+=3)enqueue("state",triples.get(index).getAsInt());
             }
             while(!QUEUE.isEmpty()) {
                 String key=QUEUE.removeFirst();if(!SEEN.add(key))continue;

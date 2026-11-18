@@ -4,6 +4,7 @@ Stacked floors disconnected from the player are not confused with reachable
 floors. Columns with multiple reachable heights remain blocked; no height or
 movement connection is invented to accommodate a fight participant.
 """
+
 from collections import OrderedDict, defaultdict, deque
 from threading import RLock
 from .combat_geometry import (
@@ -200,6 +201,7 @@ def compact_encounter(
     allow_border_footprints=False,
     player_slots=1,
     member_point_cells=None,
+    player_point_cells=None,
     placement_ground_cells=None,
 ):
     """Local encounter formation on one mutually reachable native component.
@@ -249,6 +251,8 @@ def compact_encounter(
     geometry = prepare_geometry(data)
     if member_point_cells is not None:
         member_point_cells = frozenset(_cell(cell) for cell in member_point_cells)
+    if player_point_cells is not None:
+        player_point_cells = frozenset(_cell(cell) for cell in player_point_cells)
     if placement_ground_cells is not None:
         placement_ground_cells = frozenset(
             _cell(cell) for cell in placement_ground_cells
@@ -269,6 +273,7 @@ def compact_encounter(
         allow_border_footprints,
         player_slots,
         member_point_cells,
+        player_point_cells,
         placement_ground_cells,
     )
     if memoize:
@@ -293,6 +298,7 @@ def compact_encounter(
         allow_border_footprints,
         player_slots,
         member_point_cells,
+        player_point_cells,
         placement_ground_cells,
     )
     if memoize:
@@ -402,6 +408,7 @@ def _select_compact_encounter(
     allow_border_footprints,
     player_slots,
     member_point_cells,
+    player_point_cells,
     placement_ground_cells,
 ):
     selected, ambiguous = encounter_component(geometry, origin, memoize=memoize)
@@ -416,9 +423,11 @@ def _select_compact_encounter(
     )
     target_cells = max(
         minimum_cells,
-        (1 + max(12, len(originals)) + 12)
-        if dimensions_include_border
-        else (12 + max(12, len(originals)) + 12),
+        (
+            (1 + max(12, len(originals)) + 12)
+            if dimensions_include_border
+            else (12 + max(12, len(originals)) + 12)
+        ),
     )
     target_cells = max(
         target_cells,
@@ -514,6 +523,7 @@ def _select_compact_encounter(
         allow_border_footprints=allow_border_footprints,
         player_slots=player_slots,
         member_point_cells=member_point_cells,
+        player_point_cells=player_point_cells,
         placement_ground_cells=placement_ground_cells,
     )
 
@@ -534,6 +544,7 @@ def _formation_on_selected(
     reserved_cells=(),
     placement_ground_cells=None,
     fixed_member_positions=None,
+    player_point_cells=None,
 ):
     """Reuse one native footprint allocator independently of arena cropping."""
     xmin, ymin, xmax, ymax = _bounds(selected)
@@ -560,6 +571,14 @@ def _formation_on_selected(
         placement_ground_cells = placement_ground_cells.intersection(ordinary_ground)
     if placement_ground_cells is not None and origin not in placement_ground_cells:
         raise ValueError("Admission player is outside qualified ordinary ground")
+    if (
+        player_radius == 0
+        and player_point_cells is not None
+        and origin not in player_point_cells
+    ):
+        raise ValueError(
+            "Ordinary admission player requires a native placement surface"
+        )
     player_covered = covered_cells(origin, player_radius, selected, by_xy=by_xy)
     party_positions = [origin]
     reserved = set(reserved_cells)
@@ -591,6 +610,12 @@ def _formation_on_selected(
         for index, center in fixed.items()
     ]
     for center in sorted(selected, key=lambda cell: (distances[cell], cell)):
+        if (
+            player_radius == 0
+            and player_point_cells is not None
+            and center not in player_point_cells
+        ):
+            continue
         if placement_ground_cells is not None and center not in placement_ground_cells:
             continue
         if len(party_positions) == player_slots:
@@ -672,9 +697,11 @@ def _formation_on_selected(
                         c, radius, footprints[c], occupied, protected_exits, exit_owners
                     ),
                     c not in interior,
-                    formation_distances.get(c, len(selected))
-                    if formation_distances is not None
-                    else abs(distances[c] - separation),
+                    (
+                        formation_distances.get(c, len(selected))
+                        if formation_distances is not None
+                        else abs(distances[c] - separation)
+                    ),
                     abs(c[0] - original[0]) + abs(c[1] - original[1]),
                     c,
                 ),
@@ -685,11 +712,15 @@ def _formation_on_selected(
             chosen = min(
                 candidates & interior or candidates,
                 key=lambda c: (
-                    formation_distances.get(c, len(selected))
-                    if spread_opponents and formation_distances is not None
-                    else abs(distances[c] - separation)
-                    if spread_opponents
-                    else abs(distances[c] - 6),
+                    (
+                        formation_distances.get(c, len(selected))
+                        if spread_opponents and formation_distances is not None
+                        else (
+                            abs(distances[c] - separation)
+                            if spread_opponents
+                            else abs(distances[c] - 6)
+                        )
+                    ),
                     abs(c[0] - original[0]) + abs(c[1] - original[1]),
                     c,
                 ),
@@ -753,6 +784,7 @@ def full_room_encounter(
     reserved_cells=(),
     placement_ground_cells=None,
     fixed_member_positions=None,
+    player_point_cells=None,
 ):
     """Place ordinary bodies legally while retaining every declared room cell."""
     geometry = prepare_geometry(data)
@@ -834,6 +866,7 @@ def full_room_encounter(
                 allow_border_footprints=True,
                 player_slots=player_slots,
                 member_point_cells=member_point_cells,
+                player_point_cells=player_point_cells,
                 reserved_cells=reserved,
                 placement_ground_cells=placement_ground_cells,
                 fixed_member_positions=fixed,

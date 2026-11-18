@@ -1,0 +1,103 @@
+{
+  "schema": "simultaneous-party-action-pads-v1",
+  "id": "whisper-organasm448",
+  "map_id": 448,
+  "dungeon_definition_id": 53,
+  "template_id": 51,
+  "quest_id": 4874,
+  "objective_id": 10057,
+  "event_reference": 1451,
+  "boss_references": [
+    2100
+  ],
+  "minimum_rooms": 4,
+  "provenance": "Reviewed reconstruction from original native map448 Sm6 floors, original scenario1451 activation/decrement pairs11204-11211, King death11249 and destruction11212; original private server pad declarations were absent. Four distinct current party members must perform their genuine authorized elemental emotes simultaneously on these exact legal original floors. Left-to-right air/water/fire/earth follows the community visual guide, with exact placement and server binding explicitly reviewed rather than captured. No sequential single-player emotes or ordinary victory substitute for the Organasm.",
+  "geometry_sha256": "8a5b75007c0a5486ae9b746e0cffa5b742ed0199c1f696f4d04b51cf4add233c",
+  "scenario": {
+    "id": 1451,
+    "lua_sha256": "b037c4e90adcc1c15007f63741bd42e83f933e5ed3a140b3f612e3ade7213e9d",
+    "event_signatures": {
+      "11195": 0,
+      "11095": 2,
+      "11096": 0,
+      "11097": 0,
+      "11098": 0,
+      "11099": 0,
+      "11100": 0,
+      "11101": 0,
+      "11196": 0,
+      "11197": 0,
+      "11218": 1,
+      "11277": 1,
+      "11270": 1,
+      "11203": 0,
+      "11204": 2,
+      "11205": 1,
+      "11206": 2,
+      "11207": 1,
+      "11208": 2,
+      "11209": 1,
+      "11210": 2,
+      "11211": 1,
+      "11212": 4,
+      "11249": 1,
+      "11250": 1,
+      "11251": 1,
+      "11252": 1,
+      "11253": 1,
+      "23970": 0
+    },
+    "king_death_event": 11249,
+    "destruction_event": 11212
+  },
+  "pads": [
+    {
+      "id": "air",
+      "position": [
+        -4,
+        -91,
+        8
+      ],
+      "emote_id": 20106,
+      "activation_event": 11204,
+      "decrement_event": 11205,
+      "aggro_event": 11250
+    },
+    {
+      "id": "water",
+      "position": [
+        -1,
+        -91,
+        8
+      ],
+      "emote_id": 20107,
+      "activation_event": 11206,
+      "decrement_event": 11207,
+      "aggro_event": 11251
+    },
+    {
+      "id": "fire",
+      "position": [
+        2,
+        -91,
+        8
+      ],
+      "emote_id": 20108,
+      "activation_event": 11208,
+      "decrement_event": 11209,
+      "aggro_event": 11252
+    },
+    {
+      "id": "earth",
+      "position": [
+        5,
+        -91,
+        8
+      ],
+      "emote_id": 20109,
+      "activation_event": 11210,
+      "decrement_event": 11211,
+      "aggro_event": 11253
+    }
+  ]
+}

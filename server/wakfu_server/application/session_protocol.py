@@ -331,8 +331,11 @@ class ProtocolSessionMixin:
         ):
             self.state.chest_opening = None
         # All transactional actions/DB refreshes see the last approved
-        # outside-world position; own-bag moves remain session-only.
-        if self.state.character is not None and self.state.opcode != 13331:
+        # outside-world position; own-bag moves remain session-only. Native
+        # combat-return ACKs must reach their return handler, which owns the
+        # position fence and its pending retry. Dropping that one-shot ACK here
+        # leaves a finished fight attached to the socket indefinitely.
+        if self.state.character is not None and self.state.opcode not in (13331, 12925):
             from wakfu_server.position_buffer import PositionOwnerBusy
 
             self.state.PositionOwnerBusy = PositionOwnerBusy
@@ -494,7 +497,9 @@ class ProtocolSessionMixin:
                 self.state.character = self.state.result["character"]
                 self.state.paid_container_ticket = None
                 for self.state.packet in self.state.result["packets"]:
-                    if self.state.packet[0] == 12344:
+                    if self.state.packet[0] == 12344 and not self.state.result.get(
+                        "personal_state", False
+                    ):
                         self.runtime.WORLD.emit_location(
                             *self.state.result["location"], *self.state.packet
                         )
@@ -780,6 +785,9 @@ class ProtocolSessionMixin:
                 )
             self.deliver_rift_transition()
             self.resume_settled_shared_combat()
+            from . import mission_character_dispatch
+
+            mission_character_dispatch.ready(self)
             self.publish_custom_task_cards()
             if (
                 self.state.character["map_id"] == 1465

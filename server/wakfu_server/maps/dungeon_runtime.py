@@ -157,8 +157,22 @@ def entry_destination(db, session, native_destination):
     return dict(map_id=topology["asset_map_id"], **dict(zip(("x", "y", "z"), anchor)))
 
 
-def ensure_current_room(db, groups, instance_id, geometry):
+def ensure_current_room(db, groups, instance_id, geometry, *, quest_pool_spawns=None):
     run, config = configuration_for_instance(db, instance_id)
+    if config["topology"].get("owned_quest_pools"):
+        from wakfu_server import owned_quest_pools
+
+        if geometry is None:
+            from wakfu_server.combat_terrain import map_geometry
+
+            geometry = map_geometry(config["topology"]["asset_map_id"])
+        spawned = owned_quest_pools.ensure(db, groups, instance_id, config, geometry)
+        if quest_pool_spawns is not None:
+            quest_pool_spawns.extend(spawned)
+    from wakfu_server import owned_noncombat_context
+
+    if owned_noncombat_context.selected(config["topology"]) is not None:
+        return None
     progress = db.execute(
         "SELECT current_room,status FROM dungeon_room_runs WHERE instance_id=%s",
         (instance_id,),
@@ -202,6 +216,11 @@ def ensure_current_room(db, groups, instance_id, geometry):
     room = dungeon_branches.selected_room(topology, progress["current_room"])
     if room is None:
         return None
+    if topology.get("owned_story_controller") is not None:
+        from wakfu_server import owned_story_encounters
+
+        if not owned_story_encounters.can_spawn(db, groups, instance_id, config, room):
+            return None
     room = native_scene_start.scene_room(topology, room)
     cells = set(map(tuple, room["cells"]))
     if not cells.issubset(set(map(tuple, geometry["cells"]))):
@@ -222,6 +241,7 @@ def ensure_current_room(db, groups, instance_id, geometry):
         db,
         groups,
         instance_id,
+        configuration=config,
         asset_map_id=topology["asset_map_id"],
         anchor=room["anchor"],
         geometry=section_geometry,
@@ -238,6 +258,10 @@ def ensure_current_room(db, groups, instance_id, geometry):
 def initialize_instance(db, session, *, groups, geometry, store=None):
     """Freeze the reviewed roster and register the first group before entry commits."""
     run, config = configuration_for_instance(db, session["instance_id"])
+    from wakfu_server import owned_noncombat_context
+
+    if owned_noncombat_context.selected(config["topology"]) is not None:
+        return None
     requested = session.get("_requested_entry_path")
     if requested is not None:
         from wakfu_server import dungeon_entry_paths
@@ -339,6 +363,14 @@ def combat_room_cells(db, group_key, player_position, member_positions):
         raise ValueError("Invalid dungeon combat group identity")
     map_id, instance_id, group_id = group_key
     _, config = configuration_for_instance(db, instance_id)
+    if config["topology"].get("owned_quest_pools"):
+        from wakfu_server import owned_quest_pools
+
+        pool_cells = owned_quest_pools.combat_cells(
+            db, group_key, config, [player_position, *member_positions]
+        )
+        if pool_cells is not None:
+            return pool_cells
     progress = db.execute(
         "SELECT * FROM dungeon_room_runs WHERE instance_id=%s",
         (instance_id,),
@@ -470,6 +502,14 @@ def combat_room_scene(db, group_key):
     """Read declarations from the exact pinned room owning this admitted group."""
     map_id, instance_id, group_id = group_key
     _, config = configuration_for_instance(db, instance_id)
+    if config["topology"].get("owned_quest_pools"):
+        from wakfu_server import owned_quest_pools
+
+        if (
+            owned_quest_pools.group_receipt(db, group_key, configuration=config)
+            is not None
+        ):
+            return None  # This independent formation has no main-room scene.
     progress = db.execute(
         "SELECT current_room,status FROM dungeon_room_runs WHERE instance_id=%s",
         (instance_id,),

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "astrub-mount-books",
+  "evidence": [
+    "Reviewed reconstructed2015 promised book assignments: native child2048 rewards18628,2016 rewards18629,2017 rewards18630. Only qualified child completion receipts settle parent objectives4076/4077/4078; no carried-item shortcut or book payment.",
+    "Parent2015completion unlocks native2018(level35). Rat child2016still requires genuine owned rat victory4084; this profile never creates a book or victory."
+  ],
+  "bindings": [],
+  "links": [
+    {
+      "parent_quest_id": 2015,
+      "objective_id": 4076,
+      "child_quest_id": 2048
+    },
+    {
+      "parent_quest_id": 2015,
+      "objective_id": 4077,
+      "child_quest_id": 2016
+    },
+    {
+      "parent_quest_id": 2015,
+      "objective_id": 4078,
+      "child_quest_id": 2017
+    }
+  ],
+  "activations": []
+}

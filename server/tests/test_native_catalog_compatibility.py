@@ -14,7 +14,7 @@ class NativeCatalogCompatibilityTests(unittest.TestCase):
         manifest = json.loads(
             (
                 Path(__file__).resolve().parents[1]
-                / "data/installation/catalogs/manifest.json"
+                / "../database/data/installation/catalogs/manifest.json"
             ).read_bytes()
         )
         original = deepcopy(
@@ -148,7 +148,7 @@ class NativeCatalogCompatibilityTests(unittest.TestCase):
         manifest = json.loads(
             (
                 Path(__file__).resolve().parents[1]
-                / "data/installation/catalogs/manifest.json"
+                / "../database/data/installation/catalogs/manifest.json"
             ).read_bytes()
         )
         original = next(

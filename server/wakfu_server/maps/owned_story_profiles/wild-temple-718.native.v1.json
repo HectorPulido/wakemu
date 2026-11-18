@@ -1,0 +1,1557 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 718,
+  "objects": [
+    {
+      "x": -40.0,
+      "y": 13.0,
+      "z": 0.0,
+      "id": 20590,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-3_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffd80000000d0000000101010100000001ffffffd80000000d000000043133303900000000000001"
+    },
+    {
+      "x": -40.0,
+      "y": 16.0,
+      "z": 0.0,
+      "id": 20591,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-3_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffd8000000100000000101010100000001ffffffd800000010000000043133303000000000000001"
+    },
+    {
+      "x": -40.0,
+      "y": 19.0,
+      "z": 0.0,
+      "id": 20592,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-3_1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffd8000000130000000101010100000001ffffffd800000013000000043133303000000000000001"
+    },
+    {
+      "x": -77.0,
+      "y": 10.0,
+      "z": 0.0,
+      "id": 20593,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-5_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffb30000000a0000000101010100000001ffffffb30000000a000000043133303000000000000001"
+    },
+    {
+      "x": -77.0,
+      "y": 13.0,
+      "z": 0.0,
+      "id": 20594,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-5_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffb30000000d0000000101010100000001ffffffb30000000d000000043133303000000000000001"
+    },
+    {
+      "x": -77.0,
+      "y": 16.0,
+      "z": 0.0,
+      "id": 20595,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-5_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffb3000000100000000101010100000001ffffffb300000010000000043133313000000000000001"
+    },
+    {
+      "x": -117.0,
+      "y": 7.0,
+      "z": 0.0,
+      "id": 20596,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-7_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffff8b000000070000000101010100000001ffffff8b00000007000000043133303000000000000001"
+    },
+    {
+      "x": -117.0,
+      "y": 10.0,
+      "z": 0.0,
+      "id": 20597,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-7_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffff8b0000000a0000000101010100000001ffffff8b0000000a000000043133313100000000000001"
+    },
+    {
+      "x": -117.0,
+      "y": 13.0,
+      "z": 0.0,
+      "id": 20598,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-7_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffff8b0000000d0000000101010100000001ffffff8b0000000d000000043133303000000000000001"
+    },
+    {
+      "x": -148.0,
+      "y": 4.0,
+      "z": 0.0,
+      "id": 20601,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-9_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffff6c000000040000000101010100000001ffffff6c00000004000000043133303000000000000001"
+    },
+    {
+      "x": 58.0,
+      "y": 27.0,
+      "z": 2.0,
+      "id": 20618,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "3_1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000003a0000001b00020001010101000000010000003a0000001b000200043133303800000000000000"
+    },
+    {
+      "x": 11.0,
+      "y": 15.0,
+      "z": 0.0,
+      "id": 20619,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "0_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000000b0000000f00000001010103ffff0056000000070000000e0000000000060000000e0000000000060000000f00000000000a0000000f00000000000a000000100000000000080000000f0000000000090000000f00000000000a0000001200000000000a0000001100000000000b0000001200000000000a0000001300000000000900000013000000000009000000140000000000090000001500000000000a000000160000000000080000001500000000000a00000017000100000009000000170004000000080000001600000000000900000016000000000008000000170004000000070000001500000000000600000015000000000006000000160000000000070000001700030000000700000016000000000006000000140000000000060000001300000000000800000013000000000008000000120000000000080000001100000000000900000011000000000007000000110000000000060000001100000000000b0000001500000000000c0000001500000000000d0000001400000000000b0000001300020000000d0000001300000000000e0000001400000000000f0000001400000000001000000014000000000010000000130000000000100000001200000000001000000011000000000010000000100000000000100000001500000000000f000000150000000000110000001700060000000f0000001600000000000e0000001600000000000d0000001600000000000c0000001100000000000c0000001000000000000d0000001000000000000d0000000f00000000000e0000000f00000000000e0000000e00000000000e0000000d00000000000e0000000c00000000000d0000000c00000000000d0000000b00000000000e0000000b00000000000c0000000b00000000000b0000000c00000000000b0000000d00020000000a0000000c00000000000a0000000d00000000000a0000000e00000000000b0000000e00000000000e0000001100000000000e0000001000000000000e0000001200000000000f000000130000000000070000000d0000000000070000000c0000000000070000000b0000000000080000000c0000000000090000000b0000000000090000000d00000000000c0000000d00000000000d0000001700050000000c0000001600000000000c0000001700050000000b0000001600000000000b000000170003000000000000000000"
+    },
+    {
+      "x": 12.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 20662,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000000cffffffed0000000101010300010000000331363200000000000101"
+    },
+    {
+      "x": -10.0,
+      "y": -21.0,
+      "z": 0.0,
+      "id": 20663,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff6ffffffeb0000000101000100000000000000000000000101"
+    },
+    {
+      "x": -19.0,
+      "y": -14.0,
+      "z": 0.0,
+      "id": 20664,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffedfffffff20000000101010100010000000332333700000000000101"
+    },
+    {
+      "x": -12.0,
+      "y": 23.0,
+      "z": 0.0,
+      "id": 20665,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff4000000170000000101010100000000000000000000000101"
+    },
+    {
+      "x": -10.0,
+      "y": 23.0,
+      "z": 0.0,
+      "id": 20667,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff6000000170000000101000100000000000000000000000101"
+    },
+    {
+      "x": -14.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 20668,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff2ffffffed000000010101010008000000043133373200000000000101"
+    },
+    {
+      "x": -8.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 20669,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff8ffffffed0000000101010100080000000332333800000000000101"
+    },
+    {
+      "x": 28.0,
+      "y": -18.0,
+      "z": 0.0,
+      "id": 20672,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000001cffffffee0000000100000300010000000331363400000000000101"
+    },
+    {
+      "x": -14.0,
+      "y": -42.0,
+      "z": 12.0,
+      "id": 20675,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff2ffffffd6000c000100000300010000000331363500000000000101"
+    },
+    {
+      "x": -11.0,
+      "y": 23.0,
+      "z": 0.0,
+      "id": 20681,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff500000017000000010101010004000000043133363900000000000101"
+    },
+    {
+      "x": -39.0,
+      "y": -15.0,
+      "z": 0.0,
+      "id": 20682,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-3_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffd9fffffff10000000101000100000000000000000000000101"
+    },
+    {
+      "x": -10.0,
+      "y": 44.0,
+      "z": -12.0,
+      "id": 20683,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff60000002cfff4000101000300000000000000000000000101"
+    },
+    {
+      "x": 0.0,
+      "y": 60.0,
+      "z": -24.0,
+      "id": 20684,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce000000000000003cffe8000101000100000000000000000000000101"
+    },
+    {
+      "x": 37.0,
+      "y": 59.0,
+      "z": -36.0,
+      "id": 20685,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "2_3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce000000250000003bffdc000101010100000001000000250000003bffdc0004313331360000003baf0001"
+    },
+    {
+      "x": -1.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 20686,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_0",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffff000000000000000101010100000001ffffffff0000000000000004313239390000003baf0001"
+    },
+    {
+      "x": -11.0,
+      "y": -21.0,
+      "z": 0.0,
+      "id": 20696,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff5ffffffeb0000000101000100000000000000000000000101"
+    },
+    {
+      "x": -12.0,
+      "y": -21.0,
+      "z": 0.0,
+      "id": 20697,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102cefffffff4ffffffeb0000000101000100000000000000000000000101"
+    },
+    {
+      "x": -19.0,
+      "y": -12.0,
+      "z": 0.0,
+      "id": 20698,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffedfffffff40000000101010100010000000332333700000000000101"
+    },
+    {
+      "x": -19.0,
+      "y": -13.0,
+      "z": 0.0,
+      "id": 20699,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffedfffffff30000000101010100010000000332333700000000000101"
+    },
+    {
+      "x": -19.0,
+      "y": -15.0,
+      "z": 0.0,
+      "id": 20700,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ceffffffedfffffff10000000101010100010000000332333700000000000101"
+    },
+    {
+      "x": 12.0,
+      "y": 60.0,
+      "z": -36.0,
+      "id": 20702,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "0_3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000000c0000003cffdc0001010103ffff00030000000c0000003bffdc0000000c0000003cffdc0000000c0000003dffdc000000000000000000"
+    },
+    {
+      "x": 9.0,
+      "y": -2.0,
+      "z": 0.0,
+      "id": 21080,
+      "auto": true,
+      "type": "AudioMarker",
+      "chunk": "0_-1",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce00000009fffffffe00000001010103ffff000000023136000000332d0000"
+    },
+    {
+      "x": 28.0,
+      "y": -23.0,
+      "z": 6.0,
+      "id": 21082,
+      "auto": true,
+      "type": "AudioMarker",
+      "chunk": "1_-2",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000001cffffffe900060001010103ffff00000002333700000033280000"
+    },
+    {
+      "x": 11.0,
+      "y": -40.0,
+      "z": 6.0,
+      "id": 21083,
+      "auto": true,
+      "type": "AudioMarker",
+      "chunk": "0_-3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000000bffffffd800060001010103ffff00000002333700000033280000"
+    },
+    {
+      "x": 29.0,
+      "y": 59.0,
+      "z": -36.0,
+      "id": 21332,
+      "auto": false,
+      "type": "Door",
+      "chunk": "1_3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000001d0000003bffdc000101000100000000000000000000000101"
+    },
+    {
+      "x": 29.0,
+      "y": 60.0,
+      "z": -36.0,
+      "id": 21333,
+      "auto": false,
+      "type": "Door",
+      "chunk": "1_3",
+      "map_id": 718,
+      "payload_hex": "02000000000b010000000d00000102ce0000001d0000003cffdc000101000100000000000000000000000101"
+    }
+  ],
+  "scenario_id": 1654,
+  "scenario_events": [
+    13175,
+    13176,
+    13177,
+    13178,
+    13194,
+    13195,
+    13196,
+    13197,
+    13198,
+    13199,
+    13200,
+    13201,
+    13203,
+    13204,
+    13205,
+    13207,
+    13208,
+    13209,
+    13210,
+    13211,
+    13212,
+    13213,
+    13214,
+    13215,
+    13216,
+    13217,
+    13218,
+    13219,
+    13220,
+    13221,
+    13222,
+    13223,
+    13224,
+    13225,
+    13227,
+    13228,
+    13229,
+    13232,
+    13234,
+    13235,
+    13240,
+    13241,
+    13242,
+    13243,
+    13250,
+    13259,
+    16908,
+    16912,
+    19488,
+    19839
+  ],
+  "event_signatures": {
+    "13175": {
+      "argument_count": 0
+    },
+    "13176": {
+      "argument_count": 0
+    },
+    "13177": {
+      "argument_count": 0
+    },
+    "13178": {
+      "argument_count": 0
+    },
+    "19488": {
+      "argument_count": 0
+    },
+    "13195": {
+      "argument_count": 0
+    },
+    "13196": {
+      "argument_count": 0
+    },
+    "13194": {
+      "argument_count": 0
+    },
+    "13197": {
+      "argument_count": 0
+    },
+    "13208": {
+      "argument_count": 1
+    },
+    "13209": {
+      "argument_count": 0
+    },
+    "13198": {
+      "argument_count": 0
+    },
+    "13199": {
+      "argument_count": 0
+    },
+    "13200": {
+      "argument_count": 0
+    },
+    "13201": {
+      "argument_count": 0
+    },
+    "13203": {
+      "argument_count": 0
+    },
+    "13204": {
+      "argument_count": 0
+    },
+    "13205": {
+      "argument_count": 0
+    },
+    "13207": {
+      "argument_count": 0
+    },
+    "13210": {
+      "argument_count": 1
+    },
+    "13211": {
+      "argument_count": 0
+    },
+    "13212": {
+      "argument_count": 1
+    },
+    "13213": {
+      "argument_count": 0
+    },
+    "13214": {
+      "argument_count": 1
+    },
+    "13215": {
+      "argument_count": 0
+    },
+    "13216": {
+      "argument_count": 0
+    },
+    "13217": {
+      "argument_count": 0
+    },
+    "13218": {
+      "argument_count": 0
+    },
+    "13219": {
+      "argument_count": 0
+    },
+    "13220": {
+      "argument_count": 0
+    },
+    "13221": {
+      "argument_count": 0
+    },
+    "13222": {
+      "argument_count": 1
+    },
+    "13223": {
+      "argument_count": 1
+    },
+    "13224": {
+      "argument_count": 1
+    },
+    "13225": {
+      "argument_count": 0
+    },
+    "13227": {
+      "argument_count": 0
+    },
+    "13228": {
+      "argument_count": 0
+    },
+    "13229": {
+      "argument_count": 0
+    },
+    "13235": {
+      "argument_count": 1
+    },
+    "13250": {
+      "argument_count": 0
+    },
+    "13232": {
+      "argument_count": 0
+    },
+    "13234": {
+      "argument_count": 0
+    },
+    "13259": {
+      "argument_count": 0
+    },
+    "19839": {
+      "argument_count": 0
+    },
+    "13240": {
+      "argument_count": 0
+    },
+    "13241": {
+      "argument_count": 0
+    },
+    "13242": {
+      "argument_count": 0
+    },
+    "13243": {
+      "argument_count": 0
+    },
+    "16908": {
+      "argument_count": 0
+    },
+    "16912": {
+      "argument_count": 0
+    }
+  },
+  "scenes": {},
+  "programs": {
+    "162": {
+      "native_class": "aLl",
+      "descriptor_id": 162,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 182,
+          "clx": 147,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 182,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "237": {
+      "native_class": "aLl",
+      "descriptor_id": 237,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 264,
+          "clx": 66,
+          "cod": 17856,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 264,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "1372": {
+      "native_class": "aLl",
+      "descriptor_id": 1372,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1667,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1709,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3128,
+                  "effect_type": 1,
+                  "criterion": "not HasState(2386) and not HasState(2387)",
+                  "parameters": [
+                    "False"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3129,
+                  "effect_type": 1,
+                  "criterion": "HasState(2386)",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3130,
+                  "effect_type": 1,
+                  "criterion": "HasState(2387)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "238": {
+      "native_class": "aLl",
+      "descriptor_id": 238,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 265,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 265,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3125,
+                  "effect_type": 1,
+                  "criterion": "not HasState(2384) and not HasState(2385)",
+                  "parameters": [
+                    "False"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3121,
+                  "effect_type": 1,
+                  "criterion": "HasState(2385)",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3122,
+                  "effect_type": 1,
+                  "criterion": "HasState(2384)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "164": {
+      "native_class": "aLl",
+      "descriptor_id": 164,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 184,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 184,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "165": {
+      "native_class": "aLl",
+      "descriptor_id": 165,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 185,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 185,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "1369": {
+      "native_class": "aLl",
+      "descriptor_id": 1369,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1664,
+          "clx": 244,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1706,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3120,
+                  "effect_type": 1,
+                  "criterion": "not HasState(2043)",
+                  "parameters": [
+                    "False"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3119,
+                  "effect_type": 1,
+                  "criterion": "HasState(2043)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "3120": "-- Action Id : 3120\n-- Action Type : 1\n\nBubbleText.setCharacterSpeak(userId, \"quest.Domainesauvage.temple.gardien.door.closed\")\n",
+    "3125": "-- Action Id : 3125\n-- Action Type : 1\n\nBubbleText.setCharacterSpeak(userId, \"quest.Domainesauvage.temple.gem.statue.no.gem\")\n",
+    "3128": "-- Action Id : 3128\n-- Action Type : 1\n\nBubbleText.setCharacterSpeak(userId, \"quest.Domainesauvage.temple.gem.statue.no.gem\")\n"
+  },
+  "teleporters": {
+    "20590": {
+      "x": -40.0,
+      "y": 13.0,
+      "z": 0.0,
+      "id": 20590,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -66,
+          "y": 13,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1438,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1309,
+      "native_parameters": "1309",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20591": {
+      "x": -40.0,
+      "y": 16.0,
+      "z": 0.0,
+      "id": 20591,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20592": {
+      "x": -40.0,
+      "y": 19.0,
+      "z": 0.0,
+      "id": 20592,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20593": {
+      "x": -77.0,
+      "y": 10.0,
+      "z": 0.0,
+      "id": 20593,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20594": {
+      "x": -77.0,
+      "y": 13.0,
+      "z": 0.0,
+      "id": 20594,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20595": {
+      "x": -77.0,
+      "y": 16.0,
+      "z": 0.0,
+      "id": 20595,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -106,
+          "y": 10,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1439,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1310,
+      "native_parameters": "1310",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20596": {
+      "x": -117.0,
+      "y": 7.0,
+      "z": 0.0,
+      "id": 20596,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20597": {
+      "x": -117.0,
+      "y": 10.0,
+      "z": 0.0,
+      "id": 20597,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -150,
+          "y": 4,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1440,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1311,
+      "native_parameters": "1311",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20598": {
+      "x": -117.0,
+      "y": 13.0,
+      "z": 0.0,
+      "id": 20598,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20601": {
+      "x": -148.0,
+      "y": 4.0,
+      "z": 0.0,
+      "id": 20601,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -37,
+          "y": 16,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 5,
+          "destination_id": 1429,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1300,
+      "native_parameters": "1300",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20618": {
+      "x": 58.0,
+      "y": 27.0,
+      "z": 2.0,
+      "id": 20618,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": 5,
+          "y": 11,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 718,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 1437,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1308,
+      "native_parameters": "1308",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20685": {
+      "x": 37.0,
+      "y": 59.0,
+      "z": -36.0,
+      "id": 20685,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -36,
+          "y": -138,
+          "z": -80,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 1,
+          "destination_id": 1445,
+          "item_reference": 0,
+          "arrival_heights": [
+            -80
+          ],
+          "display_reference": 0,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1316,
+      "native_parameters": "1316",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "20686": {
+      "x": -1.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 20686,
+      "map_id": 718,
+      "destinations": [
+        {
+          "x": -97,
+          "y": -147,
+          "z": 4,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 1,
+          "destination_id": 1428,
+          "item_reference": 0,
+          "arrival_heights": [
+            4
+          ],
+          "display_reference": 324,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1299,
+      "native_parameters": "1299",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {
+    "20662": [
+      [
+        12,
+        -18,
+        0
+      ]
+    ],
+    "20664": [
+      [
+        -18,
+        -14,
+        0
+      ]
+    ],
+    "20668": [
+      [
+        -14,
+        -18,
+        0
+      ]
+    ],
+    "20669": [
+      [
+        -8,
+        -18,
+        0
+      ]
+    ],
+    "20672": [
+      [
+        28,
+        -17,
+        0
+      ]
+    ],
+    "20675": [
+      [
+        -14,
+        -41,
+        12
+      ]
+    ],
+    "20681": [
+      [
+        -11,
+        22,
+        0
+      ]
+    ],
+    "20698": [
+      [
+        -18,
+        -12,
+        0
+      ]
+    ],
+    "20699": [
+      [
+        -18,
+        -13,
+        0
+      ]
+    ],
+    "20700": [
+      [
+        -18,
+        -15,
+        0
+      ]
+    ]
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1654.lua": "18e4b6e3f28a0b4afb381b636df37abf3e52da8b14082ab9004c20edd80407ff"
+  },
+  "reviewed_item_grants": {
+    "wild-temple-air-prison-key": {
+      "reference": 17855,
+      "quantity": 1,
+      "producer_step": "air-prison-key-chest",
+      "quest_id": 1684,
+      "native_item": {
+        "name": "Llave de la prisión del templo bwork",
+        "reference": 17855,
+        "use_action_id": null,
+        "use_action_class": null,
+        "use_has_criteria": false,
+        "destroy_has_criteria": false
+      },
+      "evidence": "Reviewed source-backed Temple718 reconstruction. Original1654 callbacks and exact native objects, portals and Sm6 floors remain authoritative. Private server formations and actor placements are unavailable and are explicitly reviewed. Air guardian victory reveals original20672 chest; only its actual accepted physical click grants native17855 prison key through an explicit reviewed missing-server award join. Literal water20619 hazards and actual accepted safe-floor traversal remain separate prerequisites. This staged branch does not yet claim the complete1684 terminal."
+    }
+  },
+  "reviewed_dynamic_pickups": [
+    {
+      "id": "bwork-artifact",
+      "item_reference": 17885,
+      "quantity": 1,
+      "quest_id": 1684,
+      "objective_id": 3165,
+      "step_id": "artifact-taken",
+      "position": [
+        -14,
+        59,
+        -24
+      ],
+      "approaches": [
+        [
+          -15,
+          59,
+          -24
+        ],
+        [
+          -13,
+          59,
+          -24
+        ],
+        [
+          -14,
+          58,
+          -24
+        ],
+        [
+          -14,
+          60,
+          -24
+        ]
+      ],
+      "direction": 0,
+      "evidence": "Explicit reviewed original-server dynamic decoration placement/award join at the native3165 waypoint after genuine original Relicroom7. Native17885 has actual Decoration template21295; original static IE/loot binding is absent. Allocated scopedUID + actual accepted native PACK pickup23 + normal inventory transaction/once receipt, never talk/proximity/victory alone."
+    }
+  ],
+  "marker_states": {
+    "2043": {
+      "state_id": 2043,
+      "maximum_level": 200,
+      "duration_base": -1,
+      "realtime_duration_base": -1000,
+      "skip_turn_timer": true,
+      "marker_effect_id": 97830,
+      "marker_generic": 400,
+      "marker_parameters": [
+        0.0,
+        0.0
+      ],
+      "source_sha256": "b61787e716b1cf569e7eb7e925b9189c6220bf271db60acd1b87c8931e141ac1"
+    },
+    "2384": {
+      "state_id": 2384,
+      "maximum_level": 200,
+      "duration_base": -1,
+      "realtime_duration_base": -1000,
+      "skip_turn_timer": true,
+      "marker_effect_id": 107388,
+      "marker_generic": 400,
+      "marker_parameters": [
+        0.0,
+        0.0
+      ],
+      "source_sha256": "a78fc6afd4aefd2cbdf620082fa570e26e13728505cf1052a5e4486bab0d8bab"
+    },
+    "2385": {
+      "state_id": 2385,
+      "maximum_level": 200,
+      "duration_base": -1,
+      "realtime_duration_base": -1000,
+      "skip_turn_timer": true,
+      "marker_effect_id": 107389,
+      "marker_generic": 400,
+      "marker_parameters": [
+        0.0,
+        0.0
+      ],
+      "source_sha256": "4665f0d13118f87bbc7b30a82ef402f59b937abfc3ecaf5b0c412ae20183fda6"
+    },
+    "2386": {
+      "state_id": 2386,
+      "maximum_level": 200,
+      "duration_base": -1,
+      "realtime_duration_base": -1000,
+      "skip_turn_timer": true,
+      "marker_effect_id": 107390,
+      "marker_generic": 400,
+      "marker_parameters": [
+        0.0,
+        0.0
+      ],
+      "source_sha256": "9c6990ddcd7c3d893d09c886f32383394264c6eda679e9f862584008fb6f1931"
+    },
+    "2387": {
+      "state_id": 2387,
+      "maximum_level": 200,
+      "duration_base": -1,
+      "realtime_duration_base": -1000,
+      "skip_turn_timer": true,
+      "marker_effect_id": 107391,
+      "marker_generic": 400,
+      "marker_parameters": [
+        0.0,
+        0.0
+      ],
+      "source_sha256": "07b717c6fa495a2b0b6265bd5eb27630136077eb60b97ba0c2c0772c1b93ff22"
+    }
+  }
+}

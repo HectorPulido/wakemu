@@ -1,0 +1,34 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "wild-estate-brak-723-encounters",
+  "map_id": 723,
+  "provenance": "Reviewed reconstruction of native Wild Estate1677: real resource542 action1343 has original aNn.csO loot2355 and2000ms occupation; original native probabilities and products are retained. Six finite East dig placements use connected native723 Sm6 floor and are reconstructed, not captured. Real native2779 kills produce three17851 fragments, native5160 merges three into17821. Actual workshop20460/478 produces17822 after real inputs17820/17821; actual model20428 consumes staff before original1650/19851 and13132 presentation. Actual skeleton-chief2793 victory opens native20429/20430/20431 before note20659 credits3109. Original boss placement/formation and item-input settlement joins are explicitly reviewed server reconstruction. No walk proximity, client callback or ordinary unrelated win grants components or quest completion.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "staff-model-cinematic-finished"
+      ],
+      "arena_seed": [
+        2,
+        -22,
+        0
+      ],
+      "bounds": [
+        -3,
+        -24,
+        7,
+        -18
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2793,
+          "count": 1,
+          "role": "boss"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,711 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1001,
+  "scenario_id": 2048,
+  "lua_sha256": "de1f455f79d754e08537c631cd94beab6e23335a3bdf3cca9fc798548e9d4231",
+  "objects": [
+    {
+      "x": -1.0,
+      "y": -16.0,
+      "z": -14.0,
+      "id": 25488,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffffffffffff0fff2000101010100040000000339363200000000000101",
+      "native_parameters": "962",
+      "descriptor_id": 962
+    },
+    {
+      "x": -5.0,
+      "y": -5.0,
+      "z": -3.0,
+      "id": 25489,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffffbfffffffbfffd000101010100040000000339363200000000000101",
+      "native_parameters": "962",
+      "descriptor_id": 962
+    },
+    {
+      "x": -11.0,
+      "y": -8.0,
+      "z": -6.0,
+      "id": 25490,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff5fffffff8fffa000101010100020000000339363200000000000101",
+      "native_parameters": "962",
+      "descriptor_id": 962
+    },
+    {
+      "x": 2.0,
+      "y": -18.0,
+      "z": -8.0,
+      "id": 25491,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e900000002ffffffeefff8000101010100010000000339363300000000000101",
+      "native_parameters": "963",
+      "descriptor_id": 963
+    },
+    {
+      "x": -15.0,
+      "y": -18.0,
+      "z": 0.0,
+      "id": 25512,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff1ffffffee0000000101010300040000000339363400000000000101",
+      "native_parameters": "964",
+      "descriptor_id": 964
+    },
+    {
+      "x": -8.0,
+      "y": -22.0,
+      "z": 0.0,
+      "id": 25513,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff8ffffffea0000000101010100080000000339363600000000000101",
+      "native_parameters": "966",
+      "descriptor_id": 966
+    },
+    {
+      "x": 0.0,
+      "y": -18.0,
+      "z": -10.0,
+      "id": 25514,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e900000000ffffffeefff6000101010100080000000339363500000000000101",
+      "native_parameters": "965",
+      "descriptor_id": 965
+    },
+    {
+      "x": 2.0,
+      "y": -7.0,
+      "z": -5.0,
+      "id": 25515,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e900000002fffffff9fffb000101010300040000000339363700000000000101",
+      "native_parameters": "967",
+      "descriptor_id": 967
+    },
+    {
+      "x": -11.0,
+      "y": -9.0,
+      "z": -6.0,
+      "id": 25521,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff5fffffff7fffa000101010100040000000339363200000000000101",
+      "native_parameters": "962",
+      "descriptor_id": 962
+    },
+    {
+      "x": 2.0,
+      "y": -18.0,
+      "z": -8.0,
+      "id": 25492,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "0_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e900000002ffffffeefff80001010003ffff002800000002ffffffeefff8fffffff9ffffffed0000fffffffffffffff9000200000003fffffff9fffbfffffff2fffffff60002fffffff2fffffffa0000fffffff2fffffff90000fffffff2fffffff80000fffffff2fffffff70000fffffff4fffffff50001fffffff2fffffff20000fffffff2fffffff40000fffffff8ffffffea0000fffffff2fffffff50006fffffff2fffffff1000000000002fffffff8fffffffffffcffffffeffffaffffffffffffffeefffafffffffcfffffff3fff600000002fffffff90003fffffffcffffffeefffe00000001ffffffeefffafffffff4ffffffec0005fffffff5ffffffec000000000000ffffffeefffdfffffff3fffffffafffffffffff3fffffffbfffffffffff8fffffff4fffffffffff7ffffffea000000000003ffffffec000000000004ffffffec000000000005ffffffec000000000007ffffffed000000000008ffffffed000000000006ffffffed000000000002ffffffeffff6fffffff2fffffffb0000fffffff2fffffffc0000fffffff2fffffffd0000fffffff2fffffffe0000000000000000000000"
+    },
+    {
+      "x": -14.0,
+      "y": -16.0,
+      "z": 0.0,
+      "id": 25495,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff2fffffff000000001010003ffff001ffffffff2fffffff00000fffffff2ffffffee0000fffffff3ffffffeefffffffffff3ffffffed0000fffffff4ffffffed0000fffffff5ffffffed0000fffffff6ffffffed0000fffffff7ffffffed0000fffffff9ffffffee0000fffffff9ffffffef0000fffffff9fffffff00000fffffff9fffffff10000fffffff9fffffff20000fffffff9fffffff30000fffffff9fffffff40000fffffff9fffffff50000fffffff9fffffff60000fffffff9fffffff70000fffffff9fffffff80000fffffff9fffffff90000fffffff9fffffffa0000fffffff9fffffffb0000fffffff9fffffffc0000fffffff9fffffffd0000fffffff9fffffffe0000fffffff8fffffffe0000fffffff7fffffffe0000fffffff6fffffffe0000fffffff5fffffffe0000fffffff4fffffffe0000fffffff3fffffffe0000000000000000000000"
+    },
+    {
+      "x": -12.0,
+      "y": -18.0,
+      "z": -3.0,
+      "id": 25496,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff4ffffffeefffd0001010003ffff0019fffffff4ffffffeefffdfffffff5ffffffeefffdfffffff6ffffffeefffdfffffff7ffffffeefffdfffffff8ffffffeefffdfffffff8ffffffeffffdfffffff8fffffff0fffdfffffff8fffffff1fffdfffffff8fffffff2fffdfffffff8fffffff3fffdfffffff8fffffff5fffdfffffff8fffffff6fffdfffffff8fffffff7fffdfffffff8fffffff8fffdfffffff8fffffff9fffdfffffff8fffffffafffdfffffff8fffffffbfffdfffffff8fffffffcfffdfffffff8fffffffdfffdfffffff7fffffffdfffdfffffff6fffffffdfffdfffffff5fffffffdfffdfffffff4fffffffdfffdfffffff3fffffffdfffdfffffff3fffffff0fffd000000000000000000"
+    },
+    {
+      "x": -13.0,
+      "y": -17.0,
+      "z": -3.0,
+      "id": 25497,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff3ffffffeffffd0001010003ffff0001fffffff3ffffffeffffe000000000000000000"
+    },
+    {
+      "x": -14.0,
+      "y": -17.0,
+      "z": 0.0,
+      "id": 25498,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff2ffffffef00000001010003ffff0001fffffff2ffffffef0000000000000000000000"
+    },
+    {
+      "x": -12.0,
+      "y": -12.0,
+      "z": -3.0,
+      "id": 25508,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "-1_-1",
+      "map_id": 1001,
+      "payload_hex": "02000000000b010000000d00000103e9fffffff4fffffff4fffd0001010003ffff0001fffffff4fffffff4fffd000000000000000000"
+    }
+  ],
+  "scenario_events": [
+    16177,
+    16178,
+    16183,
+    16188,
+    16192,
+    16210,
+    16211,
+    16212,
+    16213,
+    16215,
+    16216,
+    16217,
+    16218,
+    16219,
+    16220,
+    16221,
+    16222,
+    16223,
+    16224,
+    16225,
+    16226,
+    16227,
+    16228,
+    16230,
+    16231,
+    16232,
+    16233,
+    16234
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "16177": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16178": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 0
+    },
+    "16230": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16192": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16231": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16220": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16232": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16221": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16233": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16222": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16228": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 2100
+    },
+    "16234": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 10000
+    },
+    "16183": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 8000
+    },
+    "16188": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 2100
+    },
+    "16211": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 2100
+    },
+    "16218": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 2100
+    },
+    "16219": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 2100
+    },
+    "16216": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 2100
+    },
+    "16210": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16212": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16213": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16215": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16217": {
+      "argument_count": 2,
+      "presentation": true,
+      "duration_ms": 10500
+    },
+    "16223": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16224": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16225": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16226": {
+      "argument_count": 0,
+      "presentation": false
+    },
+    "16227": {
+      "argument_count": 1,
+      "presentation": true,
+      "duration_ms": 18500
+    }
+  },
+  "programs": {
+    "25488": {
+      "descriptor_id": 962,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1186,
+          "clx": 86,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 5000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1208,
+              "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2416,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25489": {
+      "descriptor_id": 962,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1186,
+          "clx": 86,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 5000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1208,
+              "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2416,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25490": {
+      "descriptor_id": 962,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1186,
+          "clx": 86,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 5000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1208,
+              "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2416,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25491": {
+      "descriptor_id": 963,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1187,
+          "clx": 19,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 5000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1209,
+              "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5331) and !IsAchievementObjectiveComplete(5332)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2417,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5331) and !IsAchievementObjectiveComplete(5332)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25512": {
+      "descriptor_id": 964,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1188,
+          "clx": 83,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 2000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1210,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2422,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2418,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and not IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25513": {
+      "descriptor_id": 966,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1190,
+          "clx": 83,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 2000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1212,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2424,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2420,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and not IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25514": {
+      "descriptor_id": 965,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1189,
+          "clx": 83,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 2000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1211,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2423,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2419,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and not IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25515": {
+      "descriptor_id": 967,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1191,
+          "clx": 83,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 2000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1213,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2425,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2421,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and not IsAchievementObjectiveComplete(5330)",
+                  "parameters": [
+                    "true"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25521": {
+      "descriptor_id": 962,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1186,
+          "clx": 86,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 5000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1208,
+              "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2416,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2698) and IsAchievementObjectiveComplete(5330) and !IsAchievementObjectiveComplete(5331)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "loot_tables": {},
+  "native_scripts": {
+    "2416": {
+      "present": false
+    },
+    "2417": {
+      "present": false
+    },
+    "2418": {
+      "present": false
+    },
+    "2419": {
+      "present": false
+    },
+    "2420": {
+      "present": false
+    },
+    "2421": {
+      "present": false
+    }
+  }
+}

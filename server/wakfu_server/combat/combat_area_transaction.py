@@ -103,6 +103,25 @@ def prepare_area_movement(
     actor = fight.actors.get(actor_id)
     if actor is None or tuple(actor.position) != tuple(path[-1]):
         raise ValueError("Effect-area movement requires committed final path")
+    from .combat_scene_ball_follow import peer_movement_authorized
+
+    if peer_movement_authorized(fight, actor_id=actor_id, origin=origin, path=path):
+        # A linked ball follows a genuine paid carrier step, but is not itself
+        # the current voluntary mover. Keep its native area callbacks separate.
+        return prepare_area_event(
+            character,
+            monsters,
+            fight,
+            deck_blob,
+            actor_id=actor_id,
+            action_id=action_id,
+            event="movement",
+            from_cell=origin,
+            to_cell=path[0],
+            rng=rng,
+            player_characters=player_characters,
+            deck_blobs=deck_blobs,
+        )
     from .combat_movement_payment_events import consume_step_payment
 
     payment = consume_step_payment(fight, actor_id=actor_id, origin=origin, path=path)

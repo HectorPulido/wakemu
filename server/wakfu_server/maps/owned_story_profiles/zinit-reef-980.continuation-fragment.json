@@ -1,0 +1,19 @@
+{
+  "schema": "reviewed-owned-story-continuation-fragment-v1",
+  "map_id": 980,
+  "controller_file": "zinit-reef-980.json",
+  "encounters_file": "zinit-reef-980.encounters.json",
+  "exploration_file": "zinit-reef-980.exploration.json",
+  "exit_sources": [
+    {
+      "source_id": 25420,
+      "destination_id": 2249
+    },
+    {
+      "source_id": 25401,
+      "destination_id": 2255
+    }
+  ],
+  "provenance": "Reviewed reconstruction, not recovered original formations: native map980 real/excarnal portal pairs and all original compass18722 gates are retained. Installed2021 declares three actual reef clears; authored local formations use native family780 sea creatures followed by native Nodule3788 with its unchanged3731/3797 innates and imprisoned souls3786/3787 with3726/2666. Native death mask1010 executes250 boss selfdamage and its own1037 replenishes adds. Counts/arena placements and exact portal-to-clear gate association are explicitly reviewed local policy, not captured official positions. Earlier boat stages are reviewed relocation onto the current native980 deck, preserving their exact scripts and allies. Only real terminal travel after all clears earns5306; no entry or talk substitutes for combat.",
+  "unresolved_entry": "The voyage owner/NPC author supplies the reconstructed boarding admission from the native Astrub captain; no unrelated native teleporter is substituted."
+}

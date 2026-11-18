@@ -1,0 +1,168 @@
+{
+  "schema": "quest-resource-slots-v1",
+  "id": "whisper-paint1295",
+  "provenance": "Reviewed reconstruction: original public1295 Sm6 floors/edges, native resources450/451 and actions1141/1142, original2446/21223 counter726 and quest4872 objective10088. Original server paint positions and respawn timing are absent. Ten exact placements and immediate refill after genuine native depletion are reviewed server policy, not captured native placements/timing. Every removal still requires the real original3000ms occupation.",
+  "map_id": 1295,
+  "quest_id": 4872,
+  "objective_id": 10088,
+  "resource_actions": [
+    {
+      "resource_reference": 450,
+      "stage": 1,
+      "action_id": 1141,
+      "resource_sha256": "ebebcf7ac944cb383f387644c2884b2236f780d383ed17dd40483a10d180f585",
+      "action_sha256": "ea210aabab367a8b49641c98df35457b733b8d1518d45f2b36d9be4fe7c49a29"
+    },
+    {
+      "resource_reference": 451,
+      "stage": 1,
+      "action_id": 1142,
+      "resource_sha256": "d1e97b815c2124442f546e78ad2f38f1da4e1215d77bedd1af83e66b3ef45667",
+      "action_sha256": "dbf87378b9562866e67126622a862f17ae6814bbcdf1c232220cb286e4cf1792"
+    }
+  ],
+  "placements": [
+    {
+      "resource_uid": 4904872000000000,
+      "resource_reference": 450,
+      "position": [
+        -212,
+        60,
+        -80
+      ],
+      "approach": [
+        -212,
+        59,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000001,
+      "resource_reference": 451,
+      "position": [
+        -210,
+        60,
+        -80
+      ],
+      "approach": [
+        -210,
+        59,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000002,
+      "resource_reference": 450,
+      "position": [
+        -208,
+        60,
+        -80
+      ],
+      "approach": [
+        -208,
+        59,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000003,
+      "resource_reference": 451,
+      "position": [
+        -206,
+        60,
+        -80
+      ],
+      "approach": [
+        -206,
+        59,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000004,
+      "resource_reference": 450,
+      "position": [
+        -204,
+        60,
+        -80
+      ],
+      "approach": [
+        -204,
+        59,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000005,
+      "resource_reference": 451,
+      "position": [
+        -202,
+        66,
+        -80
+      ],
+      "approach": [
+        -202,
+        67,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000006,
+      "resource_reference": 450,
+      "position": [
+        -210,
+        66,
+        -80
+      ],
+      "approach": [
+        -210,
+        67,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000007,
+      "resource_reference": 451,
+      "position": [
+        -208,
+        66,
+        -80
+      ],
+      "approach": [
+        -208,
+        67,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000008,
+      "resource_reference": 450,
+      "position": [
+        -206,
+        66,
+        -80
+      ],
+      "approach": [
+        -206,
+        67,
+        -80
+      ]
+    },
+    {
+      "resource_uid": 4904872000000009,
+      "resource_reference": 451,
+      "position": [
+        -204,
+        66,
+        -80
+      ],
+      "approach": [
+        -204,
+        67,
+        -80
+      ]
+    }
+  ],
+  "replenishment": "reviewed_immediate_after_native_depletion",
+  "geometry_sha256": "df8349ef045bed6f23eadd67d07232cba0f3adc536b4b01cb5f0091912ea8bae"
+}

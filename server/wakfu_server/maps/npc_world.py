@@ -18,6 +18,14 @@ def _qualified_quest(row):
     return qualified_placement(row, published=row.get("_quest_publication"))
 
 
+def _qualified_owned_dialogue(row):
+    if row.get("template_id") is None:
+        return False
+    from wakfu_server.owned_story_npcs import dialogue_placement
+
+    return dialogue_placement(row)
+
+
 INTERACTION_REQUEST = 13222
 MIN_ID = -4503599627370495
 MAX_ID = -2251799813685248
@@ -59,22 +67,56 @@ def validate_placements(rows, native=None):
         if not 0 <= row["direction"] <= 7 or not 1 <= row["interaction_range"] <= 12:
             raise ValueError("Invalid conversational NPC interaction policy")
         speaker = speakers.get(row["reference_id"])
-        node = nodes.get(row["dialogue_root"])
+        direct = False
+        if row.get("controller_reference") is not None:
+            from wakfu_server.owned_story_npcs import direct_action_placement
+
+            direct = (
+                direct_action_placement(row)
+                and speaker is not None
+                and all(
+                    action["type"] == row.get("action_type", 4)
+                    and action["type"] in (1, 4)
+                    and action["criteria"] == row["action_criterion"]
+                    for action in speaker["actions"]
+                    if action["id"] in row["action_ids"]
+                )
+            )
+        if row.get("_physical_offer") is not None:
+            from wakfu_server import owned_physical_offers
+
+            direct = (
+                owned_physical_offers.placement(row)
+                and speaker is not None
+                and any(
+                    action["id"] == row["action_ids"][0]
+                    and action["type"] == 4
+                    and action["criteria"] == ""
+                    for action in speaker["actions"]
+                )
+            )
+        node = nodes.get(row.get("dialogue_root"))
         if (
             speaker is None
             or node is None
+            and not direct
             or (
-                node.get("criteria")
+                node is not None
+                and node.get("criteria")
                 and not (
                     authorized_identity(row)
                     and npc_objective_facts.supported(node["criteria"])
                     or _qualified_quest(row)
+                    or _qualified_owned_dialogue(row)
                 )
             )
         ):
             raise ValueError("Unavailable native conversational NPC/root")
         # Explicit native portrait proves speaker compatibility when supplied.
-        if node.get("native_cmT") not in ("", f"npc{row['reference_id']}"):
+        if node is not None and node.get("native_cmT") not in (
+            "",
+            f"npc{row['reference_id']}",
+        ):
             raise ValueError("Native dialogue portrait differs from NPC reference")
         allowed = {action["id"] for action in speaker["actions"]}
         if (
@@ -146,6 +188,14 @@ def spawn(row, native=None, language="es", *, enabled_actions=()):
         value for value in native["speakers"] if value["ref"] == row["reference_id"]
     )
     name = native["translations"][language][f"content.7.{row['reference_id']}"]
+    if row.get("_physical_offer") is not None:
+        # Only the source-attested entrance publisher may replace a model's
+        # native name with the explicit physical-visit action label.
+        from wakfu_server import owned_physical_offers
+
+        if not owned_physical_offers.placement(row):
+            raise ValueError("Physical entrance presentation is no longer qualified")
+        name = row["_physical_offer_label"]
     name = name.encode("utf-8")
     if not name or len(name) > 65535:
         raise ValueError("Invalid native NPC name")
@@ -314,8 +364,30 @@ def protector_records(db, map_id, instance_id):
 def matches_open_request(row, request):
     """Resolve either native speaker kind without equating protector and actor IDs."""
     kind, identity = npc_protectors.speaker(row)
-    return (request["speaker_type"], request["speaker_id"], request["node_id"]) == (
-        kind,
-        identity,
-        row["dialogue_root"],
+    if (request["speaker_type"], request["speaker_id"]) != (kind, identity):
+        return False
+    if request["node_id"] == row["dialogue_root"]:
+        return True
+    # Alternative native greetings are permitted only by this actor's already
+    # validated quest publication. The owner predicate still selects the root.
+    published = row.get("_quest_publication")
+    if published is None:
+        return False
+    from .quest_npc import qualified_placement
+
+    if not qualified_placement(row, published=published):
+        return False
+    return any(
+        item["row"]["actor_id"] == row["actor_id"]
+        and request["node_id"]
+        in (
+            set(item.get("native_opening_roots", []))
+            | set(item.get("running_roots", {}).values())
+            | {
+                case["root"]
+                for cases in item.get("running_root_branches", {}).values()
+                for case in cases
+            }
+        )
+        for item in published[0]["placements"]
     )

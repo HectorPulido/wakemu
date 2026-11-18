@@ -1,0 +1,37 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "frigost-hunters-528",
+  "map_id": 528,
+  "maximum_members": 1,
+  "provenance": "Reviewed repeatable native Guild of Hunters park528 encounter. Original public18176/1122 entry and18177/1123 return are free. Four original native Brrrbli references2402/2403/2404/2405 and their real levels/stats/books/states/native item16070 loot are retained. One each is reviewed private formation; no original private roster capture claim. A victory never completes2196 or2212: physical native fur acquisition and genuine NPC turn-in own those objectives. Leave/reenter creates another ordinary owned run; no fake HP, loot, counter or quest award.",
+  "admission": {
+    "quest_id": 1226,
+    "objective_id": null,
+    "continuation_quest_id": 1227
+  },
+  "native_sources": {
+    "path": "frigost-hunters-528.native.v1.json",
+    "sha256": "07aee09b3c88ca5e32556a04b5b8f561177421d23983dc4837953aa73b44bbf7"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "hunters-park-loaded",
+      "kind": "world_ready",
+      "reference": 528,
+      "requires": [],
+      "effects": [],
+      "evidence": "Genuine private park context only; finding or killing a group does not produce ten furs."
+    },
+    {
+      "id": "hunters-park-fight-ended",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "hunters-park-loaded"
+      ],
+      "effects": [],
+      "evidence": "Actual ordinary owned group victory, with native loot settlement handled by the shared inventory engine; no quest objective effect."
+    }
+  ]
+}

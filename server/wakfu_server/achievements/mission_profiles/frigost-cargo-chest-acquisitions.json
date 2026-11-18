@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "frigost-cargo-chest-acquisitions",
+  "evidence": [
+    "Only actual source-bound native261 crate opening inside genuine owned529 grants native625item16072 and emits chest_loot16072. Original1110objective2227/counter259threshold10 is shared with actual combat_loot receipts, without duplicate kill-based approximations. Original paid16158 entry remains independent and unchanged."
+  ],
+  "bindings": [
+    {
+      "id": "received-stolen-cargo-from-real-crate",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "event": {
+        "kind": "chest_loot",
+        "reference": 16072
+      },
+      "maps": [
+        529
+      ],
+      "count": "quantity"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

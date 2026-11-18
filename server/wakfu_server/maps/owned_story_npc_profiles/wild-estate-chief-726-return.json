@@ -1,0 +1,66 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "wild-estate-chief-726-return",
+  "controller_id": "wild-estate-chief-726",
+  "map_id": 726,
+  "policy_version": 1,
+  "quest_id": 1665,
+  "physical_visit": false,
+  "requires": [
+    "chief-quarters-arrived"
+  ],
+  "until": [],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 2801,
+      "action_ids": [
+        438
+      ],
+      "action_criterion": "",
+      "dialogue_root": 2319,
+      "native_opening_roots": [
+        2319
+      ],
+      "choice_id": 5625,
+      "choice_type": 8,
+      "objective_id": 3082,
+      "binding_node_id": 2324,
+      "graph": [
+        [
+          2319,
+          5617,
+          2324
+        ],
+        [
+          2324,
+          5625,
+          0
+        ]
+      ],
+      "native_guard_path": [
+        [
+          2319,
+          5617,
+          2324
+        ],
+        [
+          2324,
+          5625,
+          0
+        ]
+      ],
+      "x": -2,
+      "y": -15,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -2,
+        "y": -14,
+        "z": 0
+      },
+      "provenance": "Reviewed return through the same real chief2801/action438 after actual native1638 Bworkball completion; original2319/5617 guards1665, terminal2324/5625 earns3082. The physical actor/instance/placement is unchanged. No opening or generic victory substitutes for the three Bworkball results."
+    }
+  ]
+}

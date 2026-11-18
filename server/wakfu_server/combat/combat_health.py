@@ -207,6 +207,20 @@ def persist(
         if baseline is None
         else baseline[1] - baseline[0]
     )
+    if getattr(fight, "native_order_resource_constructor", None) is not None:
+        from .native_order_trial_resources import validate_projection
+
+        projection = validate_projection(fight)
+        if projection["owner_id"] != actor.id:
+            raise ValueError("Order health exit belongs to another resource owner")
+        initial_wound = projection["initial_wound"]
+    if getattr(fight, "native_ball_resource_constructor", None) is not None:
+        from .combat_scene_ball_resources import validate_projection
+
+        projection = validate_projection(fight)
+        if projection["owner_id"] != actor.id:
+            raise ValueError("Ball health exit belongs to another resource owner")
+        initial_wound = projection["initial_wound"]
     final_wound = actor.max_hp - actor.hp
     damage = max(0, saved["hp_damage"] + final_wound - initial_wound)
     dead = actor.hp == 0

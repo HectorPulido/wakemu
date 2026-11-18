@@ -5,14 +5,7 @@ import zlib
 from .storage import _state
 
 
-def section(
-    state,
-    *,
-    activation_dates=None,
-    retained_active=(),
-    preview_active=(),
-    preview_completed=()
-):
+def section(state, *, activation_dates=None, preview_active=(), preview_completed=()):
     _state(state)
     activation_dates = {} if activation_dates is None else activation_dates
     if not isinstance(activation_dates, dict) or any(
@@ -23,21 +16,21 @@ def section(
         for key, value in activation_dates.items()
     ):
         raise ValueError("Invalid native achievement activation dates")
-    retained_active = set(retained_active)
     preview_active, preview_completed = set(preview_active), set(preview_completed)
-    if not (retained_active | preview_active) <= set(state["completed"]) or any(
+    if not preview_active <= set(state["completed"]) or any(
         type(i) is not int or not 0 < i < 2**31 for i in preview_completed
     ):
         raise ValueError("Invalid mission journal preview")
+    from .lifecycle import active_ids
+
+    active = set(active_ids(state))
     recent = state["recent"][-255:]
     body = struct.pack(">iB", 5, len(recent))
     body += b"".join(struct.pack(">iq", row["id"], row["date_ms"]) for row in recent)
     variables = sorted((int(key), value) for key, value in state["variables"].items())
     body += struct.pack(">i", len(variables))
     body += b"".join(struct.pack(">iq", key, value) for key, value in variables)
-    identities = sorted(
-        set(state["running"]) | set(state["completed"]) | preview_completed
-    )
+    identities = sorted(active | set(state["completed"]) | preview_completed)
     body += struct.pack(">i", len(identities))
     for identity in identities:
         # Original bdD.cCN sets ddP at activation; loader date2 calls hl.
@@ -46,9 +39,7 @@ def section(
         body += struct.pack(
             ">iBBBB",
             identity,
-            identity in state["running"]
-            or identity in retained_active
-            or identity in preview_active,
+            identity in active or identity in preview_active,
             identity in state["completed"] or identity in preview_completed,
             0,
             activated_at is not None,

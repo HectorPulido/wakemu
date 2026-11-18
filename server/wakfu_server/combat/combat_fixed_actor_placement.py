@@ -16,10 +16,13 @@ def declarations(descriptor, *, room_cells=None):
             row.get("direction"),
         )
         source = row.get("source")
+        occurrence = row.get("occurrence")
         if (
             type(reference) is not int
             or reference <= 0
-            or reference in references
+            or "occurrence" in row
+            and (type(occurrence) is not int or occurrence < 0)
+            or (reference, occurrence) in references
             or not isinstance(cell, (list, tuple))
             or len(cell) != 3
             or any(type(value) is not int for value in cell)
@@ -43,7 +46,7 @@ def declarations(descriptor, *, room_cells=None):
             raise ValueError(
                 "Fixed actor placement lacks unique native terrain/source authority"
             )
-        references.add(reference)
+        references.add((reference, occurrence))
         centers.add(tuple(cell))
         result.append(row)
     return tuple(result)
@@ -58,9 +61,12 @@ def member_positions(descriptor, members, *, room_cells):
             for index, member in enumerate(members)
             if member["ref"] == row["reference"]
         ]
-        if len(matches) != 1:
+        if "occurrence" in row:
+            occurrence = row["occurrence"]
+            matches = matches[occurrence : occurrence + 1]
+        if len(matches) != 1 or matches[0] in result:
             raise ValueError(
-                "Fixed actor placement requires one admitted initial actor"
+                "Fixed actor placement requires one admitted initial actor without duplicate bindings"
             )
         result[matches[0]] = tuple(row["cell"])
     return result
@@ -68,14 +74,21 @@ def member_positions(descriptor, members, *, room_cells):
 
 def bind_initial_directions(fight, descriptor, monsters):
     """Apply declared constructor facing before initial native snapshots."""
+    bound = set()
     for row in declarations(descriptor):
         matches = [
             identity
             for identity, monster in monsters.items()
             if monster["ref"] == row["reference"]
         ]
-        if len(matches) != 1:
-            raise ValueError("Fixed actor facing lacks its admitted initial actor")
+        if "occurrence" in row:
+            occurrence = row["occurrence"]
+            matches = matches[occurrence : occurrence + 1]
+        if len(matches) != 1 or matches[0] in bound:
+            raise ValueError(
+                "Fixed actor facing lacks its admitted initial actor without duplicate bindings"
+            )
+        bound.add(matches[0])
         actor = fight.actors[matches[0]]
         if actor.controlled or tuple(actor.position) != tuple(row["cell"]):
             raise ValueError(

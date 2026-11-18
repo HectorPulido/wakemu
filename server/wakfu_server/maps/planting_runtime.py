@@ -324,6 +324,10 @@ class Plantings:
 
                 if dungeon_resource_obstacles.owns(db, resource["resource_uid"]):
                     continue
+                from wakfu_server import quest_resource_slots
+
+                if quest_resource_slots.owns(db, resource["resource_uid"]):
+                    continue
                 if db.execute(
                     "SELECT 1 FROM resource_harvest_occupations "
                     "WHERE resource_uid=%s AND expires_at>%s",
@@ -491,6 +495,7 @@ class Plantings:
                                 resource.get("mining_spawn")
                                 or resource.get("fishing_spawn")
                                 or resource.get("flora_spawn")
+                                or resource.get("quest_resource_spawn")
                             )
                             else state_packet(resource, resource["stage"])
                         )

@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "kelba-hideout-948",
+  "version": 1,
+  "map_id": 948,
+  "entry": {
+    "map_id": 943,
+    "object_id": 25137,
+    "destination_id": 2184
+  },
+  "native_entry_criterion": "IsAchievementActive(2541)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    {
+      "source_id": 25118,
+      "destination_id": 2172
+    }
+  ],
+  "controller_file": "kelba-hideout-948.json",
+  "encounters_file": "kelba-hideout-948.encounters.json",
+  "exploration_file": "kelba-hideout-948.exploration.json",
+  "provenance": "Reviewed reconstruction of native1966 Hadibal hideout: original948 arrival/exit and literal Riktus combat activation/preparation/victory plus native Hadibal intervention15699/end15700. Original private enemy roster/count/coordinates are not serialized; one each native Kelba Riktus3565/3566/3567 is explicitly reviewed formation, preserving real levels/stats/books/states. No fabricated combat mechanic, ordinary win shortcut, native party actor substitution or quest completion from a cinematic alone."
+}

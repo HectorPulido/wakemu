@@ -1,0 +1,89 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "astrub-crypt-889-encounters",
+  "map_id": 889,
+  "provenance": "Reviewed reconstruction, NOT recovered original formations: original map889 has three gated rooms; installed scenario1724 names room1/room2 door unlocks and a third boss fight. Native undead family676 species/counts and arena placements are explicitly authored local policy preserving all original statistics, levels and spells. OLD scene14374 and obsolete sewer896 transfer are not executed. Only the final authentic owned victory earns crypt exploration4280; actual Pere debrief11548 remains separate.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "arena_seed": [
+        1,
+        6,
+        -1
+      ],
+      "bounds": [
+        -2,
+        -12,
+        5,
+        11
+      ],
+      "z": -1,
+      "monsters": [
+        {
+          "reference": 3276,
+          "count": 2,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "crypt-room1-victory"
+      ],
+      "arena_seed": [
+        5,
+        -39,
+        -12
+      ],
+      "bounds": [
+        1,
+        -43,
+        18,
+        -33
+      ],
+      "z": -12,
+      "monsters": [
+        {
+          "reference": 3261,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 3263,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "crypt-room2-victory"
+      ],
+      "arena_seed": [
+        19,
+        -9,
+        0
+      ],
+      "bounds": [
+        15,
+        -13,
+        24,
+        -4
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 3262,
+          "count": 1,
+          "role": "boss"
+        }
+      ]
+    }
+  ]
+}

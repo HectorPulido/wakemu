@@ -1,4 +1,6 @@
 import copy
+import json
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 from wakfu_server.dungeon_encounters import room_members, reachable_cells
@@ -132,3 +134,107 @@ class DungeonEncounterTests(unittest.TestCase):
         self.run["rooms"][0]["monsters"][0]["count"] = MAX_DUNGEON_MONSTERS + 1
         with self.assertRaisesRegex(ValueError, "placement capacity"):
             self.build()
+
+    def test_sokoban_box_room_constructors_are_source_bound_and_scoped(self):
+        from wakfu_server.combat_fixed_actor_placement import world_placement
+
+        root = (
+            Path(__file__).resolve().parents[1]
+            / "wakfu_server/maps/owned_story_profiles"
+        )
+        expected = {
+            "huppermage-sokoban-discovery-1019": [(2, 46, -1), (2, 47, -1)],
+            "huppermage-sokoban-intermediate-1019": [(46, 24, -1), (45, 24, -1)],
+            "huppermage-sokoban-expert-1019": [
+                (33, 46, -1),
+                (33, 47, -1),
+                (35, 46, -1),
+            ],
+        }
+
+        def construct(configuration, *, include_context=True):
+            room = configuration["topology"]["rooms"][0]
+            roster = configuration["compiled_plan"]["rooms"][0]["monsters"]
+            run = dict(
+                status="active",
+                instance_id=88,
+                current_room=1,
+                rooms=[
+                    dict(
+                        order=1,
+                        monsters=[
+                            dict(
+                                ref_id=row["ref_id"],
+                                count=row["count"],
+                                min_level=row["native_min_level"],
+                                max_level=row["native_max_level"],
+                            )
+                            for row in roster
+                        ],
+                    )
+                ],
+            )
+            options = dict(
+                asset_map_id=1019,
+                anchor=tuple(room["anchor"]),
+                geometry={"cells": [tuple(cell) for cell in room["cells"]]},
+                group_id=500,
+                select_level=lambda native, row: native["min_level"],
+                fixed_actor_placements=room["encounter_scene"][
+                    "fixed_actor_placements"
+                ],
+            )
+            if include_context:
+                options["configuration"] = configuration
+            return room_members(run, **options)
+
+        loaded = {}
+        for slug, coordinates in expected.items():
+            configuration = json.loads(
+                (root / (slug + ".configuration.json")).read_text()
+            )
+            members = construct(configuration)
+            self.assertEqual(
+                [(row["ref"], row["x"], row["y"], row["z"]) for row in members],
+                [(3889, *cell) for cell in coordinates],
+            )
+            for member, cell in zip(members, coordinates):
+                self.assertEqual(
+                    (member["level"], member["hp"], member["max_hp"]), (1, 1, 1)
+                )
+                self.assertEqual((member["ap"], member["mp"], member["wp"]), (0, 0, 0))
+                placement = world_placement(member)
+                self.assertEqual(tuple(placement["cell"]), cell)
+                self.assertEqual(placement["reference"], 3889)
+            loaded[slug] = configuration
+
+        discovery = loaded["huppermage-sokoban-discovery-1019"]
+        with self.assertRaisesRegex(ValueError, "3889 lacks ordinary NPC admission"):
+            construct(discovery, include_context=False)
+
+        bad_source = copy.deepcopy(discovery)
+        bad_source["topology"]["rooms"][0]["encounter_scene"]["state_programs"][0][
+            "source_sha256"
+        ] = ("0" * 64)
+        with self.assertRaisesRegex(ValueError, "native constructor authority"):
+            construct(bad_source)
+
+        bad_goal = copy.deepcopy(discovery)
+        bad_goal["topology"]["rooms"][0]["encounter_scene"]["box_goals"]["goals"][0] = [
+            99,
+            99,
+            -1,
+        ]
+        with self.assertRaisesRegex(
+            ValueError, "leave their actual native board terrain"
+        ):
+            construct(bad_goal)
+
+        from wakfu_server.monsters import reference as native_reference
+
+        altered_native = copy.deepcopy(native_reference(3889))
+        altered_native["native_abilities"] = [dict(spell_id=1, level_parameter=1)]
+        with patch(
+            "wakfu_server.dungeon_encounters.reference", return_value=altered_native
+        ), self.assertRaisesRegex(ValueError, "native constructor authority"):
+            construct(discovery)

@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "id": "kelba-market-investigation",
+  "evidence": [
+    "Reviewed finite native Kelba level65 market arc; native mutually exclusive intro earning guards remain unchanged. Character-ready admission uses the explicit guide threshold and real public island context.",
+    "Original25107 shop door selects945 for2570 but944 for2573. Both native shop contexts contain the same reviewed Miranda conversation source; actual source placement and running quest must select one exact binding. No native door predicate is altered and no unsupported convoy is activated.",
+    "Actual authenticated public map943 arrival activates modern2534 through its unchanged native reallevel65 and exclusive2533 predicate. Character-ready declarations remain for characters already on the island; no level-free legacy2533 map-entry activation is synthesized."
+  ],
+  "bindings": [
+    {
+      "id": "actual-kelba-story-shop-entry",
+      "quest_id": 2570,
+      "objective_id": 5087,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 2175
+      },
+      "count": "operation",
+      "maps": [
+        945
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "actual-kelba-miranda-shop-presence",
+      "quest_id": 2570,
+      "objective_id": 5087,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 5087
+      },
+      "count": "operation",
+      "maps": [
+        944,
+        945
+      ],
+      "instances": [
+        0
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-native-modern-intro-on-arrival",
+      "quest_id": 2534,
+      "event": {
+        "kind": "map_enter",
+        "reference": 943
+      },
+      "maps": [
+        943
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "kelba-reviewed-intro-2534",
+      "quest_id": 2534,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 65,
+      "admission_evidence": "Native Kelba chapter definitions/display and MethodWakfu Kelba guide require level65. This is reviewed admission, not a rewrite of2533 native earning criteria; existing active variants remain intact.",
+      "maps": [
+        943
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "kelba-reviewed-intro-2533",
+      "quest_id": 2533,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 65,
+      "admission_evidence": "Native Kelba chapter definitions/display and MethodWakfu Kelba guide require level65. This is reviewed admission, not a rewrite of2533 native earning criteria; existing active variants remain intact.",
+      "maps": [
+        943
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "kelba-earned-2534-2570",
+      "quest_id": 2570,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2534
+      },
+      "requires_completed": [
+        2534
+      ]
+    },
+    {
+      "id": "kelba-earned-2533-2570",
+      "quest_id": 2570,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2533
+      },
+      "requires_completed": [
+        2533
+      ]
+    },
+    {
+      "id": "kelba-earned-2570-2573",
+      "quest_id": 2573,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2570
+      },
+      "requires_completed": [
+        2570
+      ]
+    },
+    {
+      "id": "kelba-earned-2573-2535",
+      "quest_id": 2535,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2573
+      },
+      "requires_completed": [
+        2573
+      ]
+    }
+  ]
+}

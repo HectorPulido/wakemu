@@ -34,6 +34,48 @@ class BootstrapTests(unittest.TestCase):
         )
         self.assertEqual((fight.actors[100].team, fight.actors[-200].team), (1, 0))
 
+    def test_combat_property_114_keeps_npc_participant_out_of_initial_timeline(self):
+        from wakfu_server.combat_wire import initial_timeline
+
+        cells = [(0, 0, 0), (1, 0, 0)]
+        hero = Actor(100, 0, cells[0], 60, 6, 3, 100, 1, 1, True)
+        npc = Actor(-200, 1, cells[1], 20, 4, 2, 10, 1)
+        npc.native_fight_properties = (114,)
+        fight = Fight(81, [hero, npc], cells, {0: {cells[0]}, 1: {cells[1]}})
+        terrain = arena(1387, 1, cells, {0: cells[0], 1: cells[1]})
+        messages = placement_messages(
+            fight,
+            terrain,
+            {100: (b"player", b""), -200: (b"native npc", b"")},
+            terrain_effect_id=378,
+            terrain_instance_id=-300,
+            leaders={0: 100, 1: -200},
+        )
+        decoded = decode_bootstrap(messages[1][1])
+        self.assertEqual(
+            {row["actor_id"] for row in decoded["participants"]}, {100, -200}
+        )
+        self.assertEqual(decoded["myG"], initial_timeline([100], [100]))
+
+        ordinary = Actor(-201, 1, cells[1], 20, 4, 2, 10, 1)
+        ordinary_fight = Fight(
+            82, [hero, ordinary], cells, {0: {cells[0]}, 1: {cells[1]}}
+        )
+        ordinary_messages = placement_messages(
+            ordinary_fight,
+            terrain,
+            {100: (b"player", b""), -201: (b"ordinary npc", b"")},
+            terrain_effect_id=378,
+            terrain_instance_id=-300,
+            leaders={0: 100, 1: -201},
+        )
+        ordinary_decoded = decode_bootstrap(ordinary_messages[1][1])
+        self.assertEqual(
+            ordinary_decoded["myG"], initial_timeline([100, -201], [100, -201])
+        )
+        with self.assertRaisesRegex(ValueError, "Invalid initial timeline membership"):
+            initial_timeline([100, -200], [100])
+
     def test_compacted_encounter_relocation_is_the_position_sent_to_clients(self):
         from wakfu_server.combat_bootstrap import create_placement
         from wakfu_server.monsters import owned_instance

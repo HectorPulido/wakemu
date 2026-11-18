@@ -1,0 +1,258 @@
+{
+  "schema": "combat_mission_bindings_v1",
+  "revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "quest_id": 1717,
+      "objective_id": 3269,
+      "kind": "monster",
+      "target_id": 5114,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1717,
+      "objective_id": 5793,
+      "kind": "monster",
+      "target_id": 3587,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1717,
+      "objective_id": 5791,
+      "kind": "monster",
+      "target_id": 1786,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1717,
+      "objective_id": 5795,
+      "kind": "monster",
+      "target_id": 3735,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1719,
+      "objective_id": 3283,
+      "kind": "monster",
+      "target_id": 2363,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1719,
+      "objective_id": 3285,
+      "kind": "monster",
+      "target_id": 1836,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1719,
+      "objective_id": 3287,
+      "kind": "monster",
+      "target_id": 2469,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 1719,
+      "objective_id": 3281,
+      "kind": "monster",
+      "target_id": 2368,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2869,
+      "objective_id": 5809,
+      "kind": "monster",
+      "target_id": 1345,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2869,
+      "objective_id": 5811,
+      "kind": "monster",
+      "target_id": 2343,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2869,
+      "objective_id": 5813,
+      "kind": "monster",
+      "target_id": 2348,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2869,
+      "objective_id": 5815,
+      "kind": "monster",
+      "target_id": 2972,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2870,
+      "objective_id": 5817,
+      "kind": "monster",
+      "target_id": 5471,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2870,
+      "objective_id": 5819,
+      "kind": "monster",
+      "target_id": 2556,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2870,
+      "objective_id": 5821,
+      "kind": "monster",
+      "target_id": 2977,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2870,
+      "objective_id": 5823,
+      "kind": "monster",
+      "target_id": 2570,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2871,
+      "objective_id": 5825,
+      "kind": "monster",
+      "target_id": 2582,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2871,
+      "objective_id": 5827,
+      "kind": "monster",
+      "target_id": 3080,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2871,
+      "objective_id": 5829,
+      "kind": "monster",
+      "target_id": 3094,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2871,
+      "objective_id": 5831,
+      "kind": "monster",
+      "target_id": 3398,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2872,
+      "objective_id": 5833,
+      "kind": "monster",
+      "target_id": 3865,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2872,
+      "objective_id": 5835,
+      "kind": "monster",
+      "target_id": 3864,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2872,
+      "objective_id": 5837,
+      "kind": "monster",
+      "target_id": 3971,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 2872,
+      "objective_id": 5839,
+      "kind": "monster",
+      "target_id": 3866,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 4733,
+      "objective_id": 9835,
+      "kind": "monster",
+      "target_id": 5137,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 4733,
+      "objective_id": 9837,
+      "kind": "monster",
+      "target_id": 5052,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 4733,
+      "objective_id": 9839,
+      "kind": "monster",
+      "target_id": 5059,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    },
+    {
+      "quest_id": 4733,
+      "objective_id": 9841,
+      "kind": "monster",
+      "target_id": 3433,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed reconstruction: native Otomai hunter IV-X kill text joined to native creature names. Vampyro1836/Gelax1345/LinShi2556/Wey2582 disambiguated by native weekly hunterLevelBoss variables. Mizz2348 and Nogord3433 use native punctuation/title variants. Requires existing explicit NPC quest acceptance; only authenticated original defeated breeds advance."
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1004,
+  "objects": [
+    {
+      "chunk": "-2_-2",
+      "id": 25576,
+      "payload_hex": "02000000000b010000000d00000103ecffffffe6ffffffe3000000010101010001000000013700000000000101",
+      "x": -26.0,
+      "y": -29.0,
+      "map_id": 1004,
+      "z": 0.0,
+      "auto": false,
+      "type": "BackgroundDisplay"
+    },
+    {
+      "chunk": "0_0",
+      "id": 25482,
+      "payload_hex": "02000000000b010000000d00000103ec00000001000000000000000101010100080000000339363000000000000101",
+      "x": 1.0,
+      "y": 0.0,
+      "map_id": 1004,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_0",
+      "id": 25499,
+      "payload_hex": "02000000000b010000000d00000103ec000000010000000000000001010103ffff0039fffffff7ffffffff0000fffffff7fffffffe0000fffffff7000000010000fffffff7000000000000fffffff8000000090000fffffff8000000080000fffffff8000000070000fffffffb0000000e0000fffffff90000000e0000000000010000000e0000fffffffe0000000e0000fffffff90000000d0000fffffffd0000000e0000000000000000000e0000ffffffff0000000e0000fffffff90000000c0000fffffffc0000000e0000fffffffa0000000e0000fffffff90000000b0000000000000000000d0000ffffffff0000000d0000000000020000000e00000000000f0000000800000000000f0000000900000000000f00000007000000000012fffffffd00000000001200000002000000000012fffffffe0000000000120000000000000000001200000001000000000012ffffffff000000000012fffffff3000000000011fffffff1000000000012fffffff2000000000012fffffff6000000000012fffffff5000000000010fffffff1000000000012fffffff1000000000012fffffff400000000000ffffffff1000000000007fffffff1000000000004fffffff1000000000005fffffff1000000000008fffffff1000000000006fffffff10000fffffffafffffff10000fffffff9fffffff10000fffffff5fffffff50000fffffff5fffffff60000fffffff5fffffff40000fffffff5fffffff30000fffffff5fffffff20000fffffff7fffffffd0000fffffff7000000020000fffffff80000000b0000000000020000000f0000000000030000000f0000000000000000000000",
+      "x": 1.0,
+      "y": 0.0,
+      "map_id": 1004,
+      "z": 0.0,
+      "auto": false,
+      "type": "ZoneTrigger"
+    }
+  ],
+  "scenario_id": 2043,
+  "scenario_events": [],
+  "scenes": {},
+  "presentations": [],
+  "programs": {
+    "25482": {
+      "native_class": "aLl",
+      "descriptor_id": 960,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1182,
+          "clx": 299,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 3000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1204,
+              "criterion": "IsAchievementRunning(2706) and not IsAchievementObjectiveComplete(5341)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2411,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(2706) and !IsAchievementObjectiveComplete(5341)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "native_class": "aLo",
+          "id": 1183,
+          "clx": 298,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 3000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 1,
+              "native_id": 1205,
+              "criterion": "IsAchievementObjectiveComplete(5341)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2412,
+                  "effect_type": 3,
+                  "criterion": "IsAchievementObjectiveComplete(5341)",
+                  "parameters": [
+                    "{35,84,0}",
+                    "1134",
+                    "3"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {},
+  "interaction_approaches": {
+    "25482": [
+      [
+        1,
+        1,
+        0
+      ]
+    ]
+  },
+  "provenance": "Reviewed reconstruction of native2706 night mission on original1004: actual25480/958/effect2409 takes3000ms and enters(1,1,0); actual fire25482/960/wire0/effect2411 takes3000ms before real encounter. Three original3836 possessed larvae retain native3933 death/parasite3837 mechanics, levels/statistics/spells; count3 and native floor positions are reviewed formation, not original recovered server counts. Only genuine full encounter victory grants5341. Native firewire1/effect2412 takes3000ms and uses normal exit/outbox to original1134(35,84,0). No cinematic, waiting click or arrival gives victory. Original2043 cinematic is omitted because its eight actor assumptions exceed this explicitly reconstructed minimal roster; mechanics do not require that presentation."
+}

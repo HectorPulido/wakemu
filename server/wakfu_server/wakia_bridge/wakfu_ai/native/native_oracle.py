@@ -980,9 +980,6 @@ class NativeOracle:
             ):
                 if forecast:
                     movement_rng.setstate(self._rng(private.fight, action).getstate())
-                dispatcher, callbacks = movement_factory(
-                    private.fight, {"native_retained_container": {"present": False}}
-                )
 
                 def step_callback(fight, moving_actor, before, cell):
                     moving_actor.direction = DIRECTIONS[
@@ -991,17 +988,47 @@ class NativeOracle:
                     from wakfu_server.combat_voluntary_movement_events import (
                         deliver_voluntary_movement,
                     )
+                    from wakfu_server.combat_movement_payment_events import (
+                        consume_step_payment,
+                        replay_movement_payment,
+                    )
+                    from wakfu_server.combat_equipment_tackle_events import (
+                        tackle_departure_preview,
+                    )
+                    from wakfu_server.combat_area_boundary import adopt_fight
 
-                    deliver_voluntary_movement(
-                        dispatcher,
-                        actor_id=moving_actor.id,
-                        from_cell=before,
-                        to_cell=cell,
-                        action_id=private.action_id + 1,
+                    payment = consume_step_payment(
+                        fight, actor_id=moving_actor.id, origin=before, path=[cell]
                     )
-                    dispatcher.native_area_events.movement(
-                        moving_actor.id, from_cell=before, to_cell=cell
+                    # Use the same cross-preview payment guard as ordinary
+                    # movement, retaining this oracle's complete actor authority.
+                    preview = deepcopy(fight)
+                    factory, _ = self.factory(
+                        preview, private.action_id + 2, movement_rng
                     )
+                    dispatcher, packets = factory(
+                        preview, {"native_retained_container": {"present": False}}
+                    )
+                    with tackle_departure_preview(
+                        fight, preview, payment
+                    ), preview.effect_resolution():
+                        replay_movement_payment(dispatcher, payment)
+                        if (
+                            preview.phase == "active"
+                            and preview.actors[moving_actor.id].hp > 0
+                        ):
+                            deliver_voluntary_movement(
+                                dispatcher,
+                                actor_id=moving_actor.id,
+                                from_cell=before,
+                                to_cell=cell,
+                                action_id=private.action_id + 1,
+                            )
+                            dispatcher.native_area_events.movement(
+                                moving_actor.id, from_cell=before, to_cell=cell
+                            )
+                    adopt_fight(fight, preview)
+                    callbacks.extend(packets)
 
             if not effective_server_controlled(private.fight, actor):
                 event = private.fight.move(
@@ -1061,6 +1088,19 @@ class NativeOracle:
             if callbacks:
                 private.action_id += 1
                 packets.extend(callbacks)
+            from wakfu_server.combat_tackle_loss_messages import tackle_loss_messages
+            from wakfu_server.combat_snapshot_actor_visibility import (
+                hidden_snapshot_actor_ids,
+            )
+
+            if not forecast and actor.id not in hidden_snapshot_actor_ids(
+                private.fight
+            ):
+                packets.extend(
+                    tackle_loss_messages(
+                        private.fight.id, private.action_id, actor.id, event
+                    )
+                )
             return private, tuple(packets), None
         if kind == "end_turn":
             if set(action) != {"type"}:

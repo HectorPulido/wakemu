@@ -71,6 +71,33 @@
           "native_source_sha256": "eea87bc2f979ac570a3f94659ae52762afb042c11b996781bf74ab8a001636fd"
         }
       ]
+    },
+    {
+      "route_key": "legacy-map-443-20179-955",
+      "plan_sha256": "458b13ac80c6f52e9fc5f64b74eeb14c4bc713f890c947b0271477147a4cf2d6",
+      "document_sha256": "820cb40ff079059a4f19ff2ca664b449e9e0002427da2bf7d86d5a6e8debf46b",
+      "actions": [
+        {
+          "monster_reference": 2104,
+          "action_id": 254,
+          "native_source_sha256": "19a83c9e6371664579525c82208f5889b34dc48ae5a0cd52b92474ff3092bd0f"
+        },
+        {
+          "monster_reference": 2047,
+          "action_id": 256,
+          "native_source_sha256": "d8c56856b1b3baea87e9fce3e16ede18a1cde9dc5b51c8dc1abcf69e5b1bda53"
+        },
+        {
+          "monster_reference": 2046,
+          "action_id": 253,
+          "native_source_sha256": "3c67bd37b2dda1779c87810025d31da28bbd3dddf69d944f6cc367182a430af7"
+        },
+        {
+          "monster_reference": 2096,
+          "action_id": 660,
+          "native_source_sha256": "fef149e4ea7100cd873a11ce039af76e54cc4d428a3f5f656f7967ebf5f18f35"
+        }
+      ]
     }
   ]
 }

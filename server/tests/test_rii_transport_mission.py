@@ -1,10 +1,11 @@
 """Rii departure only advances for the owned, authorized Zaap journey."""
+
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from wakfu_server.achievements import transport_missions
+from wakfu_server.achievements import mission_toolkit, transport_missions
 from wakfu_server import native_transports
 
 
@@ -63,6 +64,7 @@ class RiiTransportMissionTests(unittest.TestCase):
             ),
             patch.object(transport_missions.storage, "record_event", return_value=True),
             patch.object(transport_missions.storage, "store"),
+            patch.object(mission_toolkit, "settle_completions", return_value=[]),
         ]
         for p in self.patches:
             p.start()
@@ -86,6 +88,21 @@ class RiiTransportMissionTests(unittest.TestCase):
         self.assertEqual(state["running"], [])
         self.assertEqual(state["tracking"], [])
         transport_missions.storage.record_event.assert_called_once()
+        mission_toolkit.settle_completions.assert_called_once_with(
+            self.db, self.store, self.destination, [5161]
+        )
+
+    def test_completion_followup_is_published_after_source_progress_and_rewards(self):
+        def followup(db, store, character, completed):
+            saved = transport_missions.storage.store.call_args.args[2]
+            self.assertEqual(saved["completed"], completed)
+            self.assertIn("5161", saved["completion_dates"])
+            return [(13832, b"dependent-objective")]
+
+        mission_toolkit.settle_completions.side_effect = followup
+        packets = self.run_event()
+        self.assertEqual(packets[-1], (13832, b"dependent-objective"))
+        self.assertNotEqual(packets[0], packets[-1])
 
     def test_other_map_non_zaap_and_inactive_do_not_advance(self):
         self.assertEqual(self.run_event(source={**self.source, "map_id": 527}), [])
@@ -93,6 +110,7 @@ class RiiTransportMissionTests(unittest.TestCase):
         self.state["running"].clear()
         self.assertEqual(self.run_event(), [])
         transport_missions.storage.store.assert_not_called()
+        mission_toolkit.settle_completions.assert_not_called()
 
     def test_wrong_character_or_destination_rejected(self):
         with self.assertRaises(ValueError):

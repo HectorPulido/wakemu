@@ -17,7 +17,10 @@ class WeeklyHunterNpcTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         root = Path(__file__).resolve().parents[1]
-        with gzip.open(root / "protocol/npc-dialogues.json.gz", "rt") as stream:
+        protocol_path = root / "protocol/npc-dialogues.json.gz"
+        if not protocol_path.is_file():
+            protocol_path = root.parent / "database/protocol/npc-dialogues.json.gz"
+        with gzip.open(protocol_path, "rt") as stream:
             nodes = json.load(stream)["nodes"]
         report = root.parent / "agents_docs/reports/parallel-readiness-20261021"
         with (report / "recurring-source-family-classification.csv").open() as stream:

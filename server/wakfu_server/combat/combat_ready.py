@@ -29,7 +29,7 @@ def prepare_ready(
             raise ValueError("Readiness owner mismatch")
         return fight, None, ()
     preview = deepcopy(fight)
-    preview.ready(owner_id, ready)
+    preview.ready(owner_id, ready, defer_first_turn=True)
     if preview.phase != "active":
         return preview, None, ()
     # Capture the native baseline before innates modify characteristics. Empty
@@ -46,8 +46,52 @@ def prepare_ready(
             if runtime_stats_serializer is not None
             else stats_serializer(actor)
         )
-        payloads[actor.id] = (stats, effects_serializer())
+        effects = effects_serializer()
+        if getattr(preview, "native_order_trial_constructor", None) is not None:
+            from .native_order_trial_encounter import policy_for
+            from .native_order_trial_checkpoint import validate_fight
+            from .combat_remote_effects import active_actor_effects
+
+            policy = policy_for(preview)
+            if actor.id == policy.owner_id:
+                if getattr(preview, "native_order_trial", None) is None:
+                    raise ValueError("Order Ready requires its initialized checkpoint")
+                validate_fight(preview)
+                effects = active_actor_effects(preview, actor.id)
+        payloads[actor.id] = (stats, effects)
     preview, initialization = initialize(preview, 1)
+    if getattr(preview, "native_order_trial_constructor", None) is not None:
+        from .native_order_trial_resources import project
+        from .native_order_trial_encounter import policy_for
+        from .combat_wire import actor_state
+
+        if project(preview):
+            actor = preview.actors[policy_for(preview).owner_id]
+            final_stats = (
+                runtime_stats_serializer(actor, preview)
+                if runtime_stats_serializer is not None
+                else stats_serializer(actor)
+            )
+            initialization = tuple(initialization) + (
+                (12873, actor_state(12873, preview.id, actor.id, final_stats)),
+            )
+    from .combat_scene_ball_resources import project as project_ball_resources
+
+    if project_ball_resources(preview):
+        from .combat_wire import actor_state
+
+        actor = preview.actors[preview.native_ball_resource_constructor["owner_id"]]
+        final_stats = (
+            runtime_stats_serializer(actor, preview)
+            if runtime_stats_serializer is not None
+            else stats_serializer(actor)
+        )
+        initialization = tuple(initialization) + (
+            (12873, actor_state(12873, preview.id, actor.id, final_stats)),
+        )
+    # Production initialization finalizes before 1003/1028 replay. Keep the
+    # same fence for callers with a smaller initialization callback as well.
+    preview.finalize_initial_turn()
     messages = RuntimeMessages(
         preview,
         stats_serializer=stats_serializer,

@@ -59,6 +59,62 @@ class Discoveries:
                 for kind in (1, 2)
             }
 
+    def register_character(self, account_id, generation, character, body):
+        """Commit a real REGISTER action, including accepted repeat requests."""
+        return self._character_action(
+            account_id, generation, character, body, register=True
+        )
+
+    def activate_character(self, account_id, generation, character, body):
+        """Observe a real ACTIVATE/menu action without manufacturing discovery."""
+        return self._character_action(
+            account_id, generation, character, body, register=False
+        )
+
+    def _character_action(self, account_id, generation, character, body, *, register):
+        """Use fresh owned position and one SQL transaction for native actions.
+
+        The caller flushes movement under its account position barrier. A saved
+        discovery alone never emits a mission event; ACTIVATE never inserts one.
+        """
+        from uuid import uuid4
+        from wakfu_server import native_transports
+        from wakfu_server.environment_interactions import _guard
+        from wakfu_server.paid_containers import _leased_owner
+        from wakfu_server.achievements import mission_toolkit
+
+        with self.store.connection() as db:
+            _leased_owner(self.store, db, account_id, generation, character)
+            _guard(db, character["id"])
+            current = self.store.character(account_id, character["id"], db)
+            decoder = (
+                native_transports.registration
+                if register
+                else native_transports.activation
+            )
+            kind, identity = decoder(current, body)
+            _validate(kind, identity)
+            inserted = False
+            if register:
+                inserted = (
+                    db.execute(
+                        "INSERT INTO transport_discoveries VALUES(%s,%s,%s) "
+                        "ON CONFLICT(account_id,kind,transport_id) DO NOTHING",
+                        (account_id, kind, identity),
+                    ).rowcount
+                    == 1
+                )
+            event_kind = "transport_registered" if register else "transport_interacted"
+            packets = mission_toolkit.settle(
+                db,
+                self.store,
+                current,
+                token="native-transport-action:" + uuid4().hex,
+                kind=event_kind,
+                reference=identity,
+            )
+        return dict(kind=kind, identity=identity, discovered=inserted, packets=packets)
+
     def discover(self, account_id, generation, kind, identity):
         _validate(kind, identity)
         with self.store.connection() as db:

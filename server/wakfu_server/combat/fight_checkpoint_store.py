@@ -25,6 +25,8 @@ EPHEMERAL_FIGHT_FIELDS = frozenset(
         # Original-socket notifications follow its native 12925 callback.
         # Reconnect receives durable quest state in the normal bootstrap.
         "post_combat_progression",
+        # Pending effect-root witnesses are never durable terminal authority.
+        "native_ball_pending_result",
     }
 )
 
@@ -133,6 +135,10 @@ def _plain(value):
 
     if type(value) is OwnedSocialContext:
         return value.to_record()
+    from .native_order_trial_encounter import ConstructorPolicy
+
+    if type(value) is ConstructorPolicy:
+        return _plain(asdict(value))
     from .combat_carrying import NativeCarryPair
     from .combat_instance_level_group import InstanceDifficultySnapshot
 
@@ -166,6 +172,18 @@ def _plain(value):
 def snapshot(fight, *, runtime=None):
     from .rift_combat_adapter import creation_deliveries_snapshot
 
+    if getattr(fight, "native_order_trial_constructor", None) is not None:
+        from .native_order_trial_encounter import policy_for
+
+        policy_for(fight)
+    if getattr(fight, "native_order_trial", None) is not None:
+        from .native_order_trial_checkpoint import validate_fight
+
+        validate_fight(fight)
+    if getattr(fight, "native_dj_dance", None) is not None:
+        from .combat_native_dj_dance import validate_state
+
+        validate_state(fight.native_dj_dance)
     state = {
         key: _plain(
             creation_deliveries_snapshot(value)
@@ -211,6 +229,14 @@ _RECOVERY_FIGHT_FIELDS = (
     "native_companion_sources",
     "native_consumable_initializations",
     "native_external_state_origins",
+    "native_order_trial",
+    "native_dj_dance",
+    "native_dj_setup_pending",
+    "native_ball_goal_receipt",
+    "native_movement_escape_receipt",
+    "native_order_trial_constructor",
+    "native_order_resource_constructor",
+    "native_ball_resource_constructor",
     "rift_monsters",
     "walkable",
     "edges",
@@ -278,6 +304,14 @@ def recovery_snapshot(fight, *, runtime=None):
     """
     if runtime is not None and runtime.fight is not fight:
         raise ValueError("Runtime belongs to another fight")
+    if getattr(fight, "native_order_trial", None) is not None:
+        from .native_order_trial_checkpoint import validate_fight
+
+        validate_fight(fight)
+    if getattr(fight, "native_dj_dance", None) is not None:
+        from .combat_native_dj_dance import validate_state
+
+        validate_state(fight.native_dj_dance)
     state = {"checkpoint_schema": RECOVERY_SCHEMA}
     for key in _RECOVERY_FIGHT_FIELDS:
         if hasattr(fight, key):
@@ -565,6 +599,15 @@ class Checkpoints:
             a.controlled and a.owner_id == account_id for a in fight.actors.values()
         ):
             raise ValueError("Account does not own a fight participant")
+        order_trial = getattr(fight, "native_order_trial", None)
+        if isinstance(state, dict) and state.get("native_order_trial") is not None:
+            from .native_order_trial_checkpoint import validate_checkpoint
+
+            if order_trial is None:
+                raise ValueError("Order checkpoint has no accepted combat candidate")
+            validate_checkpoint(state, expected=order_trial, replay=False)
+        elif order_trial is not None:
+            raise ValueError("Accepted order trial was omitted from its checkpoint")
         serialized = json.dumps(state, allow_nan=False)
         encoded = Jsonb(state, dumps=lambda _: serialized)
         rift_receipts = ()
@@ -697,6 +740,14 @@ class Checkpoints:
 
     @staticmethod
     def _read_snapshot(raw):
+        if isinstance(raw, dict) and raw.get("native_order_trial") is not None:
+            from .native_order_trial_checkpoint import validate_checkpoint
+
+            validate_checkpoint(raw)
+        if isinstance(raw, dict) and raw.get("native_dj_dance") is not None:
+            from .combat_native_dj_dance import validate_checkpoint
+
+            validate_checkpoint(raw)
         if isinstance(raw, dict) and "checkpoint_schema" in raw:
             if raw.get("checkpoint_schema") != RECOVERY_SCHEMA:
                 raise ValueError("Unsupported fight checkpoint schema")
@@ -1010,6 +1061,11 @@ class Checkpoints:
             from wakfu_server.rift_interrupted_rewards import settle_startup
 
             settle_startup(self.store, db)
+            from wakfu_server.achievements.owned_quest_terminal_recovery import (
+                settle_startup as settle_quest_terminals,
+            )
+
+            settle_quest_terminals(self.store, db)
             db.execute(
                 "UPDATE combat_fights SET status='aborted' WHERE status IN ('placement','active')"
             )

@@ -1,0 +1,25 @@
+{
+  "schema": "owned-quest-instance-v1",
+  "id": "astrub-yeast-warehouse",
+  "quest_id": 2016,
+  "entry_objective": 4079,
+  "victory_objective": 4084,
+  "entry_map_id": 527,
+  "entry_object_id": 23030,
+  "destination_id": 1798,
+  "map_id": 891,
+  "arena_seed": [
+    -11,
+    -155,
+    0
+  ],
+  "monster_reference": 3233,
+  "monster_count": 3,
+  "internal_sources": [
+    23180,
+    23031
+  ],
+  "exit_source": 23181,
+  "provenance": "Reviewed reconstruction, not captured official formation: native quest2016 objective4084 explicitly requires clearing rats; native3233 Rata de reserva belongs to Astrub rat family653, uses native level30 and spell1376. Three ordinary rats in installed map891 cellar are local encounter policy. Native entry23030/1798, both stairs and exit23181/1799 are preserved. Book18629 remains the native quest reward after the actual Yeast debriefing.",
+  "exploration_file": "astrub-warehouse.exploration.json"
+}

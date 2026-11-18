@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "id": "ereboria-deathburn-introduction",
+  "evidence": [
+    "Original native5047 real-level36 gate and variable747 nbMortsBrulesKilled>=10; only actual native Deathburn family1100 defeats on public Deathburn Beach1359 qualify. Species5379/5380/5381 and native dominant5383 preserve original levels, statistics, states and spells. No5046 prerequisite is invented.",
+    "Read-only native population confirms existing public1359 original5379level40 groups. This binding creates no monsters, necklace item, victory or reward; Goomy explicit acceptance and actual native return choice own the mission lifecycle."
+  ],
+  "bindings": [
+    {
+      "id": "ereboria-deathburn-5379",
+      "quest_id": 5047,
+      "objective_id": 10411,
+      "variable_id": 747,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5379
+      },
+      "maps": [
+        1359
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-deathburn-5380",
+      "quest_id": 5047,
+      "objective_id": 10411,
+      "variable_id": 747,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5380
+      },
+      "maps": [
+        1359
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-deathburn-5381",
+      "quest_id": 5047,
+      "objective_id": 10411,
+      "variable_id": 747,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5381
+      },
+      "maps": [
+        1359
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-deathburn-5383",
+      "quest_id": 5047,
+      "objective_id": 10411,
+      "variable_id": 747,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5383
+      },
+      "maps": [
+        1359
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

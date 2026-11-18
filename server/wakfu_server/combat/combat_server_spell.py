@@ -321,6 +321,7 @@ def prepare_server_initialization(
     player_characters=None,
     deck_blobs=None,
     attachment_authority=None,
+    before_fight_start=None,
 ):
     """Install own innates/passives; optionally deliver inferred server fight start.
 
@@ -480,6 +481,8 @@ def prepare_server_initialization(
         preview, owned, factory, owner_id=owner_id
     )
     packets += aptitude_packets
+    if before_fight_start is not None:
+        before_fight_start(preview)
     if fight_start:
         from .combat_start_events import deliver_fight_start
 

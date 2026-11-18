@@ -23,7 +23,7 @@ def creation_area_pv(fight, identity, *, _seen=frozenset()):
     if contract in ("faW", "fbb"):
         if "direction" not in row:
             raise ValueError("Missing native stored area orientation authority")
-        direction = row["direction"]
+        direction = row.get("native_faw_stored_direction", row["direction"])
         if direction is not None:
             if type(direction) is not int or direction not in range(-1, 10):
                 raise ValueError("Invalid native stored area orientation")

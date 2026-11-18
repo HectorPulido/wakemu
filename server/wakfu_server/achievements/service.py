@@ -84,6 +84,7 @@ def _event(db, character, fight, original_monsters):
 def drain_rewards(db, store, character):
     """Retry durable entitlements; capacity never discards a reward or fight."""
     _owner(db, character)
+    start_level = store.character(character["account_id"], character["id"], db)["level"]
     packets = []
     for pending in storage.pending_rewards(db, character["id"]):
         try:
@@ -102,6 +103,11 @@ def drain_rewards(db, store, character):
         except rewards.RewardCapacity:
             continue
         packets.extend(granted)
+    from . import mission_character_events
+
+    packets.extend(
+        mission_character_events.level_changed(db, store, character, start_level)
+    )
     return packets
 
 
@@ -200,6 +206,13 @@ def settle(db, store, character, fight, original_monsters):
                         breeds=event["original_breeds"],
                     )
                 )
+                from . import combat_loot_events
+
+                packets.extend(
+                    combat_loot_events.settle_received(
+                        db, store, character, fight_id=event["fight_id"]
+                    )
+                )
                 if event["completed_dungeon_id"] is not None:
                     packets.extend(
                         mission_toolkit.settle(
@@ -210,6 +223,11 @@ def settle(db, store, character, fight, original_monsters):
                             kind="dungeon_completed",
                             reference=event["completed_dungeon_id"],
                         )
+                    )
+                    from . import native_dungeon_achievements
+
+                    packets.extend(
+                        native_dungeon_achievements.settle(db, store, character, event)
                     )
         except Exception:
             import logging
@@ -364,6 +382,8 @@ def snapshot(db, character_id):
     )
     if state["running"] != running:
         state["running"] = running
+        if "active" in state:
+            state["active"] = sorted(set(state["active"]) | set(running))
         storage.store(db, character_id, state)
     from wakfu_server.guild_daily_quests import activation_dates
 
@@ -374,34 +394,6 @@ def snapshot(db, character_id):
 
 
 def _journal_section(db, state, dates, character_id):
-    # Native completion marks the completed bit without clearing the active
-    # bit. Apply this reconstruction only to reviewed, nonperiodic missions;
-    # other completions may have an independent deactivation/reset policy.
-    active_after_completion = {5146}
-    completed_with_dates = sorted(
-        identity
-        for identity in state["completed"]
-        if identity in active_after_completion
-        and str(identity) in state["completion_dates"]
-    )
-    retained_active = set()
-    if character_id is not None and completed_with_dates:
-        definitions = db.execute(
-            "SELECT definition_id,data FROM native_quest_metadata_definitions "
-            "WHERE revision=(SELECT revision FROM native_quest_metadata_releases "
-            "ORDER BY imported_at DESC LIMIT 1) AND definition_id=ANY(%s)",
-            (completed_with_dates,),
-        ).fetchall()
-        for row in definitions:
-            native = row["data"].get("native", {})
-            if (
-                native.get("d") == row["definition_id"]
-                and native.get("native_class") == "aJM"
-                and native.get("aqb") is False
-                and native.get("getDuration") == 0
-                and native.get("cjU") == 0
-            ):
-                retained_active.add(row["definition_id"])
     # Include actual acceptance timestamps for periodic dialogue turn-ins so
     # the native client can evaluate their running period after reconnect.
     if character_id is not None and state["running"]:
@@ -445,7 +437,7 @@ def _journal_section(db, state, dates, character_id):
     preview = db.execute(
         "SELECT value FROM settings WHERE name=%s", ("mission_journal_preview",)
     ).fetchone()
-    active, completed = (), ()
+    preview_active, preview_completed = (), ()
     if preview is not None:
         value = preview["value"]
         if (
@@ -453,14 +445,13 @@ def _journal_section(db, state, dates, character_id):
             and value.get("character_id") == character_id
             and value.get("schema") == "mission_journal_preview_v1"
         ):
-            active = set(value.get("active", ())) & set(state["completed"])
-            completed = value.get("completed", ())
+            preview_active = set(value.get("active", ())) & set(state["completed"])
+            preview_completed = value.get("completed", ())
     return wire.section(
         state,
         activation_dates=dates,
-        retained_active=retained_active,
-        preview_active=active,
-        preview_completed=completed,
+        preview_active=preview_active,
+        preview_completed=preview_completed,
     )
 
 
@@ -583,6 +574,8 @@ def project_section(progress, authority, *, db, character_id=None):
         (set(state["running"]) | set(catalog.load(db)["definitions"]))
         - set(state["completed"])
     )
+    if "active" in state:
+        state["active"] = sorted(set(state["active"]) | set(state["running"]))
     dates = {}
     if character_id is not None and set(state["running"] + state["completed"]) & {
         1389,

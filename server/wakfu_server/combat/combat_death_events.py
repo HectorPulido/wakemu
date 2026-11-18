@@ -53,6 +53,9 @@ def deliver_owned_death(
             policy="wakemu.owned-ko-and-death-v3",
             ko_event_id=1010,
             global_death_event_id=1012,
+            source_id=source.caster_id,
+            generic_effect=source.generic_effect,
+            effect_class=source.effect_action_id,
         ),
     }
     from .combat_owned_area_death import apply_owned_area_death

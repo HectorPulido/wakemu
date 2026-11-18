@@ -1,0 +1,31 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-excavation-717",
+  "version": 1,
+  "map_id": 717,
+  "entry": {
+    "map_id": 711,
+    "object_id": 20569,
+    "destination_id": 1427
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 17864,
+    "quantity": 1
+  },
+  "exit_sources": [
+    20570
+  ],
+  "controller_file": "wild-estate-excavation-717.json",
+  "encounters_file": "wild-estate-excavation-717-encounters.json",
+  "exploration_file": "wild-estate-excavation-717.exploration.json",
+  "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+  "owned_transfers": [
+    {
+      "schema": "owned-quest-transfer-v1",
+      "source_id": 20568,
+      "destination_id": 1426,
+      "target_route_key": "quest-map-718-20568-1426"
+    }
+  ]
+}

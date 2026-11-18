@@ -138,6 +138,15 @@
           }
         ]
       }
+    },
+    "2502": {
+      "min_level": 100,
+      "max_level": 100,
+      "spell_ids": [
+        3700
+      ],
+      "initial_state_triples": [],
+      "native_source_sha256": "d2bd36b18aab579561d055e2ddf5bbc5353d04282aaed73fa35a52ca5a8c102a"
     }
   },
   "provenance": "Reviewed original aMb descriptors, native event roots, independent guard tests and paid Ready/counter/hatch/fragment component receipts; whole boss victory is not claimed."

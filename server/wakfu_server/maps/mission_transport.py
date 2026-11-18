@@ -1,6 +1,57 @@
 """Settle mission facts in the same transaction as native travel."""
 
 
+def _changed(source, destination):
+    return (source["map_id"], source.get("instance_id", 0)) != (
+        destination["map_id"],
+        destination.get("instance_id", 0),
+    )
+
+
+def departure_packets(db, store, source, destination):
+    """A qualified movement's actual destination, evaluated at its origin."""
+    if not _changed(source, destination):
+        return []
+    from uuid import uuid4
+    from wakfu_server.achievements import mission_toolkit
+
+    return mission_toolkit.settle(
+        db,
+        store,
+        source,
+        token="departure:" + uuid4().hex,
+        kind="map_departure",
+        reference=destination["map_id"],
+    )
+
+
+def arrival_packets(db, store, source, saved):
+    """Observe the actual saved map after its authenticated compare-and-set."""
+    if not _changed(source, saved):
+        return []
+    from uuid import uuid4
+    from wakfu_server.achievements import mission_toolkit
+
+    return mission_toolkit.settle(
+        db,
+        store,
+        saved,
+        token="travel:" + uuid4().hex,
+        kind="map_enter",
+        reference=saved["map_id"],
+    )
+
+
+def public_transition_locked(db, store, account_id, generation, source, destination):
+    """Public NPC journeys share the caller's accepted-action SQL transaction."""
+    packets = departure_packets(db, store, source, destination)
+    saved = store.transition_map_in_transaction(
+        db, account_id, generation, source["id"], source, destination
+    )
+    packets.extend(arrival_packets(db, store, source, saved))
+    return store.character(account_id, saved["id"], db), packets
+
+
 def transition(
     store, account_id, generation, source, route, *, native_zaap, incarnam_exit=False
 ):
@@ -34,10 +85,18 @@ def transition(
                 or route["destination"].get("map_id") != 1385
             ):
                 raise ValueError("Incarnam final scene is not eligible for departure")
+        departing = departure_packets(db, store, source, route["destination"])
         saved = store.transition_map_in_transaction(
             db, account_id, generation, source["id"], source, route["destination"]
         )
-        packets = zone_missions.enter_rii(
+        from wakfu_server.achievements import native_transport_objectives
+
+        transport_packets = native_transport_objectives.on_transition(
+            db, store, source, saved, route
+        )
+        if transport_packets:
+            saved = store.character(account_id, saved["id"], db)
+        packets = departing + zone_missions.enter_rii(
             db, store, saved, previous_map=source["map_id"]
         )
         if source["map_id"] == 1465 and saved["map_id"] == 1361:
@@ -47,6 +106,7 @@ def transition(
                 db, store, saved, previous_map=source["map_id"]
             )
         first_rii_arrival = bool(packets)
+        packets += transport_packets
         if source["map_id"] != 1385 and saved["map_id"] == 1385:
             from wakfu_server.achievements import rii_class_mission
 
@@ -77,17 +137,7 @@ def transition(
             saved["map_id"],
             saved["instance_id"],
         ):
-            from uuid import uuid4
-            from wakfu_server.achievements import mission_toolkit
-
-            packets += mission_toolkit.settle(
-                db,
-                store,
-                saved,
-                token="travel:" + uuid4().hex,
-                kind="map_enter",
-                reference=saved["map_id"],
-            )
+            packets += arrival_packets(db, store, source, saved)
             saved = store.character(account_id, saved["id"], db)
         if (
             source["map_id"] != 1385

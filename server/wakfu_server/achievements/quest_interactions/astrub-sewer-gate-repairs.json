@@ -1,0 +1,100 @@
+{
+  "schema": "quest-interaction-batch-v1",
+  "bindings": [
+    {
+      "status": "reviewed",
+      "map_id": 546,
+      "object_id": 24124,
+      "action_id": 0,
+      "parameter": 0,
+      "x": 1,
+      "y": 37,
+      "z": -2,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 1,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        2,
+        37,
+        1
+      ],
+      "quest_id": 2147,
+      "objective_id": 4258,
+      "evidence": "Reviewed reconstructed gate repair completion: fresh authenticated owned interaction with original native object24124 at546(1,37,-2), descriptor537/group589/nativeaction609/wire0 parameter0. Native type1 effect1546 requires running2147 and incomplete objective4258. Its generic Lua is absent from the installed client, so script0 deliberately sends no invented script. The accepted physical repair action qualifies its named objective through the existing native planner and exactly-once receipt, not a broad coordinate visit. Native ckc/cke and mercenary effective admission remain authoritative; no item cost, extra reward or unknown callback is invented. Explicit approach cells are real published native546 terrain with same-map ownership and height checked against those exact cells. Groupcog3000 is source metadata, not an asserted recovered timer."
+    },
+    {
+      "status": "reviewed",
+      "map_id": 546,
+      "object_id": 24123,
+      "action_id": 0,
+      "parameter": 0,
+      "x": 27,
+      "y": -29,
+      "z": -2,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 1,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        27,
+        -28,
+        1
+      ],
+      "quest_id": 2147,
+      "objective_id": 4259,
+      "evidence": "Reviewed reconstructed gate repair completion: fresh authenticated owned interaction with original native object24123 at546(27,-29,-2), descriptor536/group588/nativeaction608/wire0 parameter0. Native type1 effect1545 requires running2147 and incomplete objective4259. Its generic Lua is absent from the installed client, so script0 deliberately sends no invented script. The accepted physical repair action qualifies its named objective through the existing native planner and exactly-once receipt, not a broad coordinate visit. Native ckc/cke and mercenary effective admission remain authoritative; no item cost, extra reward or unknown callback is invented. Explicit approach cells are real published native546 terrain with same-map ownership and height checked against those exact cells. Groupcog3000 is source metadata, not an asserted recovered timer."
+    },
+    {
+      "status": "reviewed",
+      "map_id": 546,
+      "object_id": 24125,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -44,
+      "y": 24,
+      "z": -2,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 1,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        -43,
+        24,
+        1
+      ],
+      "quest_id": 2147,
+      "objective_id": 4260,
+      "evidence": "Reviewed reconstructed gate repair completion: fresh authenticated owned interaction with original native object24125 at546(-44,24,-2), descriptor535/group587/nativeaction607/wire0 parameter0. Native type1 effect1544 requires running2147 and incomplete objective4260. Its generic Lua is absent from the installed client, so script0 deliberately sends no invented script. The accepted physical repair action qualifies its named objective through the existing native planner and exactly-once receipt, not a broad coordinate visit. Native ckc/cke and mercenary effective admission remain authoritative; no item cost, extra reward or unknown callback is invented. Explicit approach cells are real published native546 terrain with same-map ownership and height checked against those exact cells. Groupcog3000 is source metadata, not an asserted recovered timer."
+    },
+    {
+      "status": "reviewed",
+      "map_id": 546,
+      "object_id": 24122,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -22,
+      "y": -47,
+      "z": -2,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 1,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        -23,
+        -47,
+        0,
+        -22,
+        -46,
+        0
+      ],
+      "quest_id": 2147,
+      "objective_id": 4368,
+      "evidence": "Reviewed reconstructed gate repair completion: fresh authenticated owned interaction with original native object24122 at546(-22,-47,-2), descriptor534/group586/nativeaction606/wire0 parameter0. Native type1 effect1542 requires running2147 and incomplete objective4368. Its generic Lua is absent from the installed client, so script0 deliberately sends no invented script. The accepted physical repair action qualifies its named objective through the existing native planner and exactly-once receipt, not a broad coordinate visit. Native ckc/cke and mercenary effective admission remain authoritative; no item cost, extra reward or unknown callback is invented. Explicit approach cells are real published native546 terrain with same-map ownership and height checked against those exact cells. Groupcog3000 is source metadata, not an asserted recovered timer."
+    }
+  ]
+}

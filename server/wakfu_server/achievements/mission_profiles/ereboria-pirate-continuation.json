@@ -1,0 +1,280 @@
+{
+  "version": 1,
+  "id": "ereboria-pirate-continuation",
+  "evidence": [
+    "Reviewed native5046 objective10394 names Pohl pirate dungeon. Installed original native184 route33426/4498 enters1369; its pinned final room includes actual native5376 Pohl. Only the existing authenticated final dungeon_completed184 producer credits10394, never ordinary breed kills.",
+    "Native5059 objective10464 requires completing Missing Macawker; only the actual final chapter5046 completion qualifies. Native objective10465 explicitly requires the Goomy's Family's Gone chapter; its terminal native child is5052 after stages5047 and5051. Native objective10466 explicitly requires Ancient Struggle; its terminal native child is5050 after stages5048 and5049. These links consume only actual child completion receipts; the child quests retain their own original objectives, levels, guards, and rewards.",
+    "Native client metadata defines Deathburn dungeon185 (entry1359, asset1372, boss5382) and the guaranteed notebook drop30723 from that boss. The notebook's native bIn14933/2704 read is owner- and UID-validated and does not consume the item; only that successful read advances native objective10418.",
+    "Ancient Struggle objective10402 uses native variable748 nbNimbosKilled>=10. Native monster records identify Bitter-Hammer breeds5385/5386/5387 and dominant5389 (family1102); only actual victories on public map1364 count. The native objective marker is on map1358, while the reviewed public roster evidence is on map1364. Native transport destinations4534/4535/4536 from map1364 lead into the three actual storerooms on map1376 and settle objectives10405/10429/10430 only after the owner reaches each destination. The final chapter objective10408 accepts only the real final victory of native dungeon186."
+  ],
+  "bindings": [
+    {
+      "id": "ereboria-goomy-dungeon185-victory",
+      "quest_id": 5052,
+      "objective_id": 10417,
+      "event": {
+        "kind": "dungeon_completed",
+        "reference": 185
+      },
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-goomy-notebook-read",
+      "quest_id": 5052,
+      "objective_id": 10418,
+      "event": {
+        "kind": "quest_item_read",
+        "reference": 30723
+      },
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-ancient-bitterhammer-5385",
+      "quest_id": 5048,
+      "objective_id": 10402,
+      "variable_id": 748,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5385
+      },
+      "maps": [
+        1364
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-ancient-bitterhammer-5386",
+      "quest_id": 5048,
+      "objective_id": 10402,
+      "variable_id": 748,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5386
+      },
+      "maps": [
+        1364
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-ancient-bitterhammer-5387",
+      "quest_id": 5048,
+      "objective_id": 10402,
+      "variable_id": 748,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5387
+      },
+      "maps": [
+        1364
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-ancient-bitterhammer-5389",
+      "quest_id": 5048,
+      "objective_id": 10402,
+      "variable_id": 748,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5389
+      },
+      "maps": [
+        1364
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-ancient-dungeon186-victory",
+      "quest_id": 5050,
+      "objective_id": 10408,
+      "event": {
+        "kind": "dungeon_completed",
+        "reference": 186
+      },
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-ancient-weapons-room-visit",
+      "quest_id": 5049,
+      "objective_id": 10405,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 4534
+      },
+      "maps": [1376],
+      "instances": [0],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-ancient-food-room-visit",
+      "quest_id": 5049,
+      "objective_id": 10429,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 4535
+      },
+      "maps": [1376],
+      "instances": [0],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-ancient-archives-room-visit",
+      "quest_id": 5049,
+      "objective_id": 10430,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 4536
+      },
+      "maps": [1376],
+      "instances": [0],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-ancient-speak-to-cyross",
+      "quest_id": 5048,
+      "objective_id": 10400,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 10400
+      },
+      "maps": [
+        1360
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-ancient-deliver-root-beer",
+      "quest_id": 5048,
+      "objective_id": 10401,
+      "event": {
+        "kind": "item_delivery",
+        "reference": 10332
+      },
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-pohl-native-dungeon-victory",
+      "quest_id": 5046,
+      "objective_id": 10394,
+      "event": {
+        "kind": "dungeon_completed",
+        "reference": 184
+      },
+      "maps": [
+        1369
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-goomy-return-after-deathburns",
+      "quest_id": 5051,
+      "objective_id": 10416,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 10416
+      },
+      "maps": [
+        1359
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-goomy-final-return",
+      "quest_id": 5052,
+      "objective_id": 10419,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 10419
+      },
+      "maps": [
+        1359
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [
+    {
+      "parent_quest_id": 5059,
+      "objective_id": 10464,
+      "child_quest_id": 5046
+    },
+    {
+      "parent_quest_id": 5059,
+      "objective_id": 10465,
+      "child_quest_id": 5052
+    },
+    {
+      "parent_quest_id": 5059,
+      "objective_id": 10466,
+      "child_quest_id": 5050
+    }
+  ],
+  "activations": [
+    {
+      "id": "ereboria-5051-after-deathburn-chapter",
+      "quest_id": 5051,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 5047
+      },
+      "requires_completed": [
+        5047
+      ]
+    },
+    {
+      "id": "ereboria-5052-after-goomy-search",
+      "quest_id": 5052,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 5051
+      },
+      "requires_completed": [
+        5051
+      ]
+    },
+    {
+      "id": "ereboria-5049-after-ancient-struggle",
+      "quest_id": 5049,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 5048
+      },
+      "requires_completed": [
+        5048
+      ]
+    },
+    {
+      "id": "ereboria-5050-after-three-clues",
+      "quest_id": 5050,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 5049
+      },
+      "requires_completed": [
+        5049
+      ]
+    }
+  ]
+}

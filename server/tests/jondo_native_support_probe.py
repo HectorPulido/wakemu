@@ -15,9 +15,21 @@ def build_fixture(
     npc_position=(-4, -7, -1),
     player_position=(-8, -7, -1),
     additional_humans=0,
+    map_id=1134,
+    allowed_cells=None,
+    full_room_scope=False,
+    fixed_member_positions=None,
+    encounter_scene_record=None,
+    lifecycle_observer=None,
+    role_record=None,
+    character_source=None,
+    before_initialize=None,
+    terrain_instance_id=-300,
+    instance_id=0,
 ):
     from wakfu_server.combat_actor_snapshot import initialize_fight_snapshots
     from wakfu_server.combat_bootstrap import create_placement
+    from wakfu_server.combat_encounter_scene_policy import bind_scene
     from wakfu_server.combat_server_spell import prepare_server_initialization
     from wakfu_server.combat_terrain import local_arena
     from wakfu_server.equipment_stats import effective_character, combat_resources
@@ -31,24 +43,39 @@ def build_fixture(
             "Additional native human owners must fit the six-player placement"
         )
     hp = maximum(8, 200)
-    character = effective_character(
-        dict(
-            id=7,
-            account_id=3,
-            map_id=1134,
-            instance_id=0,
-            breed=8,
-            level=200,
-            hp=hp,
-            max_hp=hp,
-            active_build_index=0,
-            x=player_position[0],
-            y=player_position[1],
-            z=player_position[2],
-            builds={},
-            inventory_items=[],
+    if character_source is None:
+        character = effective_character(
+            dict(
+                id=7,
+                account_id=3,
+                map_id=map_id,
+                instance_id=instance_id,
+                breed=8,
+                level=200,
+                hp=hp,
+                max_hp=hp,
+                active_build_index=0,
+                x=player_position[0],
+                y=player_position[1],
+                z=player_position[2],
+                builds={},
+                inventory_items=[],
+            )
         )
-    )
+    else:
+        identity = character_source["id"]
+        character = effective_character(
+            dict(
+                character_source,
+                id=identity,
+                map_id=map_id,
+                instance_id=instance_id,
+                x=player_position[0],
+                y=player_position[1],
+                z=player_position[2],
+            )
+        )
+    player_id = character["id"]
     resources = combat_resources(character)
     roster = [(reference, level, npc_position), *allies]
     monsters = {
@@ -57,8 +84,8 @@ def build_fixture(
             ref,
             lvl,
             -7 - i,
-            map_id=1134,
-            instance_id=0,
+            map_id=map_id,
+            instance_id=instance_id,
             x=pos[0],
             y=pos[1],
             z=pos[2],
@@ -66,17 +93,28 @@ def build_fixture(
         )
         for i, (ref, lvl, pos) in enumerate(roster)
     }
-    characters = {7: character}
-    decks = {7: default_deck(character)}
+    characters = {player_id: character}
+    decks = {player_id: default_deck(character)}
     positions = [(m["x"], m["y"], m["z"]) for m in monsters.values()]
     arena = local_arena(
-        1134,
+        map_id,
         1,
         player_position,
         positions if len(positions) > 1 else positions[0],
         relocate_monsters=False,
         variation_seed=17,
+        allowed_cells=allowed_cells,
+        full_room_scope=full_room_scope,
+        fixed_member_positions=fixed_member_positions,
     )
+    if role_record is not None:
+        arena["native_encounter_roles"] = deepcopy(role_record)
+    if encounter_scene_record is not None:
+        from wakfu_server.combat_encounter_scene_policy import arena_scene
+
+        arena = arena_scene(
+            encounter_scene_record, arena, character, list(monsters.values())
+        )
     fight, _ = create_placement(
         character,
         list(monsters.values()),
@@ -87,19 +125,26 @@ def build_fixture(
         player_wp=resources["wp"],
         player_initiative=resources["initiative"],
         terrain_effect_id=46,
-        terrain_instance_id=-300,
+        terrain_instance_id=terrain_instance_id,
     )
+    if lifecycle_observer is not None:
+        lifecycle_observer("create_placement", fight, monsters)
+    bind_scene(fight, arena, monsters)
+    if before_initialize is not None:
+        before_initialize(fight, characters, monsters)
     initialize_fight_snapshots(
         fight,
         characters=characters,
         monsters=monsters,
         wp_resources={
-            7: (resources["wp"], resources["wp"]),
+            player_id: (resources["wp"], resources["wp"]),
             **{i: (m["wp"], m["wp"]) for i, m in monsters.items()},
         },
         running_effects={i: () for i in fight.actors},
         initial_effect_uid=1,
     )
+    if lifecycle_observer is not None:
+        lifecycle_observer("initialize_fight_snapshots", fight, monsters)
     if additional_humans:
         from wakfu_server.combat_actor_snapshot import build_player_snapshot
         from wakfu_server.combat_cosmetic_conditions import (
@@ -119,7 +164,7 @@ def build_fixture(
             )
             peer = deepcopy(character)
             peer.update(
-                id=7 + index,
+                id=player_id + index,
                 account_id=3 + index,
                 x=position[0],
                 y=position[1],
@@ -163,9 +208,18 @@ def build_fixture(
             fight_start=index == len(characters),
             player_characters=characters,
             deck_blobs=decks,
+            before_fight_start=(
+                None
+                if lifecycle_observer is None
+                else lambda preview: lifecycle_observer(
+                    "before_fight_start_events", preview, monsters
+                )
+            ),
         )
+        if lifecycle_observer is not None:
+            lifecycle_observer("prepare_server_initialization", fight, monsters)
     case = PaidComponentRuntime(
-        fight, characters, monsters, decks, map_id=1134, seed=17
+        fight, characters, monsters, decks, map_id=map_id, seed=17
     )
     case.runtime.tactical_encounter_id = uuid.uuid4().hex
     case.runtime.turn_started(arm_deadline=False)

@@ -1,0 +1,27 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "kelba-shop-945-late",
+  "map_id": 945,
+  "maximum_members": 1,
+  "provenance": "Reviewed physical late Kabrok shop context from original25107/2191 arrival945(154,3,0), literal25122/2174 exit943(-142,53,-24), native Sm6 late component. No movie, server script, room, combat or quest progress is fabricated on entry; only authentic native dialogue choices may advance the chapter.",
+  "admission": {
+    "quest_id": 2538,
+    "objective_id": null,
+    "continuation_quest_id": 2543
+  },
+  "native_sources": {
+    "path": "kelba-shop-945-late.native.v1.json",
+    "sha256": "5a0e518f949d093cabd0cc58f197da35df8c82578aaae2a9e8e591fd8dc9383b"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "late-shop-ready",
+      "kind": "world_ready",
+      "reference": 945,
+      "requires": [],
+      "effects": [],
+      "evidence": "Only the authenticated loaded945 private context; no objective or reward is produced by arrival."
+    }
+  ]
+}

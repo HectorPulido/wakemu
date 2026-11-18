@@ -1,0 +1,147 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "kelba-shop-945-late",
+  "controller_id": "kelba-shop-945-late",
+  "map_id": 945,
+  "policy_version": 1,
+  "quest_id": 2538,
+  "physical_visit": true,
+  "requires": [
+    "late-shop-ready"
+  ],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 3580,
+      "action_ids": [
+        673
+      ],
+      "action_criterion": "",
+      "dialogue_root": 3080,
+      "native_opening_roots": [
+        3080,
+        3106
+      ],
+      "choice_id": 7734,
+      "choice_type": 8,
+      "binding_node_id": 3111,
+      "objective_id": 5037,
+      "x": 156,
+      "y": 3,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 4,
+      "interaction_anchor": {
+        "x": 155,
+        "y": 3,
+        "z": 0
+      },
+      "graph": [
+        [
+          3080,
+          7667,
+          0
+        ],
+        [
+          3106,
+          7722,
+          3107
+        ],
+        [
+          3107,
+          7726,
+          3108
+        ],
+        [
+          3108,
+          7729,
+          3109
+        ],
+        [
+          3109,
+          7731,
+          3110
+        ],
+        [
+          3110,
+          7733,
+          3111
+        ],
+        [
+          3111,
+          7734,
+          0
+        ],
+        [
+          3106,
+          7728,
+          3112
+        ],
+        [
+          3112,
+          7735,
+          0
+        ],
+        [
+          3106,
+          7736,
+          3113
+        ],
+        [
+          3113,
+          7737,
+          0
+        ],
+        [
+          3106,
+          7738,
+          3114
+        ],
+        [
+          3114,
+          7739,
+          0
+        ],
+        [
+          3106,
+          7725,
+          0
+        ]
+      ],
+      "native_guard_path": [
+        [
+          3106,
+          7722,
+          3107
+        ],
+        [
+          3107,
+          7726,
+          3108
+        ],
+        [
+          3108,
+          7729,
+          3109
+        ],
+        [
+          3109,
+          7731,
+          3110
+        ],
+        [
+          3110,
+          7733,
+          3111
+        ],
+        [
+          3111,
+          7734,
+          0
+        ]
+      ],
+      "provenance": "Reviewed Kabrok3580/action673 late-shop placement on original945 Sm6 floor, actual25107/2191 arrival154,3 and adjacent155,3 approach. Entire original2538 six-choice narrative must finish before5037; native root3106 guard and Running2538 are rechecked at terminal7734. Original3080 provides the native nonstory fallback; no invented quest progress on entry or first question."
+    }
+  ],
+  "render_requires": []
+}

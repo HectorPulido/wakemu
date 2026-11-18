@@ -1,0 +1,175 @@
+{
+  "schema": "owned-story-controller-fragment-v1",
+  "id": "zinit-voyage-980",
+  "map_id": 980,
+  "provenance": "Reviewed version relocation: original Lua2015/2018/2016 names removed asset maps290/303/304. Current client980 retains the same boat deck;52 original floor0 cells are reused sequentially. Species/grades/spells are native family779. Counts3birds/5pirates/6tornadoes are guide-corroborated; mixed composition and placements are explicit local reconstruction, not recovered official formation.",
+  "steps": [
+    {
+      "id": "voyage-stage-1-admission",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15992
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15993,
+          "arguments": [
+            "room_actor:1:0",
+            "room_actor:1:1"
+          ]
+        }
+      ],
+      "evidence": "Original scenario2015 enter15992/begin15993 executes only after durable owned stage1 original group exists."
+    },
+    {
+      "id": "voyage-stage-1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "voyage-stage-1-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15995
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15996
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15997
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Original scenario2015 end15995/phase events; only actual terminal victory of original owned stage1 qualifies, no generic species/name kill."
+    },
+    {
+      "id": "voyage-stage-2-admission",
+      "kind": "room_admission",
+      "reference": 2,
+      "requires": [
+        "voyage-stage-1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16007
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16008,
+          "arguments": [
+            "room_actor:2:0",
+            "room_actor:2:1"
+          ]
+        }
+      ],
+      "evidence": "Original scenario2018 enter16007/begin16008 executes only after durable owned stage2 original group exists."
+    },
+    {
+      "id": "voyage-stage-2-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "voyage-stage-2-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16010
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16011
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16012
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Original scenario2018 end16010/phase events; only actual terminal victory of original owned stage2 qualifies, no generic species/name kill."
+    },
+    {
+      "id": "voyage-stage-3-admission",
+      "kind": "room_admission",
+      "reference": 3,
+      "requires": [
+        "voyage-stage-2-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 15998
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 15999,
+          "arguments": [
+            "room_actor:3:0",
+            "room_actor:3:1",
+            "room_actor:3:2"
+          ]
+        }
+      ],
+      "evidence": "Original scenario2016 enter15998/begin15999 executes only after durable owned stage3 original group exists."
+    },
+    {
+      "id": "voyage-stage-3-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "voyage-stage-3-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 16001
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 16002
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 16003
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Original scenario2016 end16001/phase events; only actual terminal victory of original owned stage3 qualifies, no generic species/name kill."
+    }
+  ],
+  "terminal_step": "voyage-stage-3-victory",
+  "admission": {
+    "quest_id": 2684,
+    "objective_id": null,
+    "continuation_quest_id": 2684
+  }
+}

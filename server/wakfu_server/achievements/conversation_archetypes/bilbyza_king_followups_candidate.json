@@ -1,0 +1,45 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "SOURCE CANDIDATE. Exact originalKing2470/action323/root2080/4894 and4895 single-running-quest acknowledgments. Preserve existing physical actor row, default greeting, exit and1262 branch. Earned DJ1264 admits1266; native dimension outcome is required before1269, never just menu opening.",
+  "speakers": [
+    {
+      "actor_id": -2251799934991262,
+      "action_id": 323,
+      "quest_ids": [
+        1266,
+        1269
+      ],
+      "objectives": [
+        {
+          "quest_id": 1266,
+          "objective_id": 2396,
+          "node_id": 2080,
+          "choice_id": 4894,
+          "archetype": "talk",
+          "single_objective": true
+        },
+        {
+          "quest_id": 1269,
+          "objective_id": 2399,
+          "node_id": 2080,
+          "choice_id": 4895,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          2080,
+          4894,
+          0
+        ],
+        [
+          2080,
+          4895,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": []
+}

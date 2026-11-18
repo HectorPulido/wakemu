@@ -4,9 +4,9 @@ from copy import deepcopy
 from contextlib import nullcontext
 from types import SimpleNamespace
 
-from wakfu_server.maps import dungeon_combat_scaling as scaling
-from wakfu_server.combat.combat_state import Actor
-from wakfu_server.combat.combat_summon_initialization import detached_actor
+from wakfu_server import dungeon_combat_scaling as scaling
+from wakfu_server.combat_state import Actor
+from wakfu_server.combat_summon_initialization import detached_actor
 
 
 class ScalingTests(unittest.TestCase):
@@ -163,12 +163,12 @@ class NativeForcedConstructorTests(unittest.TestCase):
 
     def fixture(self):
         import random
-        from wakfu_server.combat.combat_state import Fight
-        from wakfu_server.combat.combat_force_characteristic import (
+        from wakfu_server.combat_state import Fight
+        from wakfu_server.combat_force_characteristic import (
             NativeForcedCharacteristicHandler,
         )
-        from wakfu_server.combat.combat_stat_handler import StatExecutionContext
-        from wakfu_server.combat.combat_effect_dispatch import EffectInvocation
+        from wakfu_server.combat_stat_handler import StatExecutionContext
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
 
         actor = Actor(-3, 1, (0, 0, 0), 100, 6, 3, 1, 5)
         player = Actor(7, 0, (1, 0, 0), 100, 6, 3, 1, 5)
@@ -199,10 +199,10 @@ class NativeForcedConstructorTests(unittest.TestCase):
 
     def test_actual_detached_self_can_execute_native_hp_percentage_in_placement(self):
         from unittest.mock import patch
-        from wakfu_server.combat.combat_summon_creation import (
+        from wakfu_server.combat_summon_creation import (
             native_fresh_summon_authority,
         )
-        from wakfu_server.combat.combat_summon_initialization import (
+        from wakfu_server.combat_summon_initialization import (
             detached_summon_scope,
         )
 
@@ -211,7 +211,7 @@ class NativeForcedConstructorTests(unittest.TestCase):
         actor.team = -1
         authority = native_fresh_summon_authority(actor, 1)
         with detached_summon_scope(fight, actor, authority), patch(
-            "wakfu_server.combat.combat_character_copy_metadata.native_copy_characteristics",
+            "wakfu_server.combat_character_copy_metadata.native_copy_characteristics",
             return_value={"fresh_characteristics": {"1": {"over_max_current": True}}},
         ):
             self.assertTrue(
@@ -227,12 +227,97 @@ class NativeForcedConstructorTests(unittest.TestCase):
         self.assertEqual((actor.hp, actor.max_hp), (210, 210))
         self.assertEqual(fight.phase, "placement")
 
+    def test_scaling_self_root_does_not_retarget_a_border_area_on_the_same_cell(self):
+        from unittest.mock import patch
+        from wakfu_server.combat_effect_area_targets import NativeAreaTarget
+        from wakfu_server.combat_effect_resolver import (
+            EffectResolutionContext,
+            NativeEffectResolver,
+        )
+
+        fixture = ScalingTests()
+        fixture.setUp()
+        fight, actor, player, handler, _ = self.fixture()
+        actor.native_world_properties = frozenset()
+        actor.native_fight_properties = frozenset()
+        border = NativeAreaTarget(901, actor.position, -1, None)
+        resolved_targets = []
+
+        def runtime(preview, identity):
+            current = detached_actor(preview, identity)
+            self.assertIsNotNone(current)
+            handler.fight = preview
+            candidates = (current, border)
+            native = {
+                target.id: dict(
+                    bEe=True,
+                    is_amO=True,
+                    is_eGj=target is current,
+                    is_Qq=target is border,
+                    is_eHH=target is current,
+                    UNTARGETTABLE_BY_OTHER=False,
+                    buX=False,
+                )
+                for target in candidates
+            }
+            resolver = NativeEffectResolver(
+                actors=lambda effect, invocation: candidates,
+                native_context=lambda effect, invocation: native,
+                context=lambda effect, invocation: EffectResolutionContext(
+                    "EFFECTS_ONLY",
+                    "immediate",
+                    "actors",
+                    True,
+                ),
+                direct_target_policies={"330890": [16, False, False]},
+            )
+            effect = dict(
+                effect_class=16,
+                parameters=[210.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                parameter_count=6,
+                variant=0,
+                target_masks=[None] * 7,
+                area_class="anD",
+                area_native="point",
+                native_target_selector={"class": "fcE", "mask": 0},
+            )
+
+            def execute(invocation):
+                if invocation.reference != 330890:
+                    return True
+                selected = resolver(effect, invocation)
+                resolved_targets.extend(item.target_id for item in selected)
+                for item in selected:
+                    self.assertTrue(handler(effect, [], item))
+                return bool(selected)
+
+            return SimpleNamespace(execute=execute)
+
+        with patch(
+            "wakfu_server.combat_character_copy_metadata.native_copy_characteristics",
+            return_value={"fresh_characteristics": {"1": {"over_max_current": True}}},
+        ):
+            scaled, receipt = scaling.initialize(
+                fixture.db,
+                fight,
+                {actor.id: {"ref": 1}},
+                catalog=fixture.catalog,
+                runtime_factory=runtime,
+            )
+        self.assertEqual(resolved_targets, [actor.id])
+        self.assertEqual(
+            (scaled.actors[actor.id].hp, scaled.actors[actor.id].max_hp), (210, 210)
+        )
+        self.assertEqual((actor.hp, actor.max_hp), (100, 100))
+        self.assertEqual(scaled.phase, "placement")
+        self.assertTrue(receipt["initialized"])
+
     def test_registered_placement_and_detached_cross_actor_do_not_bypass_guard(self):
         from dataclasses import replace
-        from wakfu_server.combat.combat_summon_creation import (
+        from wakfu_server.combat_summon_creation import (
             native_fresh_summon_authority,
         )
-        from wakfu_server.combat.combat_summon_initialization import (
+        from wakfu_server.combat_summon_initialization import (
             detached_summon_scope,
         )
 

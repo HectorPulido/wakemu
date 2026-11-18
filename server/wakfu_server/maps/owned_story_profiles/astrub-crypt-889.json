@@ -1,0 +1,129 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "astrub-crypt-889",
+  "map_id": 889,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2160,
+    "objective_id": 4279,
+    "continuation_quest_id": 2161
+  },
+  "provenance": "Reviewed reconstruction, NOT recovered original formations: original map889 has three gated rooms; installed scenario1724 names room1/room2 door unlocks and a third boss fight. Native undead family676 species/counts and arena placements are explicitly authored local policy preserving all original statistics, levels and spells. OLD scene14374 and obsolete sewer896 transfer are not executed. Only the final authentic owned victory earns crypt exploration4280; actual Pere debrief11548 remains separate.",
+  "steps": [
+    {
+      "id": "crypt-room1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1724,
+          "event": 14299
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23600,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1724,
+          "event": 14300
+        }
+      ],
+      "evidence": "Native1724 room1 victory/unlock comments, exact door23600 between entry/north components; local reviewed event-to-door binding."
+    },
+    {
+      "id": "crypt-room2-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "crypt-room1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1724,
+          "event": 14301
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23601,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1724,
+          "event": 14302
+        }
+      ],
+      "evidence": "Native1724 room2 victory/unlock comments, exact door23601 between north/final components; local reviewed binding."
+    },
+    {
+      "id": "crypt-room3-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "crypt-room2-victory"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 23602,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1724,
+          "event": 23934
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2161,
+          "objective_id": 4280
+        }
+      ],
+      "evidence": "Native1724 current terminal23934 is empty; final authentic owned victory proves exploration. Door23602 is actual shortcut from final/entry, not a visual-only opening."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 23600,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23601,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23602,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    }
+  ],
+  "native_sources": {
+    "path": "astrub-crypt-889.native.json",
+    "sha256": "d2c93d280d1805c98c08e7163d90d0c627d8a26f7ce195cf78c55a7b1ab182eb"
+  }
+}

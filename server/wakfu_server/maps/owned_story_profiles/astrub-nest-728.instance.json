@@ -1,0 +1,24 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "astrub-nest-728",
+  "version": 1,
+  "map_id": 728,
+  "entry": {
+    "map_id": 546,
+    "object_id": 20653,
+    "destination_id": 1441
+  },
+  "native_entry_criterion": "IsAchievementActive(2162)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20652,
+    26431
+  ],
+  "controller_file": "astrub-nest-728.json",
+  "encounters_file": "astrub-nest-728-encounters.json",
+  "exploration_file": "astrub-nest-728.exploration.json",
+  "provenance": "Reviewed reconstruction, NOT recovered original formations/choreography: installed map728 has three physical rooms separated by exact doors24969 and24971. Two real larva encounters must clear before native NannyLarva2819 (level5, HP100, spells4625/4626/4627). Native735 white larvae and125 green larva preserve original grade ranges/stats/spells; counts/placements and event bindings are declared local policy. No Lua scenario association was recovered, so none is invented. Only genuine original-roster owned victories earn clear4284 and boss4285; actual Donalangelo debrief4299 remains separate."
+}

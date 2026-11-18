@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "id": "huppermage-school-initial",
+  "evidence": [
+    "Bounded native level30 School branch: current introduction2773 is admitted on character_ready with original eligibility; mutually exclusive2774 is supported only when genuinely already running, not auto-started alongside2773. Actual accepted Jang8297 ownedentry qualifies5592/5593; authentic three-original-foe platform victory qualifies5594. Those producers use their frozen owned-instance source rather than synthetic toolkit click events.",
+    "Fresh earned completion of either exclusive introduction starts2775; actual completion2775 starts2776. Native conditions remain authoritative and no later2777/2778/2780 are activated in this initial batch.",
+    "Registration5596/5595 use actual native dialogue acceptance; its three original descriptor983/984/985 pickups use native_generic profile and actual inventory. Only real native reward settlement grants20041."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "school-current-level30-introduction",
+      "quest_id": 2773,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 30,
+      "admission_evidence": "Reviewed native level30 introduction with unchanged mutually exclusive native2774 predicate. Only current2773 is auto-admitted; existing actual2774 remains supported by ownedentry alternatives."
+    },
+    {
+      "id": "school-earned-2773-2775",
+      "quest_id": 2775,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2773
+      },
+      "requires_completed": [
+        2773
+      ]
+    },
+    {
+      "id": "school-earned-2774-2775",
+      "quest_id": 2775,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2774
+      },
+      "requires_completed": [
+        2774
+      ]
+    },
+    {
+      "id": "school-earned-2775-2776",
+      "quest_id": 2776,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2775
+      },
+      "requires_completed": [
+        2775
+      ]
+    }
+  ]
+}

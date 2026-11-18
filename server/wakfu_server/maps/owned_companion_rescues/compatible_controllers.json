@@ -1,0 +1,10 @@
+{
+  "schema": "owned-companion-rescue-compatibility-v1",
+  "controllers": {
+    "9cac900157d17d5a5897f3b83aebae2d8cbadfeb5e8605e27f48203b4c8630f6": {
+      "path": "astrub-knight.json",
+      "sha256": "9f7739a1a835444bdc64a388c7914225bb7edb10215c6ae322f69fa51e0d30a2"
+    }
+  },
+  "provenance": "Explicit optional-only adapter for the already published first temple controller. Its unchanged native cage descriptor245, main2170 producer, source pin, run membership and all17 durable steps remain authoritative. This attaches optional quest settlement; it does not replace or repin a dungeon configuration."
+}

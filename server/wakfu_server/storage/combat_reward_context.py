@@ -331,6 +331,18 @@ def settlement_contexts(db, fight, character, monsters, *, encounter_kind=None):
         from wakfu_server.maps import boss_score
 
         drop_context.update(boss_score.drop_context(db, fight.id))
+        from wakfu_server.native_quest_complex_loot import (
+            monster_references,
+            permission,
+        )
+
+        quest_sources = monster_references()
+        if any(member["ref"] in quest_sources for member in monsters):
+            quest_loot = permission(
+                db, fight.id, character_id, fight=fight, original_monsters=monsters
+            )
+            if quest_loot is not None:
+                drop_context["quest_complex_loot"] = quest_loot
     else:
         snapshot = drop_row["snapshot"]
         drop_context = (

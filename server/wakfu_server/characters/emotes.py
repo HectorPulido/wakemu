@@ -1,6 +1,8 @@
 """Account-owned native emotes with an explicitly configurable DEV unlock view."""
+
 import struct
 import time
+import secrets
 from wakfu_server.items.inventory_items import _varint
 
 
@@ -103,7 +105,7 @@ def prepare_play(
         ).fetchone():
             raise ValueError("Emotes cannot interrupt crafting")
         emote_id, target_id = authorize(db, account_id, body)
-        return prepare_authorized_occupation(
+        result = prepare_authorized_occupation(
             db,
             character,
             emote_id,
@@ -112,6 +114,19 @@ def prepare_play(
             in_fight=in_fight,
             occupied=occupied,
         )
+        # Only an actually authorized native occupation can produce this fact.
+        # A clicked NPC/object, a knowledge grant, or a failed emote cannot.
+        from wakfu_server.achievements import mission_emote_events
+
+        result["mission_packets"] = mission_emote_events.performed(
+            db, store, character, emote_id, secrets.token_hex(16)
+        )
+        from wakfu_server import owned_story_emotes
+
+        result["mission_packets"].extend(
+            owned_story_emotes.performed(db, store, character, emote_id)
+        )
+        return result
 
 
 def prepare_authorized_occupation(

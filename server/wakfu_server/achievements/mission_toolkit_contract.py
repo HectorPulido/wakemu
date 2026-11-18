@@ -11,17 +11,34 @@ from . import counter_missions
 
 EVENT_KINDS = frozenset(
     (
+        "character_ready",
+        "emote_performed",
+        "party_pad_completed",
+        "owned_dungeon_boss_completed",
+        "owned_room_defeat",
         "monster_harvest",
         "resource_harvest",
+        "resource_action_completed",
+        "item_action_completed",
         "planting",
         "monster_defeat",
+        "scoped_monster_defeat",
         "craft_completed",
+        "transport_registered",
+        "transport_interacted",
+        "transport_entered",
         "item_delivery",
+        "combat_loot",
+        "chest_loot",
+        "generic_item_acquired",
         "dialogue",
+        "npc_spoken",
         "map_enter",
+        "map_departure",
         "quest_completed",
         "dungeon_completed",
         "scenario_completed",
+        "quest_item_read",
     )
 )
 
@@ -101,7 +118,15 @@ def _event(row):
     _keys(row, ("kind",), ("reference",))
     if not isinstance(row["kind"], str) or row["kind"] not in EVENT_KINDS:
         raise ValueError("Unsupported mission toolkit event kind")
-    if "reference" in row:
+    if row["kind"] == "character_ready":
+        if type(row.get("reference")) is not int or row["reference"] != 0:
+            raise ValueError("Character-ready requires its canonical reference zero")
+    elif (
+        row["kind"] in ("combat_loot", "chest_loot", "generic_item_acquired")
+        and "reference" not in row
+    ):
+        raise ValueError("Acquired loot requires its actual native item reference")
+    elif "reference" in row:
         _positive(row["reference"], "event reference")
 
 
@@ -118,7 +143,9 @@ def _scope(row):
         instances = row["instances"]
         if not isinstance(instances, list) or not instances:
             raise ValueError("Invalid mission toolkit instance scope")
-        if any(type(value) is not int or not 0 <= value < 2**63 for value in instances):
+        if any(
+            type(value) is not int or not 0 <= value < 2**63 for value in instances
+        ):
             raise ValueError("Invalid mission toolkit instance id")
         if len(set(instances)) != len(instances):
             raise ValueError("Duplicate mission toolkit instance scope")
@@ -161,11 +188,12 @@ def validate(profile, definitions):
     by_id = definitions_by_id(definitions)
     counters = counter_missions.bindings(list(by_id.values()))
     ids = set()
+    direct_thresholds = {}
     for row in profile["bindings"]:
         _keys(
             row,
             ("id", "quest_id", "objective_id", "event", "count"),
-            ("variable_id", "maps", "instances"),
+            ("variable_id", "maps", "instances", "count_threshold"),
         )
         _label(row["id"], "binding id")
         if row["id"] in ids:
@@ -173,9 +201,29 @@ def validate(profile, definitions):
         ids.add(row["id"])
         objective = _objective(by_id, row["quest_id"], row["objective_id"])
         _event(row["event"])
+        if row["event"]["kind"] == "character_ready":
+            raise ValueError("Character-ready is activation-only")
         _scope(row)
         if row["count"] not in ("operation", "quantity"):
             raise ValueError("Unsupported mission toolkit count policy")
+        if "count_threshold" in row:
+            _positive(row["count_threshold"], "direct count threshold")
+            if "variable_id" in row or objective.get("ckf"):
+                raise ValueError(
+                    "Server count threshold cannot replace a native counter"
+                )
+            definition = by_id[row["quest_id"]]
+            if any(
+                definition.get(key, 0) != 0 for key in ("cjU", "cjL", "getDuration")
+            ):
+                raise ValueError(
+                    "Server objective counts require a nonrecurring mission"
+                )
+        target = row["quest_id"], row["objective_id"]
+        threshold = row.get("count_threshold", 1)
+        if target in direct_thresholds and direct_thresholds[target] != threshold:
+            raise ValueError("Conflicting server thresholds for one native objective")
+        direct_thresholds[target] = threshold
         if "variable_id" in row:
             variable = _positive(row["variable_id"], "variable id")
             matches = [
@@ -187,7 +235,9 @@ def validate(profile, definitions):
                 raise ValueError(
                     "Toolkit counter differs from supported native objective"
                 )
-        elif objective.get("ckf") or row["count"] != "operation":
+        elif objective.get("ckf") or (
+            row["count"] != "operation" and "count_threshold" not in row
+        ):
             raise ValueError("Direct toolkit objective has unsupported native counter")
     for index, left in enumerate(profile["bindings"]):
         for right in profile["bindings"][index + 1 :]:
@@ -218,14 +268,26 @@ def validate(profile, definitions):
         )
         source = _objective(by_id, parent, objective)
         _quest(by_id, child, visible=False)
-        if parent == child or (parent, objective) in targets or source.get("ckf"):
+        # Distinct children for one objective are explicit alternative variants.
+        # Either genuine completion satisfies it; an identical edge is invalid.
+        if (
+            parent == child
+            or (parent, objective, child) in targets
+            or source.get("ckf")
+        ):
             raise ValueError("Conflicting or unsupported mission toolkit dependency")
-        targets.add((parent, objective))
+        targets.add((parent, objective, child))
     for row in profile["activations"]:
         _keys(
             row,
             ("id", "quest_id", "event"),
-            ("maps", "instances", "requires_completed"),
+            (
+                "maps",
+                "instances",
+                "requires_completed",
+                "minimum_level",
+                "admission_evidence",
+            ),
         )
         _label(row["id"], "activation id")
         if row["id"] in ids:
@@ -233,6 +295,19 @@ def validate(profile, definitions):
         ids.add(row["id"])
         _quest(by_id, row["quest_id"])
         _event(row["event"])
+        if row["event"]["kind"] == "character_ready":
+            if (
+                type(row.get("minimum_level")) is not int
+                or not 1 <= row["minimum_level"] <= 32767
+            ):
+                raise ValueError(
+                    "Character-ready admission needs a reviewed real-level threshold"
+                )
+            _label(row.get("admission_evidence"), "character-ready admission evidence")
+        elif "minimum_level" in row or "admission_evidence" in row:
+            raise ValueError(
+                "Reviewed character admission policy belongs to character-ready"
+            )
         _scope(row)
         requirements = row.get("requires_completed", [])
         if not isinstance(requirements, list):

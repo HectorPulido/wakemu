@@ -1,7 +1,10 @@
 import copy
 import unittest
 
-from wakfu_server.dungeon_local_roster_policy import draft as native_draft
+from wakfu_server.dungeon_local_roster_policy import (
+    draft as native_draft,
+    generated_quantity,
+)
 
 
 def draft(plan, definition, native, **kwargs):
@@ -32,6 +35,9 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             "roster_ready": False,
         }
         self.definition = {"id": 10, "type": "DUNGEON_3_ROOMS", "raw_cno": [3, 1, 2]}
+        # Single-section roster tests use guide count authority. Only the native
+        # count tests below claim an eQM type with a required encounter count.
+        self.guide_definition = {"id": 10, "raw_cno": [3, 1, 2]}
         self.native = [
             {"ref": i, "name": str(i), "min_level": 5, "max_level": 10}
             for i in (1, 2, 3)
@@ -50,10 +56,44 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         self.assertFalse(first["official"])
         self.assertFalse(first["runtime_ready"])
         self.assertFalse(first["original_plan"]["roster_ready"])
-        for room in first["rooms"]:
+        for room, expected in zip(first["rooms"], (3, 6, 8)):
             self.assertFalse(room["official"])
-            self.assertEqual(sum(row["count"] for row in room["monsters"]), 8)
+            self.assertEqual(sum(row["count"] for row in room["monsters"]), expected)
             self.assertEqual({row["role"] for row in room["monsters"]}, {"monster"})
+
+    def test_generated_quotas_start_at_three_and_reach_the_formation_ceiling(self):
+        for room_count, ceiling, expected in (
+            (2, 8, [3, 8]),
+            (3, 8, [3, 6, 8]),
+            (4, 10, [3, 6, 8, 10]),
+        ):
+            with self.subTest(room_count=room_count, ceiling=ceiling):
+                self.assertEqual(
+                    [
+                        generated_quantity(order, room_count, ceiling)
+                        for order in range(1, room_count + 1)
+                    ],
+                    expected,
+                )
+
+    def test_long_generated_roster_respects_the_supplied_common_formation_capacity(
+        self,
+    ):
+        definition = {**self.definition, "type": "DUNGEON_4_ROOMS"}
+        for kwargs, expected in (
+            ({}, [3, 6, 8, 10]),
+            ({"capacity": 7}, [3, 5, 6, 7]),
+            ({"generation_target": 8}, [3, 5, 7, 8]),
+        ):
+            with self.subTest(kwargs=kwargs):
+                result = draft(self.plan, definition, self.native, **kwargs)
+                quantities = [
+                    sum(row["count"] for row in room["monsters"])
+                    for room in result["rooms"]
+                ]
+                self.assertEqual(quantities, expected)
+                self.assertLessEqual(max(quantities), result["generation_target"])
+                self.assertLessEqual(max(quantities), result["transport_npc_capacity"])
 
     def test_complete_guide_room_is_preserved_byte_for_byte(self):
         room = {
@@ -65,7 +105,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         }
         plan = {**self.plan, "rooms": [room]}
         before = copy.deepcopy(plan)
-        result = draft(plan, self.definition, self.native)
+        result = draft(plan, self.guide_definition, self.native)
         self.assertEqual(result["rooms"][0]["monsters"], room["monsters"])
         self.assertFalse(result["rooms"][0]["policy_applied"])
         self.assertEqual(plan, before)
@@ -83,7 +123,9 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             "diagnostics": ["incomplete_composition"],
             "monsters": [known, unknown],
         }
-        result = draft({**self.plan, "rooms": [room]}, self.definition, self.native)
+        result = draft(
+            {**self.plan, "rooms": [room]}, self.guide_definition, self.native
+        )
         rows = result["rooms"][0]["monsters"]
         self.assertEqual(rows[0]["count"], 4)
         self.assertEqual(rows[0]["ref_id"], 2)
@@ -94,6 +136,20 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         self.assertEqual(generated["original_monster"], unknown)
         self.assertEqual(sum(row["count"] for row in rows), 8)
 
+    def test_explicit_equal_generation_targets_preserve_requested_counts(self):
+        source = copy.deepcopy(self.plan)
+        result = draft(
+            self.plan,
+            self.definition,
+            self.native,
+            generation_targets={1: 8, 2: 8, 3: 8},
+        )
+        self.assertEqual(
+            [sum(row["count"] for row in room["monsters"]) for room in result["rooms"]],
+            [8, 8, 8],
+        )
+        self.assertEqual(self.plan, source)
+
     def test_unresolved_named_guide_species_fails_instead_of_guessing(self):
         room = {
             "order": 1,
@@ -103,7 +159,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             ],
         }
         with self.assertRaisesRegex(ValueError, "Reviewed monster name is unresolved"):
-            draft({**self.plan, "rooms": [room]}, self.definition, self.native)
+            draft({**self.plan, "rooms": [room]}, self.guide_definition, self.native)
 
     def test_named_guide_species_resolves_accented_french_name_exactly(self):
         native = [
@@ -124,7 +180,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
                 }
             ],
         }
-        result = draft({**self.plan, "rooms": [room]}, self.definition, native)
+        result = draft({**self.plan, "rooms": [room]}, self.guide_definition, native)
         self.assertEqual(result["rooms"][0]["monsters"][0]["ref_id"], 2)
 
     def test_named_identity_ambiguity_and_known_quantities_fail_closed_without_padding(
@@ -147,7 +203,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             ],
         }
         with self.assertRaisesRegex(ValueError, "Reviewed monster name is ambiguous"):
-            draft({**self.plan, "rooms": [ambiguous]}, self.definition, native)
+            draft({**self.plan, "rooms": [ambiguous]}, self.guide_definition, native)
 
         named_six = {
             "order": 1,
@@ -172,7 +228,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         ]
         result = draft(
             {**self.plan, "rooms": [named_six]},
-            self.definition,
+            self.guide_definition,
             unique_native,
             boss_references=(3,),
         )
@@ -192,7 +248,9 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
             ],
         }
         result = draft(
-            {**self.plan, "rooms": [anonymous_seven]}, self.definition, self.native
+            {**self.plan, "rooms": [anonymous_seven]},
+            self.guide_definition,
+            self.native,
         )
         self.assertEqual(sum(row["count"] for row in result["rooms"][0]["monsters"]), 7)
 
@@ -385,7 +443,9 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
                 "diagnostics": ["partial"],
             },
         ]
-        with self.assertRaisesRegex(ValueError, "intermediate encounter"):
+        # Native ULTIMATE_BOSS owns one encounter. Reject the two-section
+        # conflict before an unknown preboss can be replaced or generated.
+        with self.assertRaisesRegex(ValueError, "Native eQM count conflicts"):
             draft(
                 {**self.plan, "rooms": rooms},
                 {**self.definition, "type": "ULTIMATE_BOSS", "raw_cno": [2]},
@@ -520,7 +580,7 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
         }
         result = draft(
             {**self.plan, "rooms": [room]},
-            self.definition,
+            self.guide_definition,
             self.native,
             boss_references=(3,),
         )
@@ -585,7 +645,9 @@ class DungeonLocalRosterPolicyTests(unittest.TestCase):
                 "diagnostics": diagnostics,
                 "monsters": [{"ref_id": 1, "count": 9}],
             }
-            result = draft({**self.plan, "rooms": [room]}, self.definition, self.native)
+            result = draft(
+                {**self.plan, "rooms": [room]}, self.guide_definition, self.native
+            )
             self.assertEqual(
                 sum(row["count"] for row in result["rooms"][0]["monsters"]), 9
             )

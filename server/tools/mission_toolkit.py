@@ -18,6 +18,7 @@ if str(_SERVER_ROOT) not in sys.path:
 from wakfu_server.achievements import counter_missions, mission_toolkit_contract
 
 VERIFIED_WIRED_PRODUCERS = {
+    "scoped_monster_defeat": "achievements/scoped_combat_missions.py fresh owned actual victory/drop source; original world region and family declaration",
     "monster_harvest": "maps/monster_collect.py complete; actual collected item reference and quantity",
     "resource_harvest": "maps/resource_collect.py complete; actual collected resource reference and quantity",
     "planting": "maps/planting.py complete; planted seed reference after successful planting",
@@ -26,6 +27,8 @@ VERIFIED_WIRED_PRODUCERS = {
     "dungeon_completed": "achievements/service.py fresh validated final-room completion; completed_dungeon_id reference, fight:<id> receipt",
 }
 SCOPED_WIRED_PRODUCERS = {
+    "transport_entered": "achievements/native_transport_objectives.py authentic committed native public source/destination, or maps/owned_story_native_links.py pinned owned native endpoint; administrative travel and map visits do not qualify",
+    "npc_spoken": "achievements/npc_spoken_missions.py accepted qualified native NPC opening, or maps/owned_story_npcs.py accepted pinned owned NPC acknowledgement; exact actor/action/owner and active objective declarations required",
     "map_enter": "storage/store.py character creation and maps/mission_transport.py real map/instance transitions only",
     "dialogue": "application/session_objectives.py choose_toolkit_dialogue; plain native fallback accepted choice only, not every custom quest dialogue",
     "item_delivery": "achievements/conversation_turnin.py qualified native conversation turn-ins after actual payment and mission reward commit in the same transaction; consumed item reference and required quantity; observes consumption, does not define NPC delivery contracts",

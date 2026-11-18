@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "astrub-forest-followups",
+  "evidence": [
+    "Reviewed actualquest_completed2190\u21922191 and2158\u21922159 nativeeligibility, no visibility/displaylevel admission.",
+    "Exact Forest Drago27004: an accepted native REGISTER24 qualifies2191/4281, including repeat registrations; accepted ACTIVATE0 is a separate reviewed locating producer for the known-transport UI.",
+    "Reviewed locating policy: native bEu.dSD selects ACTIVATE0 for known Drago and bRp.a REGISTER returns without sending if known. Actual authenticated ACTIVATE/menu interaction with ForestDrago27004 therefore also qualifies locating; account-known flags alone never grant it, and no registration event is fabricated."
+  ],
+  "bindings": [
+    {
+      "id": "locate-forest-drago",
+      "quest_id": 2191,
+      "objective_id": 4281,
+      "event": {
+        "kind": "transport_registered",
+        "reference": 27004
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "locate-known-forest-drago",
+      "quest_id": 2191,
+      "objective_id": 4281,
+      "event": {
+        "kind": "transport_interacted",
+        "reference": 27004
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "followup-2190-2191",
+      "quest_id": 2191,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2190
+      },
+      "requires_completed": [
+        2190
+      ]
+    },
+    {
+      "id": "followup-2158-2159",
+      "quest_id": 2159,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2158
+      },
+      "requires_completed": [
+        2158
+      ]
+    }
+  ]
+}

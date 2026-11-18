@@ -98,6 +98,103 @@ class FixedActorPlacementTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             declarations(desc, room_cells=cells)
 
+    def test_duplicate_native_refs_bind_by_stable_occurrence_and_reject_bad_bindings(
+        self,
+    ):
+        g = self.geometry()
+        source = self.descriptor()["fixed_actor_placements"][0]["source"]
+        desc = dict(
+            fixed_actor_placements=[
+                dict(
+                    reference=71,
+                    occurrence=0,
+                    cell=[9, 2, 0],
+                    direction=5,
+                    source=source,
+                ),
+                dict(
+                    reference=71,
+                    occurrence=1,
+                    cell=[8, 2, 0],
+                    direction=6,
+                    source=source,
+                ),
+            ]
+        )
+        members = [{"ref": 72}, {"ref": 71}, {"ref": 71}]
+        self.assertEqual(
+            member_positions(desc, members, room_cells=g["cells"]),
+            {1: (9, 2, 0), 2: (8, 2, 0)},
+        )
+
+        actors = {
+            -4: SimpleNamespace(
+                controlled=False,
+                position=(9, 2, 0),
+                direction=1,
+                native_fight_property_counts={},
+            ),
+            -3: SimpleNamespace(
+                controlled=False,
+                position=(8, 2, 0),
+                direction=2,
+                native_fight_property_counts={},
+            ),
+        }
+        bind_initial_directions(
+            SimpleNamespace(actors=actors),
+            desc,
+            {-4: {"ref": 71}, -3: {"ref": 71}},
+        )
+        self.assertEqual((actors[-4].direction, actors[-3].direction), (5, 6))
+
+        legacy = self.descriptor()
+        self.assertEqual(
+            member_positions(legacy, [{"ref": 71}], room_cells=g["cells"]),
+            {0: (9, 2, 0)},
+        )
+        with self.assertRaisesRegex(ValueError, "one admitted initial actor"):
+            member_positions(legacy, [{"ref": 71}, {"ref": 71}], room_cells=g["cells"])
+
+        for occurrence in (-1, True, [], 1.0):
+            malformed = self.descriptor()
+            malformed["fixed_actor_placements"][0]["occurrence"] = occurrence
+            with self.subTest(occurrence=occurrence), self.assertRaisesRegex(
+                ValueError, "unique native terrain/source"
+            ):
+                declarations(malformed, room_cells=g["cells"])
+
+        ambiguous = dict(
+            fixed_actor_placements=[
+                dict(reference=71, cell=[9, 2, 0], direction=5, source=source),
+                dict(
+                    reference=71,
+                    occurrence=0,
+                    cell=[8, 2, 0],
+                    direction=6,
+                    source=source,
+                ),
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate bindings"):
+            member_positions(ambiguous, [{"ref": 71}], room_cells=g["cells"])
+
+        out_of_bounds = dict(
+            fixed_actor_placements=[
+                dict(
+                    reference=71,
+                    occurrence=2,
+                    cell=[9, 2, 0],
+                    direction=5,
+                    source=source,
+                )
+            ]
+        )
+        with self.assertRaisesRegex(ValueError, "one admitted initial actor"):
+            member_positions(
+                out_of_bounds, [{"ref": 71}, {"ref": 71}], room_cells=g["cells"]
+            )
+
     def test_ordinary_formation_is_unchanged_without_an_opt_in(self):
         g = self.geometry()
         kwargs = dict(

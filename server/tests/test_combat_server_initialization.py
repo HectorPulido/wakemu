@@ -384,6 +384,10 @@ class ServerInitializationTests(unittest.TestCase):
         fight._check_positions()
         fight.order = [8, 7, -7]
         fight.turn_index = 0
+        # This fixture reuses an active fight to assemble a fresh placement.
+        # Its actors must have the same zero turn count as create_placement.
+        for actor in fight.actors.values():
+            actor.turn_count = 0
         # The shared-roster test assembled its three actors after the original
         # placement constructor. Start a fresh QI population for that complete
         # roster before native initialization/serialization consumes it.

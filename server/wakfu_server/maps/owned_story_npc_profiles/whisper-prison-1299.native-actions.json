@@ -1,0 +1,22 @@
+{
+  "schema": "owned-story-native-npc-actions-v1",
+  "provenance": "Original typed aMb2099/aMg252 from client42.bin, native type1 DO_NOTHING follows blB→bly.jW→cnT13222/16byte actor+action request. Actions/criterion unchanged; four captive actor roles/placements are explicitly reviewed private-scene reconstruction. Completion retains Active4872; it is not Running4872.",
+  "native_archive": "client/contents/bdata/42.jar",
+  "native_archive_sha256": "ea30acca7423ca0c5c21615fb1c1bd36b9bceb7090b098272a3c41017ccaeec8",
+  "client_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "speakers": [
+    {
+      "ref": 2099,
+      "min_level": 45,
+      "max_level": 45,
+      "visual_id": 145102074,
+      "actions": [
+        {
+          "id": 252,
+          "type": 1,
+          "criteria": "IsAchievementActive(4872)"
+        }
+      ]
+    }
+  ]
+}

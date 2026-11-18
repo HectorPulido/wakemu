@@ -1,0 +1,35 @@
+{
+  "schema": "owned-companion-rescue-v1",
+  "map_id": 887,
+  "source_id": 23583,
+  "descriptor_id": 245,
+  "action_id": 0,
+  "position": [
+    5,
+    -59,
+    12
+  ],
+  "admission_quest_id": 2166,
+  "victory_quest_id": 2170,
+  "preferred_quest_id": 1726,
+  "variants": [
+    {
+      "quest_id": 1721,
+      "objective_id": 3292,
+      "native_sha256": "1beb7a925fb6758205ad04471baebe24f8d6ec0fd206ed85611087cc518d6cea"
+    },
+    {
+      "quest_id": 1726,
+      "objective_id": 3299,
+      "native_sha256": "9746b722064300371ecdefea73e69a5ca32b96308d6fb499ae4f4fdc80e1a146"
+    }
+  ],
+  "token_item_id": 18009,
+  "activation_action_id": 5335,
+  "companion_reference": 2867,
+  "criterion": "GetBooleanSystemConfiguration(\"companions.enabled\")",
+  "provenance": {
+    "native": "aJM 1721/1726; native map887 cage23583 aLl245/group271/action0; bHE action5335 -> item18009 -> breed2867. Native rewards grant item18009x1 and XP3500.",
+    "reviewed_admission": "Modern sewer variant1726 admitted at qualified temple2166 entry. Preserve a running legacy1721. The original server auto-admission trigger is not present in client data; display level11 is not an earning criterion."
+  }
+}

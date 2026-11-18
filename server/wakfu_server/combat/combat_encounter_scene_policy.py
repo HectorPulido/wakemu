@@ -14,6 +14,33 @@ def _digest(record):
     ).hexdigest()
 
 
+def _state_programs(descriptor):
+    """Reject malformed authoring before an admitted fight is constructed."""
+    programs = descriptor.get("state_programs", ())
+    if type(programs) not in (list, tuple):
+        raise ValueError("Malformed authored encounter state programs")
+    for row in programs:
+        if (
+            type(row) is not dict
+            or type(row.get("target_references")) is not list
+            or not row["target_references"]
+            or any(type(n) is not int or n <= 0 for n in row["target_references"])
+            or len(set(row["target_references"])) != len(row["target_references"])
+            or type(row.get("state_id")) is not int
+            or row["state_id"] <= 0
+            or type(row.get("level")) is not int
+            or not 0 <= row["level"] <= 32767
+            or type(row.get("protected")) is not bool
+            or type(row.get("source_sha256")) is not str
+            or len(row["source_sha256"]) != 64
+            or any(c not in "0123456789abcdef" for c in row["source_sha256"])
+        ):
+            raise ValueError(
+                "Encounter state program needs its flat native state declaration"
+            )
+    return programs
+
+
 def prepare_scene(descriptor, *, scope, room_cells):
     """Freeze authoring data only after normal pinned-room encounter admission."""
     if descriptor is None:
@@ -27,6 +54,15 @@ def prepare_scene(descriptor, *, scope, room_cells):
     for key in ("policy_id", "authority", "source_uri"):
         if type(descriptor.get(key)) is not str or not descriptor[key].strip():
             raise ValueError("Encounter scene lacks source authority")
+    _state_programs(descriptor)
+    if "reviewed_cellless_casts" in descriptor:
+        from .combat_scene_cellless_casting import declarations
+
+        declarations(descriptor)
+    if "controlled_state_programs" in descriptor:
+        from .combat_scene_controlled_states import declarations
+
+        declarations(descriptor)
     if descriptor.get("turn_end_order") is not None:
         from .combat_encounter_scene_turn_order import validate_declared_turn_order
 
@@ -39,11 +75,31 @@ def prepare_scene(descriptor, *, scope, room_cells):
         validate_external_participants(descriptor["external_event_participants"])
     if "native_border_reference" in descriptor:
         _native_border_reference(descriptor)
+    if "native_boundary_failure" in descriptor:
+        from .combat_scene_boundary_failure import declaration
+
+        declaration(descriptor)
+    if "native_escape_failure" in descriptor:
+        from .combat_scene_triggered_failure import declaration
+
+        declaration(descriptor)
     cells = sorted(set(tuple(cell) for cell in room_cells))
     if not cells or any(
         len(cell) != 3 or any(type(n) is not int for n in cell) for cell in cells
     ):
         raise ValueError("Encounter scene lacks exact native room terrain")
+    if "box_goals" in descriptor:
+        from .combat_scene_box_goals import declaration
+
+        declaration(descriptor, cells)
+    if "ball_goals" in descriptor:
+        from .combat_scene_ball_goals import declaration
+
+        declaration(descriptor, cells)
+    if "native_movement_escape" in descriptor:
+        from .combat_scene_movement_escape import declaration
+
+        declaration(descriptor, cells)
     if type(scope) is not dict or any(
         type(scope.get(key)) is not int
         for key in ("map_id", "instance_id", "group_id", "room_order", "policy_version")
@@ -192,6 +248,13 @@ def arena_scene(record, selected_arena, character, members):
     ):
         if key in descriptor:
             result[key] = deepcopy(descriptor[key])
+    if descriptor.get("native_initial_glyphs"):
+        for key, source in (
+            ("native_initial_glyph_policy", "policy_id"),
+            ("native_initial_glyph_authority", "authority"),
+            ("native_initial_glyph_source_url", "source_uri"),
+        ):
+            result.setdefault(key, descriptor[source])
     reference = _native_border_reference(descriptor)
     if reference is not None:
         from .combat_battleground_border import SUPPORTED_POLICIES
@@ -217,11 +280,106 @@ def arena_scene(record, selected_arena, character, members):
                 (cx, cy): result["cell_masks"][(cy - y) * width + cx - x] & 63
                 for cx, cy, _z in cells
             }
+            placement = result["placement_cells"]
+            if selected_arena.get("native_party_reserved_cells") is not None:
+                from .combat_encounter_roles import role_assignment, roles_from_record
+                from .combat_placement_policy import _party_reserved_cells
+                from .combat_placement_footprints import covered_cells
+                from .combat_placement_cells import generate
+                from .combat_sn_path import NativeSnColumns
+                from .combat_walk_surface_policy import (
+                    native_player_point_placement_allowed,
+                )
+
+                role_record = result.get("native_encounter_roles")
+                roles = (
+                    role_assignment(
+                        result["map_id"], [member["ref"] for member in members]
+                    )
+                    if role_record is None
+                    else roles_from_record(role_record, map_id=result["map_id"])
+                )
+                player_team, npc_team = roles.player_team, roles.npc_team
+                # Revalidate the producer before replacing the reservation
+                # invalidated by this newly installed native perimeter.
+                reserved = _party_reserved_cells(
+                    selected_arena,
+                    cells,
+                    placement,
+                    player_team,
+                )
+                if reserved & set(borders):
+                    npc_cells = set(map(tuple, result["native_party_npc_cells"]))
+                    origin = scene_player_position(character, result)
+                    radius = next(
+                        actor["physical_radius"]
+                        for actor in result[
+                            "native_environment_participant_footprints"
+                        ]["actors"]
+                        if actor["id"] == character["id"] and actor["reference"] is None
+                    )
+                    columns = NativeSnColumns.from_published(result["map_id"])
+                    if (
+                        columns.source_sha256
+                        != result["native_qi_surface_provenance"]["source_sha256"]
+                    ):
+                        raise ValueError("Scene party placement native source changed")
+                    opposing = set(placement[npc_team])
+                    forbidden = set(borders) | npc_cells | opposing
+                    bodies = {}
+                    for center in cells:
+                        try:
+                            body = covered_cells(center, radius, cells)
+                        except ValueError:
+                            continue
+                        if body & forbidden or not all(
+                            native_player_point_placement_allowed(columns, cell)
+                            for cell in body
+                        ):
+                            continue
+                        bodies[center] = body
+                    placement = generate(
+                        cells,
+                        result["valid_edges"],
+                        {player_team: [origin], npc_team: sorted(opposing)},
+                        slots_per_team=6,
+                        team_capacities={
+                            player_team: max(6, len(placement[player_team])),
+                            npc_team: len(opposing),
+                        },
+                        occupied_cells=set(borders) | npc_cells,
+                        avoid_cells=borders,
+                        eligible_cells={player_team: set(bodies), npc_team: opposing},
+                    )
+                    occupied = set(npc_cells) | set(borders)
+                    chosen = []
+                    for center in sorted(
+                        placement[player_team],
+                        key=lambda cell: (
+                            cell != origin,
+                            abs(cell[0] - origin[0]) + abs(cell[1] - origin[1]),
+                            abs(cell[2] - origin[2]),
+                            cell,
+                        ),
+                    ):
+                        if bodies[center] & occupied:
+                            continue
+                        chosen.append(center)
+                        occupied.update(bodies[center])
+                        if len(chosen) == 6:
+                            break
+                    if len(chosen) != 6 or origin not in chosen:
+                        raise ValueError(
+                            "Native scene lacks safe party reservation capacity"
+                        )
+                    result["native_party_reserved_cells"] = [
+                        list(cell) for cell in chosen
+                    ]
             wire = arena(
                 result["map_id"],
                 result["instance_id"],
                 sorted(cells),
-                result["placement_cells"],
+                placement,
                 obstacle_values=result.get("team_values"),
                 surface_indices=indices,
                 native_surfaces=native_qi_surfaces(result["map_id"]),
@@ -232,6 +390,7 @@ def arena_scene(record, selected_arena, character, members):
             )
             result.update(
                 wire,
+                placement_cells=placement,
                 native_border_cells=borders,
                 native_border_policy=RECONSTRUCTED_POLICY,
             )
@@ -291,9 +450,7 @@ def scene_state_declarations(fight, monsters):
     record = _verified(fight.native_encounter_scene)
     result = []
     references = {binding["ref"] for binding in record["scope"]["actor_bindings"]}
-    programs = descriptor.get("state_programs", ())
-    if type(programs) not in (list, tuple):
-        raise ValueError("Malformed authored encounter state programs")
+    programs = _state_programs(descriptor)
     for program in programs:
         targets = program.get("target_references") if type(program) is dict else None
         if (
@@ -321,7 +478,7 @@ def scene_state_declarations(fight, monsters):
         if actor.effective_level != binding["descriptor_level"]:
             raise ValueError("Encounter scene descriptor level changed")
         states = []
-        for program in descriptor.get("state_programs", ()):
+        for program in programs:
             if reference not in program["target_references"]:
                 continue
             state = {
@@ -379,7 +536,7 @@ def scene_actor_binding(fight, actor, monsters):
 
 
 _COMPATIBILITY_SHA256 = (
-    "03536e9cab76731b671a04bd3df5c452dc81b9f3fff9b40f4b8abe1c55dfba38"
+    "debc294bd56f002284454d430c2b766838eb90367e21ec568461e052e85c0af9"
 )
 
 

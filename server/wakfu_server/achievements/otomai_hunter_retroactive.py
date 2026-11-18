@@ -5,9 +5,40 @@ already achieved. Only authenticated fight receipts in the existing achievement
 ledger qualify; a quest must already be running, and inventory is untouched.
 The caller owns the transaction and account/session authorization.
 """
+
+from functools import lru_cache
+import json
+from pathlib import Path
+
 from . import combat_missions, storage, wire
 
-QUESTS = frozenset((1695, 1708, 1715))
+
+@lru_cache(maxsize=1)
+def _quest_scope():
+    """Cache the shipped hunt family; never scan publications on each login."""
+    manifest = json.loads(
+        (
+            Path(__file__).with_name("combat_mission_profiles")
+            / "otomai-hunter-iv-x.json"
+        ).read_text()
+    )
+    if manifest.get("schema") != combat_missions.SETTING or not isinstance(
+        manifest.get("bindings"), list
+    ):
+        raise ValueError("Invalid reviewed Otomai hunt family")
+    quests = {1695, 1708, 1715}
+    for row in manifest["bindings"]:
+        if (
+            not isinstance(row, dict)
+            or type(row.get("quest_id")) is not int
+            or row["quest_id"] <= 0
+            or row.get("acceptance") != "explicit"
+            or row.get("kind") != "monster"
+            or row.get("count") != 1
+        ):
+            raise ValueError("Unsupported reviewed Otomai retroactive binding")
+        quests.add(row["quest_id"])
+    return frozenset(quests)
 
 
 def reconcile(db, store, character, *, now_ms):
@@ -17,7 +48,7 @@ def reconcile(db, store, character, *, now_ms):
 
     _owner(db, character)
     before = storage.load_locked(db, character["id"])
-    active = set(before["running"]) & QUESTS
+    active = set(before["running"]) & _quest_scope()
     if not active:
         return []
     publication = combat_missions.load(db)

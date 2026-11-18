@@ -1,0 +1,23 @@
+{
+  "schema": "owned-physical-offers-v1",
+  "version": 1,
+  "appearance": {
+    "reference_id": 3275,
+    "action_id": 596,
+    "speaker_sha256": "2eaf97aa3dedbe814ede8cb8824f7ad2e50d578afe1ca7fa36c62fedc785ac3a",
+    "action_sha256": "3f95a81b2341ef0c8cd619cdac6d23dd6539ca982a8e94e5b4eab6d7b9cfe637"
+  },
+  "offers": [
+    {
+      "route_key": "quest-map-1001-25474-2290",
+      "policy_version": 1,
+      "configuration_sha256": "2933a6a424b3a855207ca9735fc94cfb61cb7e98a4c6fa6e97034ca1553417ee",
+      "source_map_id": 1134,
+      "source_id": 25474,
+      "destination_id": 2290,
+      "native_source_sha256": "7cd1a04d0b12185dd673a3c24995e2a4c58c71b28285a3282f571b787647b7a4",
+      "label": "Enter dungeon",
+      "evidence": "Reviewed physical-visit attendant beside original source25474; the client hides nativeActive2698 destination2290 outside the mission. Preserve original free entry, actual approaches, owned trial authority and no unassigned/completed mission credit; no original NPC placement claim."
+    }
+  ]
+}

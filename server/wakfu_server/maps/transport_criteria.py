@@ -1,4 +1,5 @@
 """Restricted installed transport predicates over server-owned facts and UTC time."""
+
 import ast
 import operator
 import re
@@ -20,6 +21,8 @@ _CALLS = {
     "IsBefore",
     "IsAfter",
     "IsAchievementComplete",
+    "IsAchievementActive",
+    "IsAchievementRunning",
     "HasEmote",
     "IsAchievementObjectiveComplete",
 }
@@ -31,6 +34,8 @@ def evaluate(
     *,
     now_ms,
     achievement_complete=None,
+    achievement_active=None,
+    achievement_running=None,
     emote_known=None,
     objective_complete=None
 ):
@@ -90,6 +95,8 @@ def evaluate(
                 or name
                 in (
                     "IsAchievementComplete",
+                    "IsAchievementActive",
+                    "IsAchievementRunning",
                     "HasEmote",
                     "IsAchievementObjectiveComplete",
                 )
@@ -133,6 +140,8 @@ def evaluate(
             return now_ms < date if name == "IsBefore" else now_ms > date
         query = {
             "IsAchievementComplete": achievement_complete,
+            "IsAchievementActive": achievement_active,
+            "IsAchievementRunning": achievement_running,
             "HasEmote": emote_known,
             "IsAchievementObjectiveComplete": objective_complete,
         }[name]
@@ -146,7 +155,7 @@ def evaluate(
 
 def evaluator(store, character):
     """One request clock and lazy immutable selected-owner achievement snapshot."""
-    from wakfu_server.maps.dungeon_achievement_authority import queries
+    from wakfu_server.dungeon_achievement_authority import queries
 
     now_ms = int(store.clock() * 1000)
     owner = character.get("id")
@@ -154,17 +163,26 @@ def evaluator(store, character):
         raise ValueError("Missing transport achievement owner")
     snapshot = None
 
-    def completed(identity):
-        nonlocal snapshot
-        if snapshot is None:
-            snapshot = queries(store, owner)
-        return snapshot["IsAchievementComplete"](identity)
+    def owned_query(name):
+        def predicate(identity):
+            nonlocal snapshot
+            if snapshot is None:
+                snapshot = queries(store, owner)
+            return snapshot[name](identity)
+
+        return predicate
 
     def allowed(expression, actor):
         if actor.get("id") != owner:
             raise ValueError("Transport criterion owner changed")
         return evaluate(
-            expression, actor, now_ms=now_ms, achievement_complete=completed
+            expression,
+            actor,
+            now_ms=now_ms,
+            achievement_complete=owned_query("IsAchievementComplete"),
+            achievement_active=owned_query("IsAchievementActive"),
+            achievement_running=owned_query("IsAchievementRunning"),
+            objective_complete=owned_query("IsAchievementObjectiveComplete"),
         )
 
     return allowed

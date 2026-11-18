@@ -1,0 +1,227 @@
+{
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2533)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2533,
+      "cjG": 320,
+      "cjH": true,
+      "cjI": "not IsAchievementActive(2534) ",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -99,
+              "ckh": 0,
+              "cki": -47,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5089,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            50000
+          ],
+          "d": 4086,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 65,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.320",
+      "d": 2533,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2534)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2533,
+      "cjG": 320,
+      "cjH": true,
+      "cjI": "!IsAchievementActive(2533) && GetRealLevel() >= 65",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -99,
+              "ckh": 0,
+              "cki": -47,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5090,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            50000
+          ],
+          "d": 4087,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 65,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "ach.320",
+      "d": 2534,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "nodes": [
+    {
+      "id": 278,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "",
+      "choices": [
+        {
+          "id": 7687,
+          "criteria": "IsAchievementRunning(2533) || IsAchievementRunning(2534)",
+          "type": 8,
+          "native_cmW": false
+        },
+        {
+          "id": 7698,
+          "criteria": "IsAchievementRunning(2535)",
+          "type": 8,
+          "native_cmW": false
+        },
+        {
+          "id": 7715,
+          "criteria": "IsAchievementRunning(2539) || IsAchievementRunning(2540)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 459,
+          "criteria": "!(IsAchievementRunning(2533) || IsAchievementRunning(2534))",
+          "type": 1,
+          "native_cmW": false
+        },
+        {
+          "id": 7844,
+          "criteria": "IsAchievementComplete(2533) || IsAchievementComplete(2534)",
+          "type": 1,
+          "native_cmW": false
+        },
+        {
+          "id": 7692,
+          "criteria": "!(IsAchievementRunning(2533) || IsAchievementRunning(2534))",
+          "type": 1,
+          "native_cmW": false
+        },
+        {
+          "id": 7838,
+          "criteria": "IsAchievementComplete(2533) || IsAchievementComplete(2534)",
+          "type": 1,
+          "native_cmW": false
+        },
+        {
+          "id": 7822,
+          "criteria": "IsAchievementRunning(2557) && !IsAchievementObjectiveComplete(5061) && IsAchievementObjectiveComplete(5060)",
+          "type": 8,
+          "native_cmW": false
+        },
+        {
+          "id": 7694,
+          "criteria": "",
+          "type": 10,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 3092,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "",
+      "choices": [
+        {
+          "id": 7840,
+          "criteria": "IsAchievementRunning(2533) || IsAchievementRunning(2534)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 7697,
+          "criteria": "",
+          "type": 0,
+          "native_cmW": false
+        },
+        {
+          "id": 7696,
+          "criteria": "",
+          "type": 10,
+          "native_cmW": false
+        }
+      ]
+    }
+  ],
+  "speakers": [
+    {
+      "ref": 1147,
+      "actions": [
+        {
+          "type": 4,
+          "id": 61,
+          "criteria": ""
+        }
+      ],
+      "min_level": 200,
+      "visual_id": 1030008,
+      "max_level": 200
+    }
+  ]
+}

@@ -388,4 +388,9 @@ def snapshots(store, account_id, map_id, *, character_id=None):
         packets += declared_snapshots(
             store, account_id, map_id, character_id=character_id
         )
+        from wakfu_server.quest_chest_supplies import snapshots as supply_snapshots
+
+        packets += supply_snapshots(
+            store, account_id, map_id, character_id=character_id
+        )
     return packets

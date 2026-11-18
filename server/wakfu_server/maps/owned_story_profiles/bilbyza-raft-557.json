@@ -1,0 +1,27 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "bilbyza-raft-557",
+  "map_id": 557,
+  "maximum_members": 1,
+  "provenance": "Original VIP raft18981/1289 requires one16833 and enters actual557(0,0,16); return18984/1290 remains free. This source-authentic narrative context qualifies1263 arrival only. Native DJ minigame1264 is deliberately not activated: its missing original encounter bootstrap/control cannot be replaced by an ordinary enemy or injected state1941.",
+  "admission": {
+    "quest_id": 1263,
+    "objective_id": null,
+    "continuation_quest_id": 1264
+  },
+  "native_sources": {
+    "path": "bilbyza-raft-557.native.v1.json",
+    "sha256": "699acade94d5568751b01365e76f13748b1e9e8f2c3343ceb2d669e981bd7386"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "raft-loaded",
+      "kind": "world_ready",
+      "reference": 557,
+      "requires": [],
+      "effects": [],
+      "evidence": "Native transport_entered1289 earns original arrival2392; no challenge victory or future activation."
+    }
+  ]
+}

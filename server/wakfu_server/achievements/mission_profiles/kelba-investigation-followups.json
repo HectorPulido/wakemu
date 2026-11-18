@@ -1,0 +1,217 @@
+{
+  "version": 1,
+  "id": "kelba-investigation-followups",
+  "evidence": [
+    "Finite native investigation after the genuine convoy ending: complete Kabrok dialogue, actual three clue interactions, actual public Hadibal proof conversation, genuine hideout discovery and accomplice victory/film, then actual Hadibal handback. No Black Crow lair2544+ is activated."
+  ],
+  "bindings": [
+    {
+      "id": "actual-owned-kabrok-full-debrief",
+      "quest_id": 2538,
+      "objective_id": 5037,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 5037
+      },
+      "maps": [
+        945
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-earned-2537-2538",
+      "quest_id": 2538,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2537
+      },
+      "requires_completed": [
+        2537
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2537-2538",
+      "quest_id": 2538,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2537
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2538-2571",
+      "quest_id": 2571,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2538
+      },
+      "requires_completed": [
+        2538
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2538-2571",
+      "quest_id": 2571,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2538
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2571-2572",
+      "quest_id": 2572,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2571
+      },
+      "requires_completed": [
+        2571
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2571-2572",
+      "quest_id": 2572,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2571
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2572-2539",
+      "quest_id": 2539,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2572
+      },
+      "requires_completed": [
+        2572
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2572-2539",
+      "quest_id": 2539,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2572
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2539-2540",
+      "quest_id": 2540,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2539
+      },
+      "requires_completed": [
+        2539
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2539-2540",
+      "quest_id": 2540,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2539
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2540-2541",
+      "quest_id": 2541,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2540
+      },
+      "requires_completed": [
+        2540
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2540-2541",
+      "quest_id": 2541,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2540
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2541-2542",
+      "quest_id": 2542,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2541
+      },
+      "requires_completed": [
+        2541
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2541-2542",
+      "quest_id": 2542,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2541
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    },
+    {
+      "id": "kelba-earned-2542-2543",
+      "quest_id": 2543,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2542
+      },
+      "requires_completed": [
+        2542
+      ]
+    },
+    {
+      "id": "kelba-earned-recovery-2542-2543",
+      "quest_id": 2543,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2542
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Explicit finite recovery of the same earned native Kelba investigation followup. Actual completed predecessor and unchanged native eligibility are mandatory; no scene, clue, battle or dialogue objective is inferred."
+    }
+  ]
+}

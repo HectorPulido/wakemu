@@ -5,6 +5,8 @@ records its durable deduplication receipt in the settlement transaction. This
 module neither authorizes client packets nor persists state or delivers rewards.
 """
 
+from . import native_effective_eligibility
+
 from copy import deepcopy
 
 from . import mission_dependencies, mission_progress
@@ -18,11 +20,9 @@ from .mission_toolkit_contract import (
 
 def _eligible(state, definition, objective, *, character, store, now_ms):
     from wakfu_server import dungeon_criteria
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
 
-    authority = queries_from_snapshot(
-        {key: state[key] for key in ("running", "completed", "objectives")}
-    )
+    authority = queries_from_state(state)
     try:
         return all(
             dungeon_criteria.evaluate(
@@ -32,7 +32,11 @@ def _eligible(state, definition, objective, *, character, store, now_ms):
                 queries=authority,
                 now_ms=now_ms,
             )
-            for criterion in (definition["cjI"], objective["ckc"], objective["cke"])
+            for criterion in (
+                native_effective_eligibility.criterion(definition),
+                objective["ckc"],
+                objective["cke"],
+            )
         )
     except (ValueError, NotImplementedError, KeyError):
         return False
@@ -40,25 +44,28 @@ def _eligible(state, definition, objective, *, character, store, now_ms):
 
 def _activate(state, definitions, declarations, events, *, character, store, now_ms):
     from wakfu_server import dungeon_criteria
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
 
     changed = False
     for row in declarations:
         identity = row["quest_id"]
+        if (
+            row["event"]["kind"] == "character_ready"
+            and character["level"] < row["minimum_level"]
+        ):
+            continue
         if identity in state["running"] or identity in state["completed"]:
             continue
         if not set(row.get("requires_completed", ())) <= set(state["completed"]):
             continue
         if not any(matches(row, event, character) for event in events):
             continue
-        authority = queries_from_snapshot(
-            {key: state[key] for key in ("running", "completed", "objectives")}
-        )
+        authority = queries_from_state(state)
         definition = definitions[identity]
         try:
             eligible = dungeon_criteria.evaluate(
                 store,
-                definition["cjI"],
+                native_effective_eligibility.criterion(definition),
                 character=character,
                 queries=authority,
                 now_ms=now_ms,
@@ -75,7 +82,46 @@ def _activate(state, definitions, declarations, events, *, character, store, now
 
 
 def plan(state, definitions, profile, event, *, character, store, now_ms):
-    """Return the common(state,intents,objectives,completed) settlement plan.
+    """Legacy native-variable planner; counted objectives need owned snapshots."""
+    rows = profile.get("bindings") if isinstance(profile, dict) else None
+    if isinstance(rows, list) and any(
+        isinstance(row, dict) and "count_threshold" in row for row in rows
+    ):
+        raise ValueError(
+            "Server-counted mission objective requires its durable count snapshot"
+        )
+    return _plan(
+        state,
+        definitions,
+        profile,
+        event,
+        character=character,
+        store=store,
+        now_ms=now_ms,
+        objective_counts={},
+    )[:4]
+
+
+def plan_counted(
+    state, definitions, profile, event, *, character, store, now_ms, objective_counts
+):
+    """Return the ordinary four-part plan plus an isolated server-count snapshot."""
+    return _plan(
+        state,
+        definitions,
+        profile,
+        event,
+        character=character,
+        store=store,
+        now_ms=now_ms,
+        objective_counts=objective_counts,
+    )
+
+
+def _plan(
+    state, definitions, profile, event, *, character, store, now_ms, objective_counts
+):
+    """Return state, reward intents, objectives, completions and server counts.
 
     Counter increments are aggregated by native variable identity, once per
     trusted operation. Quantity units stop contributing to a completed objective.
@@ -91,6 +137,20 @@ def plan(state, definitions, profile, event, *, character, store, now_ms):
     profile = validate(profile, by_id)
     validate_event(event)
     candidate = deepcopy(state)
+    counts = dict(objective_counts)
+    if any(
+        type(key) is not int
+        or key <= 0
+        or type(value) is not int
+        or not 0 <= value < 2**31
+        for key, value in counts.items()
+    ):
+        raise ValueError("Invalid server objective count snapshot")
+    required = {
+        row["objective_id"] for row in profile["bindings"] if "count_threshold" in row
+    }
+    if not required <= set(counts):
+        raise ValueError("Missing durable server objective count snapshot")
     intents, objectives, completed = [], [], []
     _activate(
         candidate,
@@ -173,6 +233,13 @@ def plan(state, definitions, profile, event, *, character, store, now_ms):
                 now_ms=now_ms,
             ):
                 continue
+            if "count_threshold" in row:
+                threshold = row["count_threshold"]
+                counts[objective_id] = max(
+                    counts[objective_id], min(threshold, counts[objective_id] + 1)
+                )
+                if counts[objective_id] < threshold:
+                    continue
             (
                 candidate,
                 added_intents,
@@ -224,4 +291,4 @@ def plan(state, definitions, profile, event, *, character, store, now_ms):
             now_ms=now_ms,
         )
         if not activated:
-            return candidate, intents, objectives, completed
+            return candidate, intents, objectives, completed, counts

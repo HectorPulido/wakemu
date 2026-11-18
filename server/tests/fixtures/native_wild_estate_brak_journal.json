@@ -1,0 +1,482 @@
+[
+  {
+    "quest_id": 1632,
+    "level": 50,
+    "name_es": "El pico, el cerebro y la bomba (continuación)",
+    "name_en": "The Pick, the Brain and the Bomb (Part 2)",
+    "native_definition": {
+      "aHe": "IsAchievementActive(1632)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 29,
+              "ckh": 2,
+              "cki": 0,
+              "ckj": 713,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3042,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            200000
+          ],
+          "d": 2822,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7311,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 6,
+      "cka": "ach.187",
+      "d": 1632,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    "objectives": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 29,
+            "ckh": 2,
+            "cki": 0,
+            "ckj": 713,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 3042,
+        "native_class": "aJN",
+        "label_en": "Keep going until you find a way out",
+        "label_es": "Continuar hasta encontrar una salida"
+      }
+    ],
+    "nodes": []
+  },
+  {
+    "quest_id": 1620,
+    "level": 50,
+    "name_es": "Hacia un nuevo campamento",
+    "name_en": "To a New Camp",
+    "native_definition": {
+      "aHe": "IsAchievementActive(1620)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 43,
+              "ckh": -91,
+              "cki": -76,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3020,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            100000
+          ],
+          "d": 2807,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7312,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 7,
+      "cka": "ach.187",
+      "d": 1620,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    "objectives": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 43,
+            "ckh": -91,
+            "cki": -76,
+            "ckj": 711,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 3020,
+        "native_class": "aJN",
+        "label_en": "Find the Brakmarian Archaosology site",
+        "label_es": "Encontrar la excavación arcaológica de Brakmar"
+      }
+    ],
+    "nodes": []
+  },
+  {
+    "quest_id": 1621,
+    "level": 50,
+    "name_es": "El campamento brakmariano",
+    "name_en": "The Brakmarian Camp",
+    "native_definition": {
+      "aHe": "IsAchievementActive(1621)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 44,
+              "ckh": -103,
+              "cki": -80,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3021,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            100000
+          ],
+          "d": 2808,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7313,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 8,
+      "cka": "ach.187",
+      "d": 1621,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    "objectives": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 44,
+            "ckh": -103,
+            "cki": -80,
+            "ckj": 711,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 3021,
+        "native_class": "aJN",
+        "label_en": "Find some clues on the excavation site",
+        "label_es": "Encontrar pistas en la excavación"
+      }
+    ],
+    "nodes": []
+  },
+  {
+    "quest_id": 1622,
+    "level": 50,
+    "name_es": "Un explorador con poca maña",
+    "name_en": "Not Much of an Explorer",
+    "native_definition": {
+      "aHe": "IsAchievementActive(1622)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 40,
+              "ckh": -102,
+              "cki": -82,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3022,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            100000
+          ],
+          "d": 2809,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7314,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 9,
+      "cka": "ach.187",
+      "d": 1622,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    "objectives": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 40,
+            "ckh": -102,
+            "cki": -82,
+            "ckj": 711,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 3022,
+        "native_class": "aJN",
+        "label_en": "Find some clues about the Brakmarian Archaosologists",
+        "label_es": "Encontrar pistas relacionadas con los arcaólogos de Brakmar"
+      }
+    ],
+    "nodes": []
+  },
+  {
+    "quest_id": 1623,
+    "level": 50,
+    "name_es": "El 70% de la arcaología se hace en la biblioteca",
+    "name_en": "70% of Archaosology is Done in the Library",
+    "native_definition": {
+      "aHe": "IsAchievementActive(1623)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 2,
+              "ckh": -24,
+              "cki": 0,
+              "ckj": 723,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3023,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            100000
+          ],
+          "d": 2810,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7315,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 10,
+      "cka": "ach.187",
+      "d": 1623,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    "objectives": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 2,
+            "ckh": -24,
+            "cki": 0,
+            "ckj": 723,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 3023,
+        "native_class": "aJN",
+        "label_en": "Find a way to open this door",
+        "label_es": "Encontrar la manera de abrir esta puerta"
+      }
+    ],
+    "nodes": []
+  }
+]

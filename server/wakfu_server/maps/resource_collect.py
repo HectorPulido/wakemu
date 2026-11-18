@@ -135,6 +135,10 @@ def authorize(rule, *, profession_id, profession_level):
 
 
 def _lock_owned_scope(db, resource):
+    from wakfu_server import quest_resource_slots
+
+    if quest_resource_slots.lock_scope(db, resource):
+        return
     from wakfu_server import dungeon_resource_obstacles
 
     if not dungeon_resource_obstacles.lock_scope(db, resource):
@@ -147,6 +151,13 @@ def _authorize_owned_action(
     store, db, account_id, generation, character, resource, rule
 ):
     if rule["profession_id"] == 0:
+        from wakfu_server import quest_resource_slots
+
+        owned = quest_resource_slots.authorize(
+            db, store, account_id, generation, character, resource, rule
+        )
+        if owned is not None:
+            return owned
         from wakfu_server import dungeon_resource_obstacles
 
         owned = dungeon_resource_obstacles.authorize(
@@ -573,8 +584,13 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
             environmental_action is not None
             and environmental_action.get("kind") == "dungeon_resource_obstacle"
         )
+        quest_action = (
+            environmental_action is not None
+            and environmental_action.get("kind") == "quest_resource_slot"
+        )
         dungeon_group = None
         consumed = []
+        quest_products = {}
         if dungeon_action:
             from wakfu_server import dungeon_resource_obstacles
 
@@ -586,6 +602,22 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
                 if not callable(on_dungeon_unlocked):
                     raise ValueError("Dungeon resource group callback is invalid")
                 dungeon_group = on_dungeon_unlocked(db, resource["instance_id"])
+        elif quest_action:
+            from wakfu_server import quest_resource_slots
+
+            event = quest_resource_slots.apply(db, store, resource, token)
+            drawn = quest_resource_slots.products(
+                store,
+                db,
+                account,
+                generation,
+                character,
+                dict(environmental_action, occupation_token=token),
+            )
+            if drawn is not None:
+                packets.extend(drawn["packets"])
+                character = drawn["character"]
+                quest_products = drawn["products"]
         elif environmental_action is not None:
             from wakfu_server.objectives.environmental_resource_population import retire
 
@@ -656,6 +688,10 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
         if dungeon_action:
             outcome["dungeon_resource_action"] = environmental_action
             outcome["consumed"] = consumed
+        elif quest_action:
+            outcome["quest_resource_action"] = environmental_action
+            if quest_products:
+                outcome["native_products"] = quest_products
         elif environmental_action is not None:
             outcome["environmental_action"] = environmental_action
         if product and quantity_percent:
@@ -677,9 +713,20 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
                 now,
             ),
         )
-        if product:
-            from wakfu_server.achievements import mission_toolkit
+        from wakfu_server.achievements import mission_toolkit
 
+        packets.extend(
+            mission_toolkit.settle(
+                db,
+                store,
+                character,
+                token=token,
+                kind="resource_action_completed",
+                reference=rule["action_id"],
+                quantity=1,
+            )
+        )
+        if product:
             packets.extend(
                 mission_toolkit.settle(
                     db,
@@ -705,6 +752,18 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
                         product_reference=item_reference,
                     )
                 )
+        for reference, amount in sorted(quest_products.items()):
+            packets.extend(
+                mission_toolkit.settle(
+                    db,
+                    store,
+                    character,
+                    token=token,
+                    kind="resource_harvest",
+                    reference=reference,
+                    quantity=amount,
+                )
+            )
         from wakfu_server.objectives.environmental_gameplay import committed_resource
 
         environmental_updates = committed_resource(
@@ -715,7 +774,7 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
             resource=dict(resource),
             region_id=(
                 environmental_action["region_id"]
-                if environmental_action is not None
+                if environmental_action is not None and not quest_action
                 else None
             ),
         )
@@ -724,11 +783,14 @@ def complete(store, ticket, body, *, location_context=None, on_dungeon_unlocked=
         packets=packets,
         world_packets=(
             []
-            if environmental_action is not None and not dungeon_action
+            if environmental_action is not None
+            and not dungeon_action
+            and not quest_action
             else [state_packet(event, stage)]
         ),
         environmental_owned_publication=environmental_action is not None
-        and not dungeon_action,
+        and not dungeon_action
+        and not quest_action,
         dungeon_group=dungeon_group,
         event=event,
         map_id=resource["map_id"],

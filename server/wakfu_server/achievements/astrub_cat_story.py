@@ -9,7 +9,12 @@ Only committed owned room victories can start the corresponding story scenes.
 from copy import deepcopy
 import struct
 
-from . import storage, mission_progress, mission_dependencies
+from . import (
+    storage,
+    mission_progress,
+    mission_dependencies,
+    tutorial_presentation_once,
+)
 from .astrub_cat_story_authority import context, combat_helper_admission
 from wakfu_server import astrub_cat_presentation as presentation
 
@@ -195,6 +200,24 @@ def _scene(db, store, character, scope, receipt, event, victory=None):
     if victory is not None:
         expected["fight_id"] = victory["fight_id"]
     existing = _event(db, character["id"], key)
+    show = True
+    if event != 23927:
+        show = tutorial_presentation_once.claim(
+            db,
+            character["id"],
+            presentation.SCENARIO_ID,
+            event,
+            legacy=(
+                {
+                    "prefix": "astrub-cat-story:",
+                    "payload": dict(
+                        kind="owned_cat_story_scene",
+                        owner=character["id"],
+                        event_id=event,
+                    ),
+                },
+            ),
+        )
     packets = []
     if existing is None:
         if event in presentation.ROOM_VICTORY_SCENES.values():
@@ -213,6 +236,29 @@ def _scene(db, store, character, scope, receipt, event, victory=None):
             raise ValueError("Cat-house scene receipt raced")
     elif existing != expected:
         raise ValueError("Cat-house scene receipt changed")
+    if event in (23922, 23926):
+        from . import earned_achievement_links
+
+        packets.extend(
+            earned_achievement_links.settle(
+                db,
+                store,
+                character,
+                source_quest=QUEST_ID,
+                source_objective=ROOM_OBJECTIVES[1 if event == 23922 else 3],
+                event_key=key,
+            )
+        )
+    if not show:
+        # An old scene may be suppressed in a new instance or after reconnect.
+        # Its actual victory/objective settlement above still occurs. Complete
+        # only the owned mechanical callback; no client callback will arrive.
+        if event == 23928:
+            _move(db, character, presentation.PLAYER_POSITIONS[event])
+        if not _done(db, character["id"], instance, event):
+            extra, _ = _acknowledge(db, store, character, scope, event)
+            packets.extend(extra)
+        return packets
     if event == 23927:
         packets.append(presentation.packet(event))
     else:
@@ -236,12 +282,7 @@ def _scene(db, store, character, scope, receipt, event, victory=None):
 def poll(
     store, account_id, generation, character, *, pending_event=None, bootstrap=False
 ):
-    """Offer each authenticated presentation once per live connection.
-
-    A reconnect may resume an unfinished scene. Repeated scheduler ticks cannot
-    restart it, and the ordinary dungeon transition remains deferred only while
-    that scene owns this connection's choreography.
-    """
+    """Offer each presentation once per character, retaining owned mechanics."""
     if character.get("map_id") != MAP_ID or character.get("instance_id", 0) <= 0:
         return None
     with store.connection() as db:
@@ -253,6 +294,7 @@ def poll(
         receipt = _initialize(db, current, scope)
         if receipt is None:
             return None
+        scope["receipt"] = receipt
         instance = scope["instance"]
         packets = (
             _bootstrap_packets(db, current, instance, receipt) if bootstrap else []
@@ -261,15 +303,76 @@ def poll(
         marker = None if event is None else (instance, event)
         if event is not None and pending_event != marker:
             packets += _scene(db, store, current, scope, receipt, event, victory)
+            if _done(db, current["id"], instance, event):
+                marker = None
+                next_event, _ = _pending_scene(db, current, instance)
+                if (
+                    next_event is not None
+                    and _event(db, current["id"], _key(instance, f"scene:{next_event}"))
+                    is not None
+                ):
+                    marker = (instance, next_event)
         finished = _done(db, current["id"], instance, 23928)
         current = store.character(account_id, current["id"], db)
     return dict(
         character=current,
         packets=tuple(packets),
         pending_event=marker,
-        blocks_travel=event is not None,
+        blocks_travel=marker is not None,
         finished=finished,
     )
+
+
+def _acknowledge(db, store, current, scope, event):
+    """Commit the real callback mechanics, including when presentation is seen."""
+    instance = scope["instance"]
+    show_guide = event == 23920 and tutorial_presentation_once.claim_guide(
+        db,
+        current["id"],
+        170,
+        legacy=(
+            {
+                "prefix": "astrub-cat-story:",
+                "payload": dict(
+                    kind="owned_cat_story_callback",
+                    owner=current["id"],
+                    event_id=23920,
+                ),
+            },
+        ),
+    )
+    if not storage.record_event(
+        db,
+        current["id"],
+        _key(instance, f"callback:{event}"),
+        dict(
+            kind="owned_cat_story_callback",
+            owner=current["id"],
+            instance_id=instance,
+            event_id=event,
+        ),
+    ):
+        raise ValueError("Cat-house callback already completed")
+    packets, marker = [], None
+    if event == 23920:
+        packets.append(presentation.remove_visuals(scope["receipt"]["cat_ids"][3:]))
+        if show_guide:
+            packets.append(presentation.packet(23921))
+    elif event == 23927:
+        packets += _advance(db, store, current, 11514)
+        packets += _scene(db, store, current, scope, scope["receipt"], 23928)
+        if not _done(db, current["id"], instance, 23928):
+            marker = (instance, 23928)
+    elif event == 23928:
+        packets += _advance(db, store, current, 11515)
+        packets.append(presentation.remove_visuals(scope["receipt"]["nekark_ids"]))
+        packets.append(presentation.packet(23929))
+    elif event == 23926:
+        packets += _scene(db, store, current, scope, scope["receipt"], 23927)
+        marker = (instance, 23927)
+    else:
+        packets.append(presentation.packet(presentation.AFTER_SCENE_EVENTS[event]))
+    return packets, marker
 
 
 def callback(
@@ -279,11 +382,7 @@ def callback(
     if not isinstance(body, bytes) or len(body) != 4:
         raise ValueError("Invalid cat-house story callback")
     event = struct.unpack(">i", body)[0]
-    if (
-        event not in CALLBACK_EVENTS
-        or in_combat
-        or pending_event != (character.get("instance_id"), event)
-    ):
+    if event not in CALLBACK_EVENTS:
         raise ValueError("Cat-house callback phase is not pending")
     with store.connection() as db:
         store.lock_character(db, account_id, generation, character["id"], selected=True)
@@ -292,47 +391,35 @@ def callback(
         if scope is None or scope["receipt"] is None:
             raise ValueError("Cat-house callback lacks its owned story")
         instance = scope["instance"]
+        if (
+            _done(db, current["id"], instance, event)
+            and _event(db, current["id"], _key(instance, f"scene:{event}")) is not None
+        ):
+            # A native callback may arrive after an already-seen scene was
+            # settled mechanically. It cannot award or replay anything.
+            return dict(
+                character=current,
+                packets=(),
+                pending_event=pending_event,
+                blocks_travel=pending_event is not None,
+                finished=_done(db, current["id"], instance, 23928),
+            )
+        if in_combat or pending_event != (instance, event):
+            raise ValueError("Cat-house callback phase is not pending")
         expected_event, _ = _pending_scene(db, current, instance)
         if expected_event != event:
             raise ValueError("Cat-house callback is out of order")
         if _event(db, current["id"], _key(instance, f"scene:{event}")) is None:
             raise ValueError("Cat-house callback scene was never offered")
-        if not storage.record_event(
-            db,
-            current["id"],
-            _key(instance, f"callback:{event}"),
-            dict(
-                kind="owned_cat_story_callback",
-                owner=current["id"],
-                instance_id=instance,
-                event_id=event,
-            ),
-        ):
-            raise ValueError("Cat-house callback already completed")
-        packets = []
-        marker = None
-        if event == 23920:
-            packets.append(presentation.remove_visuals(scope["receipt"]["cat_ids"][3:]))
-        if event == 23927:
-            packets += _advance(db, store, current, 11514)
-            packets += _scene(db, store, current, scope, scope["receipt"], 23928)
-            marker = (instance, 23928)
-        elif event == 23928:
-            packets += _advance(db, store, current, 11515)
-            packets.append(presentation.remove_visuals(scope["receipt"]["nekark_ids"]))
-            packets.append(presentation.packet(23929))
-        elif event == 23926:
-            packets += _scene(db, store, current, scope, scope["receipt"], 23927)
-            marker = (instance, 23927)
-        else:
-            packets.append(presentation.packet(presentation.AFTER_SCENE_EVENTS[event]))
+        packets, marker = _acknowledge(db, store, current, scope, event)
         current = store.character(account_id, current["id"], db)
+        finished = _done(db, current["id"], instance, 23928)
     return dict(
         character=current,
         packets=tuple(packets),
         pending_event=marker,
         blocks_travel=marker is not None,
-        finished=event == 23928,
+        finished=finished,
     )
 
 

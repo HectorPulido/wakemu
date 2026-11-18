@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "kelba-raskaw-continuation",
+  "evidence": [
+    "Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting.",
+    "Grand2549 native criteria only encode level65; requiring genuine alternate2547 or2548 completion restores the documented narrative order. No unsupported2550 admission is enabled by this finite source."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-grand-after-2547",
+      "quest_id": 2549,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2547
+      },
+      "requires_completed": [
+        2547
+      ]
+    },
+    {
+      "id": "kelba-grand-recovery-2547",
+      "quest_id": 2549,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2547
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting."
+    },
+    {
+      "id": "kelba-grand-after-2548",
+      "quest_id": 2549,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2548
+      },
+      "requires_completed": [
+        2548
+      ]
+    },
+    {
+      "id": "kelba-grand-recovery-2548",
+      "quest_id": 2549,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2548
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting."
+    }
+  ]
+}

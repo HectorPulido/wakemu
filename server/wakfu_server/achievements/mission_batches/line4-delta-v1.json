@@ -1,0 +1,68 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "line4-post-goultard-closure-delta-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "encounter_roles",
+      "path": "wakfu_server/maps/owned_story_profiles/bovis-lair-1002.roles.json",
+      "sha256": "c7bd6f1d8336a5e14284434227ceb041c7fe382db07ee8f5c64a52c095adb0e3"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/astrub-magnum-well.v1.json",
+      "sha256": "12661d2d192a32e4e1bf70d29647e7fd7c0bc9e1f5cfd0861ea9a9493e08053c"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/amakna-urgent-1005.configuration.json",
+      "sha256": "5be9c4787f8c0922dcde397468a12bfacb340d39674956ef486ee2d3d7378aa4"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-night-1004.configuration.json",
+      "sha256": "41904c5e5633cb2e5f7d504ac4dd759350f5ca8fd071dbc0f914a93e5c064d09"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/bovis-lair-1002.configuration.json",
+      "sha256": "88401320e6aaa8d80aae6c79cc81a9bd9b9d6eb0199edbe7fb3722913005fe63"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/zinit-reef-980.configuration.v2.json",
+      "sha256": "cd0d73fca7ddd7d83d7b964f2936f615ca4d92c898dae545111e1c34fd37f658"
+    },
+    {
+      "kind": "combat",
+      "path": "wakfu_server/achievements/combat_mission_profiles/bovis-level-victory.json",
+      "sha256": "57c5b94a36d8508a737a6e520b28d63e9f77f539428f0e0793ea41e16010d35a"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/amakna-urgent-followups.json",
+      "sha256": "b37defd3a15ad04af47de3f2bda3fe8ea92a89e33a37388a178143806dbf7579"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-magnum-wet-night-followups.json",
+      "sha256": "881bb70b119f812b81ae554139b5fcece996700ed14b873102fe6627e5eec175"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/bovis-lair-story.json",
+      "sha256": "347e64151108cae2be5a0be4853d7187cb89c0b26d1211b785dd516c289ff8ff"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/line4-final-handoffs.json",
+      "sha256": "48e0213295f5f4af746ea177f5f118277d7e91f2cfafbc694d2f8f74af93a46f"
+    },
+    {
+      "kind": "conversation",
+      "path": "wakfu_server/maps/native_quest_conversation_contracts.json",
+      "sha256": "614f69ab1a1aeada0e382dc9f6d20ee1a77c1c303a6f22cc376235388605a33a"
+    }
+  ]
+}

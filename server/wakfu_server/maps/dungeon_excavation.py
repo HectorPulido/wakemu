@@ -3,6 +3,7 @@
 No wire handler is installed by this candidate. The public provider must acquire
 run -> account/lease -> character/item ownership and preserve native admission.
 """
+
 import hashlib
 import json
 import secrets
@@ -16,6 +17,24 @@ def digest(value):
             value, sort_keys=True, separators=(",", ":"), ensure_ascii=False
         ).encode()
     ).hexdigest()
+
+
+def require_source(rule):
+    """Retain the frozen rule while attesting only its actual native sources."""
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        rule["qualified_native_release"],
+        (
+            "item-action-rules.json",
+            "item-stack-rules.json",
+            "native-generic-teleporters.json",
+            "native-map-objects.json",
+            "native-interactive-states.json",
+            "combat-state-definitions.json",
+            f'combat-maps/{rule["ground_authority"]["map_id"]}.json',
+        ),
+    )
 
 
 def validate_rule(rule):

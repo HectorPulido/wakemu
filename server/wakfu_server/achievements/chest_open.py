@@ -3,6 +3,7 @@
 No client objective/event API or implicit empty-objective completion exists.
 Bindings have no seed/fallback. Custom account item claims remain independent.
 """
+
 import hashlib
 import json
 import struct
@@ -298,6 +299,7 @@ def claim(
     qualified = catalog.load(db)
     now_ms = int(store.now().timestamp() * 1000)
     packets, visual_packets, opened, fresh_openings = [], [], [], 0
+    completed_missions = set()
     for rule in rules:
         if action != rule["native_action"] or parameter != rule["native_parameter"]:
             raise ValueError("Native chest requires its attested original action")
@@ -390,6 +392,7 @@ def claim(
             packets.extend(
                 wire.changes(actual["id"], before, after, objectives, completed, now_ms)
             )
+            completed_missions.update(completed)
             before = after
         opened.append(rule["binding_id"])
     # A chest opening is an optional action, unlike final fight settlement.
@@ -408,6 +411,15 @@ def claim(
             pending["achievement_id"],
             pending["cycle_key"],
             pending["reward_key"],
+        )
+    if completed_missions:
+        from . import mission_toolkit
+
+        current = store.character(account_id, actual["id"], db)
+        packets.extend(
+            mission_toolkit.settle_completions(
+                db, store, current, sorted(completed_missions)
+            )
         )
     if packets:
         envelopes = [

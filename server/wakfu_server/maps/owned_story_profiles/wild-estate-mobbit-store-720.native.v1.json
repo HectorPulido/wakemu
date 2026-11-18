@@ -1,0 +1,109 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 720,
+  "objects": [
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 80.0,
+      "id": 20444,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 720,
+      "payload_hex": "02000000000b010000000d00000102d0000000000000000000500001010103000200000004313239350000003baf0001"
+    },
+    {
+      "x": 5.0,
+      "y": -36.0,
+      "z": 80.0,
+      "id": 20449,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2",
+      "map_id": 720,
+      "payload_hex": "02000000000b010000000d00000102d000000005ffffffdc0050000101010100010000000332323600000000000101"
+    },
+    {
+      "x": 4.0,
+      "y": -34.0,
+      "z": 71.0,
+      "id": 20660,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2",
+      "map_id": 720,
+      "payload_hex": "02000000000b010000000d00000102d000000004ffffffde0047000101010300010000000332333500000000000101"
+    },
+    {
+      "x": 11.0,
+      "y": -28.0,
+      "z": 80.0,
+      "id": 21060,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2",
+      "map_id": 720,
+      "payload_hex": "02000000000b010000000d00000102d00000000bffffffe40050000101010100020000000332343300000000000101"
+    },
+    {
+      "x": 10.0,
+      "y": -26.0,
+      "z": 80.0,
+      "id": 21061,
+      "auto": true,
+      "type": "Board",
+      "chunk": "0_-2",
+      "map_id": 720,
+      "payload_hex": "02000000000b010000000d00000102d00000000affffffe60050000101010100020000000332393800000002fc0000"
+    }
+  ],
+  "programs": {},
+  "scenario_events": [],
+  "scenes": {},
+  "teleporters": {
+    "20444": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 80.0,
+      "id": 20444,
+      "map_id": 720,
+      "destinations": [
+        {
+          "x": 24,
+          "y": -162,
+          "z": 80,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 1418,
+          "item_reference": 0,
+          "arrival_heights": [
+            80
+          ],
+          "display_reference": 87,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 2,
+      "definition_id": 1295,
+      "native_parameters": "1295",
+      "approach_positions": [
+        {
+          "x": 0,
+          "y": -1,
+          "z": 80
+        }
+      ],
+      "approach_orientation": 3,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {}
+}

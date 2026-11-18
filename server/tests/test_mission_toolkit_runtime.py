@@ -186,6 +186,51 @@ class MissionToolkitRuntimeTests(unittest.TestCase):
             dict(kind="rii_wodent_victory", fight_id=33, count=3),
         )
 
+    def test_project_preserves_alternative_links_for_each_child_and_parent_activation(
+        self,
+    ):
+        links = [
+            {"parent_quest_id": 5569, "objective_id": 11516, "child_quest_id": 1721},
+            {"parent_quest_id": 5569, "objective_id": 11516, "child_quest_id": 1726},
+        ]
+        parent_activation = {
+            "id": "tour-followup",
+            "quest_id": 5569,
+            "event": {"kind": "map_enter"},
+        }
+        loaded = {
+            "profile": {
+                "id": "astrub-tour",
+                "version": 1,
+                "evidence": ["reviewed alternate child variants"],
+                "bindings": [],
+                "links": links,
+                "activations": [parent_activation],
+            },
+            "bindings": {},
+            "activations": {("map_enter", None): [parent_activation]},
+            "children": {1721: [links[0]], 1726: [links[1]]},
+            "parents": {5569: links},
+            "native": {identity: {"d": identity} for identity in (5569, 1721, 1726)},
+        }
+        character = {"id": 7, "account_id": 2, "map_id": 527, "instance_id": 0}
+        for child in (1721, 1726):
+            projected, _native = toolkit._project(
+                loaded,
+                {"kind": "quest_completed", "reference": child, "quantity": 1},
+                character,
+            )
+            self.assertEqual(
+                {link["child_quest_id"] for link in projected["links"]},
+                {1721, 1726},
+            )
+        projected, _native = toolkit._project(
+            loaded, {"kind": "map_enter", "quantity": 1}, character
+        )
+        self.assertEqual(
+            {link["child_quest_id"] for link in projected["links"]}, {1721, 1726}
+        )
+
 
 class EffectiveToolkitCharacterTests(unittest.TestCase):
     def test_durable_level_and_inventory_preserve_private_producer_pose(self):

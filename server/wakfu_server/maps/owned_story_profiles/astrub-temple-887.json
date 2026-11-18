@@ -1,0 +1,842 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "astrub-temple-887",
+  "map_id": 887,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2166,
+    "objective_id": 4288,
+    "continuation_quest_id": 2170
+  },
+  "provenance": "UNPUBLISHED reviewed reconstruction from installed native1722, exact map887 objects/descriptors, and frozen native physics. Native sources identify mechanics, not the original server event graph. Activation requires complete room rosters, artifact/door/trap adapters and actual TLS acceptance.",
+  "steps": [
+    {
+      "id": "entry-guide",
+      "kind": "world_ready",
+      "reference": 887,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14199
+        }
+      ],
+      "evidence": "Native1722/14199 ENTER_INSTANCE schedules UI.loadGuideDialog173 after the instance loads. One owner instance receipt prevents movement/reconnect from reopening this optional guide."
+    },
+    {
+      "id": "room1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14203
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23399,
+          "state": 1,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14204
+        }
+      ],
+      "evidence": "Native1722 labels room1 victory/chest; exact chest23399(-4,-8,0), descriptor164, initially hidden/unusable."
+    },
+    {
+      "id": "room1-key",
+      "kind": "interactive",
+      "reference": 23399,
+      "requires": [
+        "room1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14205
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23399,
+          "state": 1,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23400,
+          "state": 1,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": true
+        }
+      ],
+      "evidence": "Native1722 event14205 obtains first key; exact first gate23400(0,-13,0), descriptor162. Key is a controller flag, not an invented inventory item."
+    },
+    {
+      "id": "room1-gate",
+      "kind": "interactive",
+      "reference": 23400,
+      "requires": [
+        "room1-key"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14243
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23400,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Native1722 event14243 first door opening; reviewed explicit source to room-frontier binding."
+    },
+    {
+      "id": "room2-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "room1-gate"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14244
+        }
+      ],
+      "evidence": "Native1722 event14244 emits victory particle at(-5,-25,0), then camera resets to owner."
+    },
+    {
+      "id": "artifact-chest",
+      "kind": "interactive",
+      "reference": 23405,
+      "requires": [
+        "room2-victory"
+      ],
+      "effects": [
+        {
+          "kind": "native_loot",
+          "table_id": 2437
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14254,
+          "arguments": [
+            "source_object",
+            "owner",
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "evidence": "Exact object23405/descriptor491 gives nativefFc2437: guaranteed18722x1 while2170 incomplete; scene1722/14254 requires chest and six positional player IDs."
+    },
+    {
+      "id": "artifact-scene-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "artifact-chest"
+      ],
+      "effects": [
+        {
+          "kind": "scene_position",
+          "scenario": 1722,
+          "event": 14254,
+          "position": [
+            -15,
+            -25,
+            0
+          ]
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14255
+        }
+      ],
+      "evidence": "Native scene skipCinematic acknowledges trigger2 only after a server-offered artifact scene; cannot award combat progress."
+    },
+    {
+      "id": "puzzle-first-lever",
+      "kind": "interactive",
+      "reference": 23456,
+      "requires": [
+        "artifact-scene-done"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14247
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23450,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Two native lever sources23456(-18,-21) and23422(-20,-31), descriptor43/action51. Which lever controls which gate is reviewed reconstruction, not captured server graph."
+    },
+    {
+      "id": "puzzle-second-lever",
+      "kind": "interactive",
+      "reference": 23422,
+      "requires": [
+        "puzzle-first-lever"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14246
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23424,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23426,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Native1722/14246 unlocks puzzle door. Exact nativeDoor23424/23426 preserve their native collision footprints, cleared atomically with state0."
+    },
+    {
+      "id": "room4-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "puzzle-second-lever"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14256
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14257
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23401,
+          "state": 1,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Native1722 room4 victory/chest at(17,-25,0), object23401/descriptor165; room3 is a puzzle and has no fabricated fight."
+    },
+    {
+      "id": "boss-key",
+      "kind": "interactive",
+      "reference": 23401,
+      "requires": [
+        "room4-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14233
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23401,
+          "state": 1,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Native1722/14233 boss key; no original inventory key grant was recovered, so this is an owned controller flag."
+    },
+    {
+      "id": "boss-gate",
+      "kind": "interactive",
+      "reference": 23406,
+      "requires": [
+        "boss-key"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14262
+        },
+        {
+          "kind": "element_state",
+          "object_id": 23406,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Exact boss entrance23406(0,-38,0), descriptor500/action559, coupled to native1722/14262 door event."
+    },
+    {
+      "id": "boss-intro",
+      "kind": "zone_trigger",
+      "reference": 23540,
+      "requires": [
+        "boss-gate"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14265,
+          "arguments": [
+            0,
+            "boss_trigger",
+            "owner",
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "evidence": "Exact native zone23540(0,-56,12);1722/14265 creates sprite165303234 = nativebreed3234, not same-name2603."
+    },
+    {
+      "id": "boss-intro-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "boss-intro"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14288
+        }
+      ],
+      "evidence": "Only server-offered boss scene may acknowledge trigger2 and enable the reviewed actual final encounter."
+    },
+    {
+      "id": "boss-victory",
+      "kind": "room_victory",
+      "reference": 4,
+      "requires": [
+        "boss-intro-done"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14269
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14289
+        }
+      ],
+      "evidence": "Native1722/14269 victory and14289 camera/cage reveal. Must be a real original3234 victory; no cinematic-driven monster deaths."
+    },
+    {
+      "id": "boss-exit-scene-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "boss-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14272
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2170,
+          "objective_id": 4291
+        }
+      ],
+      "evidence": "Native1722/14289 ends with trigger2. Boss objective follows real recorded victory, then knight help bubble1722/14272."
+    },
+    {
+      "id": "knight-cage",
+      "kind": "interactive",
+      "reference": 23583,
+      "requires": [
+        "boss-exit-scene-done"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1722,
+          "event": 14273
+        }
+      ],
+      "evidence": "Native cage23583(5,-59,12), descriptor245 explicitlyreferences2170 and companion availability. Its separate companion quests1721/1726 still require native authorization; no companion is minted by this controller."
+    }
+  ],
+  "native_sources": {
+    "path": "astrub-temple-887.native.v1.json",
+    "sha256": "39c719314c7f5b2ab14971718116855d848acf652426f7de964cd85d715fd4a9"
+  },
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 23399,
+      "state": 1,
+      "visible": false,
+      "usable": false,
+      "blocks_movement": false
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23400,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23401,
+      "state": 1,
+      "visible": false,
+      "usable": false,
+      "blocks_movement": false
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23406,
+      "state": 1,
+      "visible": true,
+      "usable": true,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23424,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23426,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23450,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23460,
+      "state": 0,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": false
+    },
+    {
+      "kind": "element_state",
+      "object_id": 23461,
+      "state": 0,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": false
+    }
+  ],
+  "native_transfers": [
+    {
+      "source_id": 23404,
+      "effect_reference": 1413,
+      "requires": [
+        "artifact-scene-done"
+      ]
+    },
+    {
+      "source_id": 23590,
+      "effect_reference": 1410,
+      "requires": [
+        "artifact-scene-done"
+      ]
+    },
+    {
+      "source_id": 23596,
+      "effect_reference": 1442,
+      "requires": [
+        "artifact-scene-done"
+      ]
+    },
+    {
+      "source_id": 24494,
+      "effect_reference": 1870,
+      "requires": [
+        "artifact-scene-done"
+      ]
+    },
+    {
+      "source_id": 23402,
+      "effect_reference": 1416,
+      "requires": [
+        "puzzle-second-lever"
+      ]
+    },
+    {
+      "source_id": 23597,
+      "effect_reference": 1448,
+      "requires": [
+        "puzzle-second-lever"
+      ]
+    },
+    {
+      "source_id": 23593,
+      "effect_reference": 1432,
+      "requires": [
+        "boss-victory"
+      ]
+    },
+    {
+      "source_id": 23598,
+      "effect_reference": 1440,
+      "requires": [
+        "boss-victory"
+      ]
+    }
+  ],
+  "trap_cycle": {
+    "schema": "owned-story-trap-cycle-v1",
+    "id": "astrub-temple-room3",
+    "map_id": 887,
+    "requires": [
+      "artifact-scene-done"
+    ],
+    "phase_ms": 6000,
+    "fall_animation_ms": 1600,
+    "reset_position": [
+      -15,
+      -25,
+      0
+    ],
+    "scenario": 1722,
+    "fall_event": 14251,
+    "opening_event": 14252,
+    "closing_event": 14253,
+    "tiles": [
+      {
+        "object_id": 23443,
+        "position": [
+          -16,
+          -31,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23444,
+        "position": [
+          -16,
+          -28,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23445,
+        "position": [
+          -15,
+          -28,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23446,
+        "position": [
+          -14,
+          -28,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23447,
+        "position": [
+          -13,
+          -28,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23448,
+        "position": [
+          -13,
+          -27,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23449,
+        "position": [
+          -13,
+          -26,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23452,
+        "position": [
+          -17,
+          -29,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23454,
+        "position": [
+          -18,
+          -28,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23455,
+        "position": [
+          -17,
+          -28,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23458,
+        "position": [
+          -14,
+          -20,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23462,
+        "position": [
+          -8,
+          -24,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23427,
+        "position": [
+          -13,
+          -23,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23428,
+        "position": [
+          -13,
+          -22,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23429,
+        "position": [
+          -14,
+          -22,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23430,
+        "position": [
+          -15,
+          -22,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23431,
+        "position": [
+          -16,
+          -22,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23432,
+        "position": [
+          -17,
+          -22,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23435,
+        "position": [
+          -18,
+          -22,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23439,
+        "position": [
+          -19,
+          -27,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23440,
+        "position": [
+          -19,
+          -28,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23441,
+        "position": [
+          -19,
+          -29,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23442,
+        "position": [
+          -20,
+          -29,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23453,
+        "position": [
+          -21,
+          -31,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23437,
+        "position": [
+          -19,
+          -25,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23433,
+        "position": [
+          -19,
+          -21,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23434,
+        "position": [
+          -19,
+          -20,
+          0
+        ],
+        "initial_state": 1
+      },
+      {
+        "object_id": 23438,
+        "position": [
+          -19,
+          -26,
+          0
+        ],
+        "initial_state": 0
+      },
+      {
+        "object_id": 23436,
+        "position": [
+          -19,
+          -24,
+          0
+        ],
+        "initial_state": 0
+      }
+    ],
+    "provenance": "Reviewed reconstruction, not original captured timing: native1722 exposes empty server-directed open/close events14252/14253 and descriptor946 has no groups or period. This local alternating six-second phase retains every original object position and baseline state, with complementary safe paths; no trap is globally disabled. Native14251 hides player and plays fall landing after1600ms; reset uses the native artifact staging cell from14254, not an arbitrary map. No HP/stat edits."
+  },
+  "cinematic_continuation": {
+    "path": "astrub-ullu-898.json",
+    "sha256": "2f124a2e2cfdc3a4c2ceab0a91aa7c6cb8957d90ddb8c509473e3426a8b3cd6c"
+  },
+  "optional_companion": {
+    "path": "astrub-knight.json",
+    "sha256": "9f7739a1a835444bdc64a388c7914225bb7edb10215c6ae322f69fa51e0d30a2"
+  }
+}

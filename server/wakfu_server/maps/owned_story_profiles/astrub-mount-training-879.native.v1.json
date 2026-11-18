@@ -1,0 +1,22 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 879,
+  "objects": [
+    {
+      "x": -1.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 22858,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_0",
+      "map_id": 879,
+      "payload_hex": "02000000000b010000000d000001036fffffffff00000000000000010101010001000000043136353000000000000000"
+    }
+  ],
+  "programs": {},
+  "native_scripts": {},
+  "scenes": {},
+  "scenario_events": [],
+  "presentations": []
+}

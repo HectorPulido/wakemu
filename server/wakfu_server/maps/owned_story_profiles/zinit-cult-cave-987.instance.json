@@ -1,0 +1,24 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "zinit-cult-cave-987",
+  "version": 1,
+  "map_id": 987,
+  "entry": {
+    "map_id": 986,
+    "object_id": 25392,
+    "destination_id": 2233
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25395,
+    25430
+  ],
+  "controller_file": "zinit-cult-cave-987.json",
+  "encounters_file": "zinit-cult-cave-987.encounters.json",
+  "exploration_file": "zinit-cult-cave-987.exploration.json",
+  "provenance": "Reviewed reconstruction, not captured original formations: installed map987/scenario2019 explicitly define two clears, native drill key state3679, a drill-triggered boss with six adds and a cleared terminal exit. Native family842 cultists and master retain all original level20 statistics/spells. Counts in the first two groups and species composition are authored local policy; final actor end positions are literal installed Lua. Only actual original-roster clear and the authenticated exit earn objective5308; Ullu5309 stays a real NPC debrief."
+}

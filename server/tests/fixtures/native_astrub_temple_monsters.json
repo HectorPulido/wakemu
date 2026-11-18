@@ -1,0 +1,194 @@
+[
+  {
+    "ref": 3237,
+    "name": "Asesino esbirrio",
+    "family_id": 658,
+    "min_level": 9,
+    "max_level": 9,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 30,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 20,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 165303237,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 4617
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3235,
+    "name": "Esbirrio tymador",
+    "family_id": 658,
+    "min_level": 10,
+    "max_level": 10,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 25,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 22,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 165303235,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 4616
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3234,
+    "name": "Shrederches",
+    "family_id": 658,
+    "min_level": 12,
+    "max_level": 12,
+    "statistics": {
+      "AP": {
+        "base": 7,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 40,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 60,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 165303234,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 4621
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3236,
+    "name": "Esbirrio guerrero",
+    "family_id": 658,
+    "min_level": 8,
+    "max_level": 8,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 15,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 26,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 165303236,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 4620
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 4619
+      }
+    ],
+    "loot_definitions": []
+  }
+]

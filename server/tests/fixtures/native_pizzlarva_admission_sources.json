@@ -1,0 +1,35 @@
+[
+  {
+    "x": -2.0,
+    "y": 0.0,
+    "z": 0.0,
+    "id": 23619,
+    "auto": false,
+    "type": "GenericActivableInteractiveElement",
+    "chunk": "-1_0",
+    "map_id": 885,
+    "payload_hex": "02000000000b010000000d0000010375fffffffe000000000000000101010100010000000335303200000000000101"
+  },
+  {
+    "x": 2.0,
+    "y": 0.0,
+    "z": 0.0,
+    "id": 23620,
+    "auto": false,
+    "type": "GenericActivableInteractiveElement",
+    "chunk": "0_0",
+    "map_id": 885,
+    "payload_hex": "02000000000b010000000d000001037500000002000000000000000101010100020000000335303300000000000101"
+  },
+  {
+    "x": -4.0,
+    "y": -9.0,
+    "z": 3.0,
+    "id": 23626,
+    "auto": false,
+    "type": "GenericActivableInteractiveElement",
+    "chunk": "-1_-1",
+    "map_id": 546,
+    "payload_hex": "02000000000b010000000d0000010222fffffffcfffffff70003000101010300010000000335303500000000000101"
+  }
+]

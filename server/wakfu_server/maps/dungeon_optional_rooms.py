@@ -7,6 +7,11 @@ POLICY = "reviewed-main-and-optional-rooms-v1"
 
 def main_room_orders(topology):
     orders = [room["order"] for room in topology["rooms"]]
+    if not orders:
+        from wakfu_server import owned_noncombat_context
+
+        if owned_noncombat_context.selected(topology) is not None:
+            return ()
     if not orders or any(type(n) is not int for n in orders):
         raise ValueError("Dungeon rooms require integral encounter orders")
     record = topology.get("optional_room_policy")

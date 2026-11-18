@@ -14,6 +14,8 @@ LESSONS = (
     ("rii_movement_lesson_contract", 10610, 22516, 22545),
     ("rii_states_lesson_contract", 10611, 22517, 22546),
 )
+# Exact displayGuide operands from installed scenario/2543.lua.
+GUIDES = dict(zip((entry[2] for entry in LESSONS), range(115, 122)))
 
 
 def _lesson(fight):
@@ -56,18 +58,30 @@ def admission(fight, character_id, node_id, choice_id):
 def claim_admission(db, fight, character_id, node_id, choice_id):
     """Claim the presentation only after its owned placement is published.
 
-    Variant 1 repairs staged guides previously claimed before scene bootstrap
-    could dismiss them. It is an internal delivery revision, not a packet arg.
-    Valid earlier guides and all success presentations retain variant 0.
+    The native guide ID is permanent per character, including older event
+    receipts. A delivery revision must never reopen an already shown guide.
     """
     from . import tutorial_presentation_once
 
     packet = admission(fight, character_id, node_id, choice_id)
     event_id = _lesson(fight)[2]
-    variant = 1 if event_id in (22507, 22508, 22516, 22517) else 0
     return (
         [packet]
-        if tutorial_presentation_once.claim(db, character_id, 2543, event_id, variant)
+        if tutorial_presentation_once.claim_guide(
+            db,
+            character_id,
+            GUIDES[event_id],
+            legacy=(
+                {
+                    "prefix": f"tutorial-presentation:2543:{event_id}:",
+                    "payload": {
+                        "kind": "tutorial_presentation",
+                        "scenario_id": 2543,
+                        "event_id": event_id,
+                    },
+                },
+            ),
+        )
         else []
     )
 

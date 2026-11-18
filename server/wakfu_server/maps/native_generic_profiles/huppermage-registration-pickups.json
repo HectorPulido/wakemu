@@ -1,0 +1,605 @@
+{
+  "schema": "native-generic-reward-batch-v1",
+  "entries": [
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 983,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1222,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1251,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2485,
+                    "effect_type": 1,
+                    "criterion": "not IsAchievementRunning(2776)",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2471,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20035) > 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2469,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20035) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 2",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2467,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20035) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 1",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2465,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20035) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2470,
+                    "effect_type": 4,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20035) == 0",
+                    "parameters": [
+                      "2542"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": -41.0,
+        "y": -13.0,
+        "z": 0.0,
+        "id": 26212,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-3_-1",
+        "map_id": 1018,
+        "payload_hex": "02000000000b010000000d00000103faffffffd7fffffff30000000101010100080000000339383300000000000101",
+        "native_parameters": "983",
+        "descriptor_id": 983
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "52c1a0feeb8bb9d17c0eceebf92f80a734d23ba808eaed782c35bdae07237b52",
+      "approaches": [
+        [
+          -42,
+          -13,
+          0
+        ],
+        [
+          -41,
+          -12,
+          0
+        ]
+      ],
+      "state": {
+        "id": 26212,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 1018,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 aLl/aLo/aLn/aLm and exact world object; original fixed leaf table39, positive native quest and item absence guards; reviewed native Sm6 approach.",
+      "loot_tables": {
+        "2540": {
+          "payload": {
+            "czg": 1,
+            "d": 2540,
+            "gBN": [
+              {
+                "aAi": 20036,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3644,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        },
+        "2541": {
+          "payload": {
+            "czg": 1,
+            "d": 2541,
+            "gBN": [
+              {
+                "aAi": 20037,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3645,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        },
+        "2542": {
+          "payload": {
+            "czg": 1,
+            "d": 2542,
+            "gBN": [
+              {
+                "aAi": 20035,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3646,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        }
+      },
+      "script_sources": {
+        "2485": "c40ab9a92634d00e106a878cda34b5fa0ce78c7d8f439b1737ad21ab881f519b",
+        "2471": "62bbd28359e8085c093b67536cc80f4c752bfc70c4774b664adebdcde125cd45",
+        "2469": "51125a9d7a97ae2d5dd9b3fffeb3fd4f7c3cc36f768de98fabd54f0953872d2c",
+        "2467": "f21897ef07646677c9a9a28cb6ca4dd98b77823dc3fd74f4f63214dfa2a969bb",
+        "2465": "8c26027c1825d0f5909052b2e38e14bf9123187190be8ce26aee9d660830e4f7"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 984,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1223,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1254,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2486,
+                    "effect_type": 1,
+                    "criterion": "not IsAchievementRunning(2776)",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2474,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20037) > 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2475,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20037) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 2",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2476,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20037) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 1",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2477,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20037) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2457,
+                    "effect_type": 4,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20037) == 0",
+                    "parameters": [
+                      "2541"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": 42.0,
+        "y": -45.0,
+        "z": -12.0,
+        "id": 26215,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "2_-3",
+        "map_id": 1018,
+        "payload_hex": "02000000000b010000000d00000103fa0000002affffffd3fff40001010101000a0000000339383400000000000101",
+        "native_parameters": "984",
+        "descriptor_id": 984
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "52c1a0feeb8bb9d17c0eceebf92f80a734d23ba808eaed782c35bdae07237b52",
+      "approaches": [
+        [
+          41,
+          -45,
+          -14
+        ],
+        [
+          42,
+          -44,
+          -15
+        ]
+      ],
+      "state": {
+        "id": 26215,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 1018,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 aLl/aLo/aLn/aLm and exact world object; original fixed leaf table39, positive native quest and item absence guards; reviewed native Sm6 approach.",
+      "loot_tables": {
+        "2540": {
+          "payload": {
+            "czg": 1,
+            "d": 2540,
+            "gBN": [
+              {
+                "aAi": 20036,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3644,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        },
+        "2541": {
+          "payload": {
+            "czg": 1,
+            "d": 2541,
+            "gBN": [
+              {
+                "aAi": 20037,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3645,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        },
+        "2542": {
+          "payload": {
+            "czg": 1,
+            "d": 2542,
+            "gBN": [
+              {
+                "aAi": 20035,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3646,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        }
+      },
+      "script_sources": {
+        "2486": "4e1bfe2bf6c531d6468ee2b03a9d0ab8654408db202f04f84086631e964b6ca7",
+        "2474": "091342b890e0aa23166e1fac31ebd0290afe97a00238a93e0c59c209b3d01702",
+        "2475": "c2571b3d25e2ac218453ce191ed2156125c89a9985af485e12e02ec5b2cc95aa",
+        "2476": "67dff58da36fe9cefa3e6ce651836b4016169e687585d1034465694f3b6282dd",
+        "2477": "9b8dffef2f9d52d730ffdc8486d5ccd5b28ef2177d97224065c574bf255387c5"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 985,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1224,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1256,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2479,
+                    "effect_type": 1,
+                    "criterion": "not IsAchievementRunning(2776)",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2480,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20036) > 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2481,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20036) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 2",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2482,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20036) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 1",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2483,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20036) == 0\r\nand (GetItemQuantity(20035)+GetItemQuantity(20036)+GetItemQuantity(20037)) == 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2459,
+                    "effect_type": 4,
+                    "criterion": "IsAchievementRunning(2776)\r\nand IsAchievementObjectiveComplete(5596)\r\nand GetItemQuantity(20036) == 0",
+                    "parameters": [
+                      "2540"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": -27.0,
+        "y": -66.0,
+        "z": 3.0,
+        "id": 26216,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-2_-4",
+        "map_id": 1018,
+        "payload_hex": "02000000000b010000000d00000103faffffffe5ffffffbe0003000101010100010000000339383500000000000101",
+        "native_parameters": "985",
+        "descriptor_id": 985
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "52c1a0feeb8bb9d17c0eceebf92f80a734d23ba808eaed782c35bdae07237b52",
+      "approaches": [
+        [
+          -26,
+          -66,
+          0
+        ],
+        [
+          -27,
+          -65,
+          3
+        ]
+      ],
+      "state": {
+        "id": 26216,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 1018,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 aLl/aLo/aLn/aLm and exact world object; original fixed leaf table39, positive native quest and item absence guards; reviewed native Sm6 approach.",
+      "loot_tables": {
+        "2540": {
+          "payload": {
+            "czg": 1,
+            "d": 2540,
+            "gBN": [
+              {
+                "aAi": 20036,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3644,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        },
+        "2541": {
+          "payload": {
+            "czg": 1,
+            "d": 2541,
+            "gBN": [
+              {
+                "aAi": 20037,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3645,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        },
+        "2542": {
+          "payload": {
+            "czg": 1,
+            "d": 2542,
+            "gBN": [
+              {
+                "aAi": 20035,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 3646,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          },
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+        }
+      },
+      "script_sources": {
+        "2479": "e2662c28a173649c9425666e3cfeeb5eb57a892332aef8fedf7418509f78447b",
+        "2480": "e973b06e0a2f74ed0b6d75a313fd7db44f28a4e6d2b562a69ff539be29bcc86b",
+        "2481": "606e86364202337e58694d5cf152b47fd07ded5bf44a291cd8e5c37ee58add96",
+        "2482": "adcf2246b46dfae8619a08644a9f2c0677df633ad3f71ed700644caf7bcd074f",
+        "2483": "65ff25da90cae6ce8604fb94def7516d348c0f0e56fa54b468489f764431ead3"
+      }
+    }
+  ]
+}

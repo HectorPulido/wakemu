@@ -1,0 +1,94 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 948,
+  "scenario_id": 1966,
+  "lua_sha256": "f56abe0f196a016798efbfdcc653cd467726c7a6fc3ac17362dfda52ad7d95d2",
+  "objects": [],
+  "scenario_events": [
+    15698,
+    15692,
+    15787,
+    15693,
+    15704,
+    15694,
+    15699,
+    15700,
+    15701,
+    15702
+  ],
+  "scenes": {
+    "15699": {
+      "argument_count": 1,
+      "duration_ms": 20000,
+      "callback": 15700
+    }
+  },
+  "event_signatures": {
+    "15698": {
+      "argument_count": 0
+    },
+    "15692": {
+      "argument_count": 0
+    },
+    "15787": {
+      "argument_count": 0
+    },
+    "15693": {
+      "argument_count": 0
+    },
+    "15704": {
+      "argument_count": 0
+    },
+    "15694": {
+      "argument_count": 0
+    },
+    "15699": {
+      "argument_count": 1
+    },
+    "15700": {
+      "argument_count": 0
+    },
+    "15701": {
+      "argument_count": 1
+    },
+    "15702": {
+      "argument_count": 1
+    }
+  },
+  "programs": {},
+  "loot_tables": {},
+  "native_scripts": {},
+  "argument_sources": {
+    "15699": {
+      "story_npcs": {
+        "story_npc:3588": 3588
+      }
+    }
+  },
+  "presentation_quests": {
+    "15699": 2542
+  },
+  "presentation_groups": [
+    {
+      "id": "kelba-hideout-hadibal",
+      "start_event": 15699,
+      "initializers": {
+        "1966": 15699
+      },
+      "events": [
+        15699,
+        15700
+      ]
+    }
+  ],
+  "reviewed_stage_positions": {
+    "15700": {
+      "position": [
+        10,
+        1,
+        0
+      ],
+      "authority": "Reviewed original Sm6 floor beside Hadibal; actual Lua19s player endpoint9,2,0 is not a native walkable surface, so finish uses ordinary authoritative floor CAS after native endCine."
+    }
+  }
+}

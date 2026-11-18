@@ -1,0 +1,94 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1005,
+  "scenario_id": 2044,
+  "objects": [
+    {
+      "chunk": "-1_-1",
+      "id": 25501,
+      "payload_hex": "02000000000b010000000d00000103edfffffffbfffffff5000000010100010000000000043135323100000000000101",
+      "x": -5.0,
+      "y": -11.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 25503,
+      "payload_hex": "02000000000b010000000d00000103edfffffffdfffffffa000000010100010000000000043135323100000000000101",
+      "x": -3.0,
+      "y": -6.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 25543,
+      "payload_hex": "02000000000b010000000d00000103edfffffffcfffffff3000000010101010008000000043230353200000000000000",
+      "x": -4.0,
+      "y": -13.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 25505,
+      "payload_hex": "02000000000b010000000d00000103edfffffffbfffffffe000000010100010000000000043135323100000000000101",
+      "x": -5.0,
+      "y": -2.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_-1",
+      "id": 25502,
+      "payload_hex": "02000000000b010000000d00000103ed00000003fffffff5000000010100010000000000043135323100000000000101",
+      "x": 3.0,
+      "y": -11.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_-1",
+      "id": 25506,
+      "payload_hex": "02000000000b010000000d00000103ed00000003fffffffe000000010100010000000000043135323100000000000101",
+      "x": 3.0,
+      "y": -2.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_-1",
+      "id": 25504,
+      "payload_hex": "02000000000b010000000d00000103ed00000001fffffff9000000010100010000000000043135323100000000000101",
+      "x": 1.0,
+      "y": -7.0,
+      "map_id": 1005,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    }
+  ],
+  "programs": {},
+  "scenario_events": [],
+  "scenes": {},
+  "event_signatures": {},
+  "presentations": [],
+  "version_boundary": {
+    "policy": "reviewed-original-urgent-roster-v1",
+    "evidence": "Reviewed urgent2708 reconstruction: original public1134 source25481/descriptor959/action0/effect2410 has literal3000ms occupation and original coordinate entry1005(-7,-9,0),direction7. Actual1005 Sm6 floor and25543/3984 native free exit retained. MethodWakfu Chapter2 section12 identifies CrazyLarva3813(50HP) plus two weakened spectral3835(101HP). Two native3813 plus exactly two3835 is explicit reviewed formation because original server count/placement was not recovered; original grades,stats,states,abilities and summon/death programs remain untouched. A genuine owned terminal victory alone earns5343; entry,movement,retreat and unrelated kills do not. Original2044 event bodies are empty and their direct map association was not recovered, so no callback/movie authority is fabricated.",
+    "unused_scenario": "2044 empty original callbacks retained as investigation provenance only"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "ereboria-cire-1366",
+  "map_id": 1366,
+  "provenance": "Reviewed reconstruction of5059 final confrontation on actual1366, reached only through original33814/4558 after10466. Native5357 is original Cire Momore230 with98,765,432HP and initiative1000; all native spells/states/statistics stay unchanged. The single-original-boss formation, position and door-to-encounter join are reviewed reconstruction, not serialized original server composition. Actual33379/1489/1908/effect3375 opens the real door; only authenticated settled defeat caused by this original5357 native917 lethal effect earns10539. A withdrawal, early death, summon, ordinary unrelated defeat or intervention5416/5417 does not. No2528 presentation or scenario-map association is invented. Final10540 is the separate original Cyross return branch.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "cire-door-open"
+      ],
+      "bounds": [
+        -10,
+        -26,
+        15,
+        -12
+      ],
+      "z": 0,
+      "arena_seed": [
+        4,
+        -14,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 5357,
+          "count": 1,
+          "role": "boss"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "ereboria-cire-original5357",
+        "authority": "Reviewed original5357 confrontation position on real1366floor, native combat unchanged",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/ereboria-cire-1366.native.v1.json",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 5357,
+            "occurrence": 0,
+            "cell": [
+              4,
+              -20,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/ereboria-cire-1366.native.v1.json",
+              "sha256": "72aa195371ac0f8f1400b10f8030093d556e605692aedad8be6640e262d7be12"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

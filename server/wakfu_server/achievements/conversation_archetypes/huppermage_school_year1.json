@@ -1,0 +1,278 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "PRIVATE reviewed School year1 NPC continuation; not a publication. Preserve live66 source, all native definitions and rewards. No admission from visibility or talk substitutes for bed, night victory, seed challenge or Sureberry final victory.",
+  "speakers": [
+    {
+      "actor_id": -2251799934952776,
+      "action_id": 722,
+      "quest_ids": [
+        2777,
+        2780
+      ],
+      "placement": {
+        "quest_id": 2776,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934952776,
+          "reference_id": 3913,
+          "map_id": 1018,
+          "instance_id": 0,
+          "x": 1,
+          "y": -3,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 3309,
+          "action_ids": [
+            722
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED CURRENT-VERSION RECONSTRUCTION of native registrar3913/action722/root3309 near actual school-entry25675 destination1018(0,0,0). Original2776 waypoint1017(-8,-51,-68) is retained only as native definition evidence, not an asserted reachable actor placement. Native running/objective/item predicates are unchanged."
+        },
+        "interaction_anchor": {
+          "x": 0,
+          "y": -3,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Actual installed native1018 geometry52c1a0feeb8bb9d17c0eceebf92f80a734d23ba808eaed782c35bdae07237b52: directed floor path from native25675 destination(0,0,0) via(0,-1,0),(0,-2,0) to anchor(0,-3,0) and actor(1,-3,0), proven in school-registrar1018-arrival-native-floor.json. Explicit reviewed version relocation; no captured original NPC placement claim.",
+        "graph": [
+          [
+            3309,
+            8177,
+            0
+          ],
+          [
+            3309,
+            8182,
+            0
+          ],
+          [
+            3309,
+            8179,
+            0
+          ]
+        ]
+      },
+      "objectives": [
+        {
+          "quest_id": 2777,
+          "objective_id": 5598,
+          "node_id": 3309,
+          "choice_id": 8207,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2780,
+          "objective_id": 5634,
+          "node_id": 3309,
+          "choice_id": 8216,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            5644,
+            5645,
+            5609,
+            5610
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3309,
+          8207,
+          3316
+        ],
+        [
+          3316,
+          8208,
+          3318
+        ],
+        [
+          3318,
+          8211,
+          0
+        ],
+        [
+          3309,
+          8216,
+          3321
+        ],
+        [
+          3321,
+          8217,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934952778,
+      "action_id": 724,
+      "quest_ids": [
+        2777,
+        2778
+      ],
+      "placement": {
+        "quest_id": 2778,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934952778,
+          "reference_id": 3916,
+          "map_id": 1018,
+          "instance_id": 0,
+          "x": 35,
+          "y": -35,
+          "z": -15,
+          "direction": 3,
+          "dialogue_root": 3311,
+          "action_ids": [
+            724
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION. NativeJanine3916/action724/root3311 and2777 objective5601 marker35,-35,-15 retained; actual native world-player Sm6/0/4 reaches adjacent anchor34,-35,-15. No captured original actor coordinate claim."
+        },
+        "interaction_anchor": {
+          "x": 34,
+          "y": -35,
+          "z": -15
+        },
+        "interaction_anchor_evidence": "Actual native world-player Sm6/0/4 geometry reaches anchor34,-35,-15 from original school entry(0,0,0). Topology46423fabf9b1a858e66da7d81e5e00a09b794635ed1d665f8d0e533a12e41362; checked-in world-floor-proof retains exact actor profile and directed path. Actor marker35,-35,-15 remains blocked as a visual NPC cell; it is not a walking destination. Prepared combat Sm3 geometry is not player exploration authority.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2777,
+          "objective_id": 5601,
+          "node_id": 3311,
+          "choice_id": 8213,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2777,
+          "objective_id": 5602,
+          "node_id": 3319,
+          "choice_id": 8214,
+          "archetype": "deliver",
+          "remaining_objective": true,
+          "required_objectives": [
+            5652,
+            5597,
+            5598,
+            5601
+          ]
+        },
+        {
+          "quest_id": 2778,
+          "objective_id": 5599,
+          "node_id": 3311,
+          "choice_id": 8184,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2778,
+          "objective_id": 5604,
+          "node_id": 3311,
+          "choice_id": 8187,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            5599,
+            5670,
+            5600,
+            5603
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3311,
+          8213,
+          3319
+        ],
+        [
+          3311,
+          8360,
+          3319
+        ],
+        [
+          3319,
+          8214,
+          0
+        ],
+        [
+          3319,
+          8212,
+          0
+        ],
+        [
+          3311,
+          8184,
+          3312
+        ],
+        [
+          3311,
+          8359,
+          3312
+        ],
+        [
+          3312,
+          8197,
+          3313
+        ],
+        [
+          3313,
+          8201,
+          3312
+        ],
+        [
+          3312,
+          8200,
+          0
+        ],
+        [
+          3311,
+          8186,
+          3314
+        ],
+        [
+          3314,
+          8202,
+          0
+        ],
+        [
+          3311,
+          8187,
+          3315
+        ],
+        [
+          3315,
+          8203,
+          0
+        ],
+        [
+          3311,
+          8189,
+          0
+        ],
+        [
+          3312,
+          8198,
+          0
+        ]
+      ],
+      "native_marker": {
+        "quest_id": 2777,
+        "objective_id": 5601
+      },
+      "choice_routes": [
+        {
+          "node_id": 3312,
+          "choice_id": 8198,
+          "route": "quest-npc-1018-3916-724-3312-8198",
+          "evidence": "Actual offered native seed-challenge choice enters the scoped greenhouse through original3916/action724, current native marker and valid world-player anchor. Admission does not grant5670; the real native3907 construction, plant form, movement and collect victory remain mandatory."
+        }
+      ]
+    }
+  ],
+  "activation_links": []
+}

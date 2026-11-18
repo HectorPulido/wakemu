@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "id": "frigost-story-followups",
+  "evidence": [
+    "Finite reviewed Frigost level100 initial story. Native level100/notRunning1109 admits Cold Calling on actual character-ready; the authenticated native boat arrival may also admit that same introduction before its real arrival objective. Subsequent chapters require actual completed predecessors, preserving every native earning criterion and all existing Bill behavior. No item supply or physical outcome is inferred from a quest title."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "frigost-reviewed-cold-calling-ready",
+      "quest_id": 1229,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 100,
+      "admission_evidence": "Reviewed Frigost level100 island introduction, corroborated by native1229 earning GetRealLevel>=100&&!IsAchievementRunning1109. No actual arrival is credited without its separate authenticated boat producer."
+    },
+    {
+      "id": "frigost-native-boat-introduction",
+      "quest_id": 1229,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 18259
+      }
+    },
+    {
+      "id": "frigost-earned-1229-1109",
+      "quest_id": 1109,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1229
+      },
+      "requires_completed": [
+        1229
+      ]
+    },
+    {
+      "id": "frigost-earned-1109-1224",
+      "quest_id": 1224,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1109
+      },
+      "requires_completed": [
+        1109
+      ]
+    },
+    {
+      "id": "frigost-earned-1224-1226",
+      "quest_id": 1226,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1224
+      },
+      "requires_completed": [
+        1224
+      ]
+    },
+    {
+      "id": "frigost-earned-1226-1227",
+      "quest_id": 1227,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1226
+      },
+      "requires_completed": [
+        1226
+      ]
+    },
+    {
+      "id": "frigost-earned-1227-1110",
+      "quest_id": 1110,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1227
+      },
+      "requires_completed": [
+        1227
+      ]
+    },
+    {
+      "id": "frigost-earned-1110-1111",
+      "quest_id": 1111,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1110
+      },
+      "requires_completed": [
+        1110
+      ]
+    }
+  ]
+}

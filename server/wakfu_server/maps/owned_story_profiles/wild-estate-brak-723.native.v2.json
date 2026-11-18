@@ -1,0 +1,679 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 723,
+  "objects": [
+    {
+      "x": 3.0,
+      "y": -18.0,
+      "z": 1.0,
+      "id": 20428,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000003ffffffee0001000101010100400000000332323400000000000101"
+    },
+    {
+      "x": 1.0,
+      "y": -25.0,
+      "z": 0.0,
+      "id": 20429,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-2",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000001ffffffe70000000101000100000000000000000000000101"
+    },
+    {
+      "x": 3.0,
+      "y": -25.0,
+      "z": 0.0,
+      "id": 20430,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-2",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000003ffffffe70000000101000100000000000000000000000101"
+    },
+    {
+      "x": 2.0,
+      "y": -25.0,
+      "z": 0.0,
+      "id": 20431,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-2",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000002ffffffe70000000101000100000000000000000000000101"
+    },
+    {
+      "x": 12.0,
+      "y": -8.0,
+      "z": 0.0,
+      "id": 20460,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d30000000cfffffff80000000101010100080000000332323700000000000101"
+    },
+    {
+      "x": 10.0,
+      "y": -8.0,
+      "z": 0.0,
+      "id": 20521,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d30000000afffffff80000000101010100080000000332333200000000000101"
+    },
+    {
+      "x": 9.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20658,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-1",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d300000009fffffffc00000001010101000800000004313331340000003baf0001"
+    },
+    {
+      "x": -2.0,
+      "y": -38.0,
+      "z": 0.0,
+      "id": 20659,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-3",
+      "map_id": 723,
+      "payload_hex": "02000000000b010000000d00000102d3fffffffeffffffda00000001010101003d0000000332333400000000000101"
+    }
+  ],
+  "scenario_id": 1650,
+  "scenario_events": [
+    13127,
+    19851,
+    13132
+  ],
+  "scenes": {
+    "19851": {
+      "argument_count": 0,
+      "duration_ms": 6000,
+      "callback": 13132
+    }
+  },
+  "event_signatures": {
+    "13127": {
+      "argument_count": 0
+    },
+    "19851": {
+      "argument_count": 0
+    },
+    "13132": {
+      "argument_count": 0
+    }
+  },
+  "programs": {
+    "20428": {
+      "native_class": "aLl",
+      "descriptor_id": 224,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 249,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 249,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 474,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(1677) and IsAchievementObjectiveComplete(3105) and IsAchievementObjectiveComplete(3106) and IsAchievementObjectiveComplete(3108)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20460": {
+      "native_class": "aLl",
+      "descriptor_id": 227,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 253,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 3000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 253,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 478,
+                  "effect_type": 4,
+                  "criterion": "IsAchievementRunning(1677) and IsAchievementObjectiveComplete(3105) and IsAchievementObjectiveComplete(3106) and not IsAchievementObjectiveComplete(3108)",
+                  "parameters": [
+                    "2352"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20521": {
+      "native_class": "aLl",
+      "descriptor_id": 232,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 259,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 259,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 482,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20659": {
+      "native_class": "aLl",
+      "descriptor_id": 234,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 261,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 261,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 483,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(1677) and IsAchievementObjectiveComplete(3107) and not IsAchievementObjectiveComplete(3109)",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "474": {
+      "present": false,
+      "sha256": null
+    },
+    "482": {
+      "present": true,
+      "sha256": "9be0ef85cfe540ea8abbc842444c02ee8dc16693c823fea6ff23d8a26903e1fd"
+    },
+    "483": {
+      "present": true,
+      "sha256": "478ca36759e95c3ac89c55c31e4de2917a1e95642773aa624f89058422a672c6"
+    }
+  },
+  "teleporters": {
+    "20658": {
+      "x": 9.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20658,
+      "map_id": 723,
+      "destinations": [
+        {
+          "x": 9,
+          "y": -3,
+          "z": 0,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 714,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 1443,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 8,
+      "definition_id": 1314,
+      "native_parameters": "1314",
+      "approach_positions": [
+        {
+          "x": 9,
+          "y": -3,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {
+    "20428": [
+      [
+        2,
+        -17,
+        0
+      ]
+    ],
+    "20460": [
+      [
+        12,
+        -7,
+        0
+      ]
+    ],
+    "20521": [
+      [
+        10,
+        -7,
+        0
+      ]
+    ],
+    "20659": [
+      [
+        -2,
+        -39,
+        0
+      ],
+      [
+        -1,
+        -39,
+        0
+      ],
+      [
+        -1,
+        -38,
+        0
+      ],
+      [
+        -2,
+        -37,
+        0
+      ],
+      [
+        -1,
+        -37,
+        0
+      ]
+    ]
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1650.lua": "8ba8c9c759a33e7425c8ee4809d7e5f513dd90332880f205c63ef4dec297ad8f"
+  },
+  "presentations": [
+    13127,
+    19851
+  ],
+  "presentation_quests": {
+    "13127": 1623,
+    "19851": 1677
+  },
+  "loot_tables": {
+    "2352": {
+      "czg": 1,
+      "d": 2352,
+      "gBN": [
+        {
+          "aAi": 17822,
+          "bfh": 1,
+          "cmY": 1.0,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "IsAchievementRunning(1677) and GetItemQuantity(17822) <= 0",
+          "czl": 0,
+          "d": 2885,
+          "gBO": [],
+          "native_class": "fFe"
+        }
+      ],
+      "native_class": "fFc"
+    },
+    "2355": {
+      "czg": 1,
+      "d": 2355,
+      "gBN": [
+        {
+          "aAi": 17820,
+          "bfh": 1,
+          "cmY": 0.142284426545394,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "IsAchievementRunning(1677) and not IsAchievementObjectiveComplete(3105)",
+          "czl": 0,
+          "d": 2888,
+          "gBO": [],
+          "native_class": "fFe"
+        },
+        {
+          "aAi": 17839,
+          "bfh": 1,
+          "cmY": 0.214966309136492,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "",
+          "czl": 0,
+          "d": 2889,
+          "gBO": [],
+          "native_class": "fFe"
+        },
+        {
+          "aAi": 17840,
+          "bfh": 1,
+          "cmY": 0.279456201877441,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "",
+          "czl": 0,
+          "d": 2890,
+          "gBO": [],
+          "native_class": "fFe"
+        },
+        {
+          "aAi": 17841,
+          "bfh": 1,
+          "cmY": 0.363293062440672,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "",
+          "czl": 0,
+          "d": 2891,
+          "gBO": [],
+          "native_class": "fFe"
+        }
+      ],
+      "native_class": "fFc"
+    }
+  },
+  "presentation_groups": [
+    {
+      "id": "wild-staff-model-1650",
+      "start_event": 19851,
+      "initializers": {
+        "1650": 19851
+      },
+      "events": [
+        19851
+      ]
+    }
+  ],
+  "harvest_getter_proofs": {
+    "1343": {
+      "schema": "bounded-original-aNn-harvest-loot-v1",
+      "resource_reference": 542,
+      "stage": 1,
+      "action_id": 1343,
+      "native_class": "aNn",
+      "native_loot_getter": "csO",
+      "native_loot_field": "eob",
+      "loot_table": 2355,
+      "csN": 209,
+      "csP": 0,
+      "product_references": [
+        17820,
+        17841,
+        17839,
+        17840
+      ],
+      "probe_source": "ProbeWildDigHarvest.java",
+      "probe_source_sha256": "4a28e9f836d92190a56d057ec0e2f4525a02fb57d25f05cab53dee53caab7c68",
+      "bytecode": "wild-resource-aNn.javap.txt",
+      "bytecode_sha256": "52bb20b5c30fbe8b014dec8f5ee192a45caa3a6db10a70afe9b5f668bc6ddb54",
+      "export_gap": "ExportPlantResources.java exports csN/csP/cvJ but omitted csO."
+    }
+  },
+  "resource_slots": {
+    "schema": "quest-resource-slots-v1",
+    "id": "wild-staff-dig-723",
+    "provenance": "Reviewed reconstruction of native Wild Estate1677: real resource542 action1343 has original aNn.csO loot2355 and2000ms occupation; original native probabilities and products are retained. Six finite East dig placements use connected native723 Sm6 floor and are reconstructed, not captured. Real native2779 kills produce three17851 fragments, native5160 merges three into17821. Actual workshop20460/478 produces17822 after real inputs17820/17821; actual model20428 consumes staff before original1650/19851 and13132 presentation. Actual skeleton-chief2793 victory opens native20429/20430/20431 before note20659 credits3109. Original boss placement/formation and item-input settlement joins are explicitly reviewed server reconstruction. No walk proximity, client callback or ordinary unrelated win grants components or quest completion.",
+    "map_id": 723,
+    "quest_id": 1677,
+    "objective_id": 3105,
+    "resource_actions": [
+      {
+        "resource_reference": 542,
+        "stage": 1,
+        "action_id": 1343,
+        "resource_sha256": "ef21be7a07a6fb77893c905ee71240ee99fce9d6bb39e20dab94b938b2e613e6",
+        "action_sha256": "8551eaacd1aa0415d1e2c18905641e57384c0187e8f325928fa2ca818e8c2aa9",
+        "native_loot": {
+          "table_id": 2355,
+          "native_getter": "aNn.csO",
+          "source_sha256": "10643485d76046280e8961e3f4a507d3d456e56144ed80e0f29c45aa0ae2d684"
+        }
+      }
+    ],
+    "placements": [
+      {
+        "resource_uid": 1,
+        "resource_reference": 542,
+        "position": [
+          22,
+          -5,
+          0
+        ],
+        "approach": [
+          21,
+          -5,
+          0
+        ]
+      },
+      {
+        "resource_uid": 2,
+        "resource_reference": 542,
+        "position": [
+          24,
+          -5,
+          0
+        ],
+        "approach": [
+          23,
+          -5,
+          0
+        ]
+      },
+      {
+        "resource_uid": 3,
+        "resource_reference": 542,
+        "position": [
+          22,
+          -7,
+          0
+        ],
+        "approach": [
+          21,
+          -7,
+          0
+        ]
+      },
+      {
+        "resource_uid": 4,
+        "resource_reference": 542,
+        "position": [
+          24,
+          -7,
+          0
+        ],
+        "approach": [
+          23,
+          -7,
+          0
+        ]
+      },
+      {
+        "resource_uid": 5,
+        "resource_reference": 542,
+        "position": [
+          22,
+          -9,
+          0
+        ],
+        "approach": [
+          21,
+          -9,
+          0
+        ]
+      },
+      {
+        "resource_uid": 6,
+        "resource_reference": 542,
+        "position": [
+          24,
+          -9,
+          0
+        ],
+        "approach": [
+          23,
+          -9,
+          0
+        ]
+      }
+    ],
+    "replenishment": "reviewed_immediate_after_native_depletion",
+    "geometry_sha256": "c33b544eaba50fc8c763847a5c75aa37fda9f3e6912e437ca6e19a189d5b8815",
+    "loot_tables": {
+      "2355": {
+        "czg": 1,
+        "d": 2355,
+        "gBN": [
+          {
+            "aAi": 17820,
+            "bfh": 1,
+            "cmY": 0.142284426545394,
+            "cqA": false,
+            "cqy": 1,
+            "cqz": 1,
+            "csE": 1,
+            "czk": "IsAchievementRunning(1677) and not IsAchievementObjectiveComplete(3105)",
+            "czl": 0,
+            "d": 2888,
+            "gBO": [],
+            "native_class": "fFe"
+          },
+          {
+            "aAi": 17839,
+            "bfh": 1,
+            "cmY": 0.214966309136492,
+            "cqA": false,
+            "cqy": 1,
+            "cqz": 1,
+            "csE": 1,
+            "czk": "",
+            "czl": 0,
+            "d": 2889,
+            "gBO": [],
+            "native_class": "fFe"
+          },
+          {
+            "aAi": 17840,
+            "bfh": 1,
+            "cmY": 0.279456201877441,
+            "cqA": false,
+            "cqy": 1,
+            "cqz": 1,
+            "csE": 1,
+            "czk": "",
+            "czl": 0,
+            "d": 2890,
+            "gBO": [],
+            "native_class": "fFe"
+          },
+          {
+            "aAi": 17841,
+            "bfh": 1,
+            "cmY": 0.363293062440672,
+            "cqA": false,
+            "cqy": 1,
+            "cqz": 1,
+            "csE": 1,
+            "czk": "",
+            "czl": 0,
+            "d": 2891,
+            "gBO": [],
+            "native_class": "fFe"
+          }
+        ],
+        "native_class": "fFc"
+      }
+    }
+  }
+}

@@ -32,11 +32,21 @@ def policy(store):
 
 
 def _evaluate(
-    store, criterion, *, character, destination_map_id=None, minimum_enforced
+    store,
+    criterion,
+    *,
+    character,
+    destination_map_id=None,
+    minimum_enforced,
+    mission_free=False
 ):
     from wakfu_server.maps import dungeon_achievement_authority, dungeon_criteria
 
-    selected = policy(store)
+    selected = dict(policy(store))
+    if type(mission_free) is not bool:
+        raise ValueError("Invalid owned physical-entry mission policy")
+    if mission_free:
+        selected["bypass_mission_prerequisites"] = True
     authority = None
     if not selected["bypass_mission_prerequisites"] and any(
         name in criterion
@@ -70,6 +80,22 @@ def evaluate(store, criterion, *, character, destination_map_id=None):
         character=character,
         destination_map_id=destination_map_id,
         minimum_enforced=minimum_enforced,
+    )
+
+
+def evaluate_owned_visit(store, criterion, *, character, destination_map_id):
+    """Waive only quest presence for an already qualified owned content route."""
+    from .instance_entry_level import enforced
+
+    with store.connection() as db:
+        minimum_enforced = enforced(db)
+    return _evaluate(
+        store,
+        criterion,
+        character=character,
+        destination_map_id=destination_map_id,
+        minimum_enforced=minimum_enforced,
+        mission_free=True,
     )
 
 

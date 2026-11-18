@@ -55,6 +55,16 @@ def award_item_xp(store, db, account_id, generation, character_id, amount):
             # Inventory actions retain this character for future bootstraps.
             updated = store.character(account_id, character_id, db)
 
+    if character["level"] < level:
+        from wakfu_server.achievements import mission_character_events
+
+        mission_packets.extend(
+            mission_character_events.level_changed(
+                db, store, updated, character["level"]
+            )
+        )
+        updated = store.character(account_id, character_id, db)
+
     return {
         "character": updated,
         "packets": [outside_progression(updated), *mission_packets],

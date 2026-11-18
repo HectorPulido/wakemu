@@ -1,0 +1,65 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 715,
+  "scenario_id": 1651,
+  "objects": [
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 20538,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 715,
+      "payload_hex": "02000000000b010000000d00000102cb00000000000000000000000101010100000001000000000000000000000004313239360000003baf0001"
+    }
+  ],
+  "scenario_events": [],
+  "scenes": {},
+  "event_signatures": {},
+  "programs": {},
+  "native_scripts": {},
+  "teleporters": {
+    "20538": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 20538,
+      "map_id": 715,
+      "destinations": [
+        {
+          "x": -28,
+          "y": -104,
+          "z": -79,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 1419,
+          "item_reference": 0,
+          "arrival_heights": [
+            -79
+          ],
+          "display_reference": 121,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1296,
+      "native_parameters": "1296",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {},
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1651.lua": "8db95482bbf4b8aa89366ee936230eb451c31ec3405ed4f91a23993dae150b37"
+  }
+}

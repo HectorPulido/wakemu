@@ -1,0 +1,1185 @@
+{
+  "schema": "native-bworkball-sources-v1",
+  "authority": "Original client prototypes and source-qualified933/307 books; former export checks reused, not gameplay evidence.",
+  "client_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+  "archive_sha256": "ea30acca7423ca0c5c21615fb1c1bd36b9bceb7090b098272a3c41017ccaeec8",
+  "constructors": {
+    "2780": {
+      "profile_id": 2780,
+      "abilities": [
+        {
+          "maximum_level": 200,
+          "casting_uid": 4025,
+          "reference": 4025,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4026,
+          "reference": 4026,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        13,
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2781": {
+      "profile_id": 2781,
+      "abilities": [
+        {
+          "maximum_level": 200,
+          "casting_uid": 4024,
+          "reference": 4024,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        13,
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2782": {
+      "profile_id": 2782,
+      "abilities": [
+        {
+          "maximum_level": 200,
+          "casting_uid": 4026,
+          "reference": 4026,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4023,
+          "reference": 4023,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4043,
+          "reference": 4043,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4045,
+          "reference": 4045,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        13,
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2783": {
+      "profile_id": 2783,
+      "abilities": [],
+      "initial_state_triples": [],
+      "fight_properties": [
+        15,
+        54
+      ],
+      "world_properties": [
+        13,
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2789": {
+      "profile_id": 2789,
+      "abilities": [
+        {
+          "maximum_level": 200,
+          "casting_uid": 4044,
+          "reference": 4044,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4024,
+          "reference": 4024,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4026,
+          "reference": 4026,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2790": {
+      "profile_id": 2790,
+      "abilities": [
+        {
+          "maximum_level": 200,
+          "casting_uid": 4025,
+          "reference": 4025,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4026,
+          "reference": 4026,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4044,
+          "reference": 4044,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2791": {
+      "profile_id": 2791,
+      "abilities": [
+        {
+          "maximum_level": 200,
+          "casting_uid": 4023,
+          "reference": 4023,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4026,
+          "reference": 4026,
+          "override_level": -1
+        },
+        {
+          "maximum_level": 200,
+          "casting_uid": 4044,
+          "reference": 4044,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "actual_owned_roster_seed -> bbo/blj; bPq descriptor minimum-HP source; native bPD verified"
+    },
+    "2784": {
+      "profile_id": 2784,
+      "abilities": [
+        {
+          "reference": 4025,
+          "casting_uid": 4025,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4026,
+          "casting_uid": 4026,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4023,
+          "casting_uid": 4023,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4024,
+          "casting_uid": 4024,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4027,
+          "casting_uid": 4027,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4028,
+          "casting_uid": 4028,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4029,
+          "casting_uid": 4029,
+          "maximum_level": 200,
+          "override_level": -1
+        },
+        {
+          "reference": 4044,
+          "casting_uid": 4044,
+          "maximum_level": 200,
+          "override_level": -1
+        }
+      ],
+      "initial_state_triples": [],
+      "fight_properties": [],
+      "world_properties": [
+        7
+      ],
+      "minimum_level": 50,
+      "descriptor_initial_hp": 1000,
+      "native_profile_name": "",
+      "authority": "native933 slot0 class morphology dependency -> bbo/blj.dvR; exact big.a bPO constructor level/referenceUID verified"
+    }
+  },
+  "monsters": {
+    "2780": {
+      "ref": 2780,
+      "name": "Pasador",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          13,
+          7
+        ]
+      },
+      "sprite_id": 158402780,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4025
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4026
+        }
+      ],
+      "loot_definitions": []
+    },
+    "2781": {
+      "ref": 2781,
+      "name": "Bloqueador",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          13,
+          7
+        ]
+      },
+      "sprite_id": 158402781,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4024
+        }
+      ],
+      "loot_definitions": []
+    },
+    "2782": {
+      "ref": 2782,
+      "name": "Recibidor",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          13,
+          7
+        ]
+      },
+      "sprite_id": 158402782,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4026
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4023
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4043
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4045
+        }
+      ],
+      "loot_definitions": []
+    },
+    "2783": {
+      "ref": 2783,
+      "name": "Bworkbola",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 2,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [
+          15,
+          54
+        ],
+        "csc": [
+          13,
+          7
+        ]
+      },
+      "sprite_id": 100201515,
+      "illustration_id": 100201517,
+      "native_abilities": [],
+      "loot_definitions": []
+    },
+    "2784": {
+      "ref": 2784,
+      "name": "Bworkbolero",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 3,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          7
+        ]
+      },
+      "sprite_id": 10,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4025
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4026
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4023
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4024
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4027
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4028
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4029
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4044
+        }
+      ],
+      "loot_definitions": []
+    },
+    "2789": {
+      "ref": 2789,
+      "name": "Bloqueador",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          7
+        ]
+      },
+      "sprite_id": 158402789,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4044
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4024
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4026
+        }
+      ],
+      "loot_definitions": []
+    },
+    "2790": {
+      "ref": 2790,
+      "name": "Pasador",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          7
+        ]
+      },
+      "sprite_id": 158402790,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4025
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4026
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4044
+        }
+      ],
+      "loot_definitions": []
+    },
+    "2791": {
+      "ref": 2791,
+      "name": "Recibidor",
+      "family_id": 587,
+      "min_level": 50,
+      "max_level": 50,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [],
+        "csc": [
+          7
+        ]
+      },
+      "sprite_id": 158402791,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4023
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4026
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4044
+        }
+      ],
+      "loot_definitions": []
+    }
+  },
+  "form": {
+    "state_id": 2338,
+    "state_sha256": "be6416b1e279c615e70f3033da59b2306ede475f0f89a63d2242cd6821def35f",
+    "effect_reference": 105570,
+    "effect_sha256": "c144cc5dae25a0201796999635243ebeaadfc04982fbab23b8bec72882aee9bc",
+    "profile_reference": 2784
+  },
+  "areas": {
+    "625": {
+      "type": "GLYPH",
+      "visual": [
+        "",
+        "",
+        "800291",
+        ""
+      ],
+      "raw_bcR": false,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 625,
+      "effect_ids": [],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [
+        10001
+      ],
+      "native_class": "bcT",
+      "maximum_level": 0,
+      "native_type_id": 0,
+      "characteristics": [],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "626": {
+      "type": "GLYPH",
+      "visual": [
+        "",
+        "",
+        "800290",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": true,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 626,
+      "effect_ids": [],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [
+        10001
+      ],
+      "native_class": "bcT",
+      "maximum_level": 0,
+      "native_type_id": 0,
+      "characteristics": [],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    },
+    "635": {
+      "type": "GLYPH",
+      "visual": [
+        "",
+        "",
+        "",
+        ""
+      ],
+      "raw_bcR": true,
+      "raw_bcS": false,
+      "raw_bde": -1,
+      "raw_bdf": 0,
+      "raw_bdg": [],
+      "raw_bdh": [],
+      "raw_bdi": false,
+      "raw_ckz": false,
+      "shape_id": 1,
+      "reference": 635,
+      "effect_ids": [],
+      "exit_masks": [],
+      "properties": [],
+      "entry_masks": [],
+      "native_class": "bcT",
+      "maximum_level": 0,
+      "native_type_id": 0,
+      "characteristics": [
+        4
+      ],
+      "shape_parameters": [],
+      "native_shape_class": "anD",
+      "native_hour_contract": false,
+      "native_container_type": 3,
+      "native_area_properties": [
+        4
+      ],
+      "native_fight_properties": [],
+      "native_shape_description": "point"
+    }
+  },
+  "spells": {
+    "4023": {
+      "casting_sha256": "122c20b4a6fd790e953bd2559ebc24bc43d7aad66d4169d8f0dac80ad417ee95",
+      "tree_sha256": "c53242f23c143ba2bc28da894bddf4a0d474556d72bd408dc91909f2156ee053",
+      "native_level": 50,
+      "costs": [
+        3,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        0
+      ],
+      "roots": [
+        105421
+      ],
+      "casting": {
+        "linear": true,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "",
+        "cast_criterion_native_present": false
+      }
+    },
+    "4024": {
+      "casting_sha256": "596dcefee0ec9fa07aa9d1014bc6a76fb57ae902b2b2464c683d03b5ef49b6c1",
+      "tree_sha256": "cd6715be8b6adb1d20b71ff5c828290a6e95a5742a6ca096d75fd7ddeac00249",
+      "native_level": 50,
+      "costs": [
+        3,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        1
+      ],
+      "roots": [
+        105422
+      ],
+      "casting": {
+        "linear": true,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "",
+        "cast_criterion_native_present": false
+      }
+    },
+    "4025": {
+      "casting_sha256": "4e7be94442fff4f0cfa39c329546d3df43d6864ba2e65a65293d0abd8cd087a7",
+      "tree_sha256": "10b814b3927a0a7edcf5ae3c65382d7c9ca4a21e6cb4bb93837389d363aa9272",
+      "native_level": 50,
+      "costs": [
+        3,
+        0,
+        0
+      ],
+      "range": [
+        2,
+        5
+      ],
+      "roots": [
+        105455,
+        106863,
+        106864,
+        105500
+      ],
+      "casting": {
+        "linear": false,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "HasFreeSurroundingCell()\r\nand not IsEnnemy()\r\nand not IsBreedId(\"target\", 2783)",
+        "cast_criterion_native_present": true
+      }
+    },
+    "4026": {
+      "casting_sha256": "1322de4ff1987e3c20cabb8ed32f63ec761dc1022d45147314b39c5268878dea",
+      "tree_sha256": "cff23142e005648f3110d298836d2e08d2bd569b116ba76c950043af0053632f",
+      "native_level": 50,
+      "costs": [
+        3,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        1
+      ],
+      "roots": [
+        105510,
+        107432
+      ],
+      "casting": {
+        "linear": false,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "IsBreedId(\"target\", 2783)",
+        "cast_criterion_native_present": true
+      }
+    },
+    "4027": {
+      "casting_sha256": "eb4801ca2053c47332f9b80c679064e1cd2d85e153742a4c93c58c30134dd1bb",
+      "tree_sha256": "5665a4f666debc15c83c50d67960077798020b1cf288818a71e011095fc50c6c",
+      "native_level": 50,
+      "costs": [
+        0,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        20
+      ],
+      "roots": [
+        105623,
+        105629,
+        105630
+      ],
+      "casting": {
+        "linear": false,
+        "diagonal": false,
+        "free_cell": true,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "GetAlliesCount() < 6\r\nand IsSpecificArea(635)",
+        "cast_criterion_native_present": true
+      }
+    },
+    "4028": {
+      "casting_sha256": "79336013047af2dea3dd7b365d9c72d3298da85ddd8de20d1818a3c70d88e5a1",
+      "tree_sha256": "1e1190b0cf12bb7ab6e0ae6c7e401f969c6fb73b0955cc933f47087dafc9c96f",
+      "native_level": 50,
+      "costs": [
+        0,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        20
+      ],
+      "roots": [
+        105625,
+        105631,
+        105632
+      ],
+      "casting": {
+        "linear": false,
+        "diagonal": false,
+        "free_cell": true,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "GetAlliesCount() < 6\r\nand IsSpecificArea(635)",
+        "cast_criterion_native_present": true
+      }
+    },
+    "4029": {
+      "casting_sha256": "a1ce3b12e2468ab0a42bbd0c42ca55a45e8c9caa0581f2273bfb7da720d2f1ca",
+      "tree_sha256": "564bee0a28e90ca4684a849f459439ac3ab0784282496f09b584004f55ddee42",
+      "native_level": 50,
+      "costs": [
+        0,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        20
+      ],
+      "roots": [
+        105627,
+        105633,
+        105634
+      ],
+      "casting": {
+        "linear": false,
+        "diagonal": false,
+        "free_cell": true,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": false,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "GetAlliesCount() < 6\r\nand IsSpecificArea(635)",
+        "cast_criterion_native_present": true
+      }
+    },
+    "4043": {
+      "casting_sha256": "0e68d178942b3cf5c63fe8ef9434565b7299cfbb317d5fdf4942f8ecdec908c4",
+      "tree_sha256": "696609f43c210b0c01105407a8f34eefddf67c44236c9f1f553bd011250a8ddd",
+      "native_level": 50,
+      "costs": [
+        0,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        20
+      ],
+      "roots": [
+        106814,
+        106827,
+        106828
+      ],
+      "casting": {
+        "linear": true,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": true,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "",
+        "cast_criterion_native_present": false
+      }
+    },
+    "4044": {
+      "casting_sha256": "4b338425a026a1156e325df7bf753464128f22c88c7e6318d330c5749e34481b",
+      "tree_sha256": "c9a9304275961efeeeefe052f26733e2446d8bc2ebb0d843bd120ee52bca9086",
+      "native_level": 50,
+      "costs": [
+        0,
+        0,
+        0
+      ],
+      "range": [
+        1,
+        1
+      ],
+      "roots": [
+        107034
+      ],
+      "casting": {
+        "linear": true,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": true,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "IsBreedId(\"target\", 2783)",
+        "cast_criterion_native_present": true
+      }
+    },
+    "4045": {
+      "casting_sha256": "d0f04664a5e277e3ff5c9fd9421362d7722819a5e25b3a0d1bdbb704bf615da2",
+      "tree_sha256": "b61df7d74c132d792e1d174e9a89abb52bc3946aadbfc4eb34057eae73b3d7ea",
+      "native_level": 50,
+      "costs": [
+        0,
+        0,
+        0
+      ],
+      "range": [
+        0,
+        0
+      ],
+      "roots": [
+        106850
+      ],
+      "casting": {
+        "linear": true,
+        "diagonal": false,
+        "free_cell": false,
+        "protected": false,
+        "allow_self": false,
+        "categories": [],
+        "conditional": [],
+        "forbid_QI_P": false,
+        "linear_path": true,
+        "path_option": false,
+        "line_of_sight": true,
+        "maximum_level": 200,
+        "range_modifiable": false,
+        "cast_criterion_raw": "IsOnSpecificEffectArea(\"caster\", 626)",
+        "cast_criterion_native_present": true
+      }
+    }
+  },
+  "terminals": {
+    "106824": {
+      "effect_sha256": "876ff511010175324b63e5c7bcbc3022ff4569e92062f0b4d10ed152c8d4f45b",
+      "effect_class": 28
+    },
+    "106850": {
+      "effect_sha256": "876ff511010175324b63e5c7bcbc3022ff4569e92062f0b4d10ed152c8d4f45b",
+      "effect_class": 28
+    }
+  }
+}

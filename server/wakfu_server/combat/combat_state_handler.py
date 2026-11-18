@@ -52,6 +52,9 @@ class NativeStateHandler:
         rng=None,
         state_spell_level=None,
         state_random=None,
+        native_actor_reference=None,
+        native_actor_real_level=None,
+        native_active_spell_roots=(),
     ):
         self.fight, self.packets, self.catalog = fight, packets, catalog
         from .combat_published_row_cache import PublishedJsonRowCache
@@ -65,6 +68,9 @@ class NativeStateHandler:
         self.rng = rng
         self.state_spell_level = state_spell_level
         self.state_random = state_random
+        self.native_actor_reference = native_actor_reference
+        self.native_actor_real_level = native_actor_real_level
+        self.native_active_spell_roots = tuple(native_active_spell_roots)
         self.event_lifecycle = None
         self.prepared_runners = {}
         self.prepared_parameters = {}
@@ -613,4 +619,37 @@ class NativeStateHandler:
                         wakemu_fresh_child_selection=False,
                     )
                 )
+        if (
+            getattr(self.fight, "native_order_trial", None) is not None
+            and effect is not None
+            and effect.get("effect_class") == 304
+        ):
+            from .native_order_trial_events import record_state_application
+
+            record_state_application(self, effect, invocation, entry, change=change)
+        if getattr(self.fight, "native_order_trial_constructor", None) is not None:
+            from .native_order_trial_selection import record_state
+
+            record_state(self, effect, invocation, entry, change=change)
+        if (
+            effect is not None
+            and effect.get("effect_class") == 304
+            and (
+                invocation.reference == 95845
+                or entry.reference in (1932, 1933, 1934, 1935, 1942, 1943, 1944, 1945)
+            )
+            and self.native_actor_reference is not None
+            and self.native_actor_real_level is not None
+        ):
+            from .combat_native_dj_dance import observe_native_state
+
+            observe_native_state(
+                self,
+                effect,
+                invocation,
+                entry,
+                actor_reference=self.native_actor_reference,
+                actor_real_level=self.native_actor_real_level,
+                active_roots=self.native_active_spell_roots,
+            )
         return True

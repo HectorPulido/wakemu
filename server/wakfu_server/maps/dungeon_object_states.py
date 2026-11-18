@@ -4,6 +4,7 @@ Official 12344 vectors reveal a door, then enable it without changing its
 approach mask. The partial fj field 2 state is compatible with both clients.
 This module encodes state only; the caller authorizes the owned private run.
 """
+
 import struct
 
 
@@ -65,6 +66,36 @@ def native_interactions_enabled(topology):
     return topology.get("policy") != "local_accessible_anchor_policy"
 
 
+def _requires_unique_room_cells(topology, map_id):
+    """Only typed doorless stories can share a sequential encounter arena.
+
+    This cell index authorizes room-to-room door destinations. A story with no
+    such doors uses its pinned native exits/transfers instead; its compiler's
+    real-victory prerequisites still have to attest every overlapping arena.
+    """
+    from wakfu_server import owned_story_controller
+
+    if (
+        topology.get("policy") != owned_story_controller.SCHEMA
+        or topology.get("doors") != []
+        or topology.get("optional_room_policy") is not None
+    ):
+        return True
+    selected = owned_story_controller.policy(dict(topology=topology))
+    if selected is None or selected["map_id"] != map_id:
+        raise ValueError("Shared story arena lacks its typed native controller")
+    steps = {step["id"] for step in selected["steps"]}
+    if any(
+        not isinstance(room.get("requires"), list) or not set(room["requires"]) <= steps
+        for room in topology["rooms"]
+    ):
+        raise ValueError("Shared story arena lacks its declared prerequisites")
+    from wakfu_server.owned_story_configuration import validate_sequential_arenas
+
+    validate_sequential_arenas(selected, topology["rooms"])
+    return False
+
+
 def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=False):
     """Hydrate all reviewed routes, including reverse routes and exterior exits.
 
@@ -97,7 +128,11 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         raise ValueError("Completed dungeon has an inconsistent room frontier")
     from wakfu_server.dungeon_optional_rooms import cell_rooms
 
-    cells = cell_rooms(topology, reject_ambiguous=True)
+    cells = (
+        cell_rooms(topology, reject_ambiguous=True)
+        if _requires_unique_room_cells(topology, map_id)
+        else {}
+    )
     for expected, room in enumerate(rooms, 1):
         if type(room["order"]) is not int or room["order"] != expected:
             raise ValueError("Dungeon room order is not contiguous")
@@ -165,6 +200,25 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         if source["id"] in availability and availability[source["id"]] != enabled:
             raise ValueError("Native object has conflicting door states")
         availability[source["id"]] = enabled
+    from wakfu_server import owned_quest_transfers
+
+    # A paid owned-instance transfer is not a free exterior return. Its source
+    # may be a nonwalkable portal center outside all room cells; classify its
+    # declared native authority before the ordinary exterior heuristic.
+    for identity in owned_quest_transfers.declared_sources(
+        topology, owned.values(), map_id=map_id
+    ):
+        if identity in availability and availability[identity] != completed:
+            raise ValueError("Owned transfer conflicts with native dungeon state")
+        availability[identity] = completed
+    from wakfu_server import owned_story_exits
+
+    for identity in owned_story_exits.declared_sources(
+        topology, owned.values(), map_id=map_id
+    ):
+        if identity in availability and availability[identity] is not True:
+            raise ValueError("Native story exit conflicts with dungeon door state")
+        availability[identity] = True
     if topology.get("branch_routes"):
         from wakfu_server import dungeon_branches
 
@@ -195,6 +249,31 @@ def packets(topology, sources, *, map_id, instance_id, unlocked_room, completed=
         from wakfu_server import dungeon_native_flow
 
         order = dungeon_native_flow.object_room(topology, source)
+        if order is None:
+            from wakfu_server import owned_story_controller
+
+            if topology.get("policy") == owned_story_controller.SCHEMA:
+                selected = owned_story_controller.policy(dict(topology=topology))
+                claimed = {
+                    row["source_id"]
+                    for key in ("doors", "physical_exit_objects", "native_story_exits")
+                    for row in topology.get(key, ())
+                }
+                if selected is not None:
+                    claimed.update(
+                        row["source_id"]
+                        for key in ("native_links", "native_transfers")
+                        for row in selected.get(key, ())
+                    )
+                if (
+                    selected is not None
+                    and selected["map_id"] == map_id
+                    and source["id"] not in claimed
+                ):
+                    # Shared assets retain unrelated native exit objects.
+                    # They do not belong to this pinned story's room scope.
+                    availability[source["id"]] = False
+                    continue
         if order not in (1, count, terminal):
             witness = topology.get("completed_exit_witness", {})
             bindings = [

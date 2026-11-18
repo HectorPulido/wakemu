@@ -1,0 +1,189 @@
+{
+  "schema": "native-order-trial-admission-v1",
+  "id": "astrub-pizzlarva-native-admission",
+  "enabled": true,
+  "context": {
+    "map_id": 885,
+    "arrival": [
+      0,
+      0,
+      0
+    ],
+    "direction": 7,
+    "ownership_policy": "reviewed-solo-native-order-context-v1",
+    "evidence": "Original effect1457 parameters preserve885(0,0,0) and raw7, interpreted as facing7 by the existing server coordinate parser; private solo ownership is explicit reviewed server policy, not a recovered native instance-kind claim. Actual nativeSm6 arrival is walkable."
+  },
+  "sources": {
+    "entrance": {
+      "object_id": 23626,
+      "map_id": 546,
+      "position": [
+        -4.0,
+        -9.0,
+        3.0
+      ],
+      "wire_action": 0,
+      "wire_parameter": 0,
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 505,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 544,
+            "clx": 87,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 564,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1457,
+                    "effect_type": 3,
+                    "criterion": "",
+                    "parameters": [
+                      "{0,0,0}",
+                      "885",
+                      "7"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "original_payload_sha256": "f58a7a3c13083459f5885ffc53444824a8243c0d90a9e5ac069672ec65a6aa96",
+      "descriptor_sha256": "d57f12fe95b16f36b92e226c91b46b83a030d04a553e46ef42929659bb07efc0",
+      "approaches": [
+        [
+          -4,
+          -8,
+          3
+        ]
+      ]
+    },
+    "normal": {
+      "object_id": 23619,
+      "map_id": 885,
+      "position": [
+        -2.0,
+        0.0,
+        0.0
+      ],
+      "wire_action": 0,
+      "wire_parameter": 0,
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 502,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 541,
+            "clx": 41,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 561,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1451,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "original_payload_sha256": "702250e9cde98553cbbc1aaf12d52a1d04770d3f43ae0d1c94d437be4afb1bbb",
+      "descriptor_sha256": "db935276f5b00853e23b724ad2b86ffd1014262e62d3385566bbbd2d6dca6595",
+      "approaches": [
+        [
+          -1,
+          0,
+          0
+        ]
+      ]
+    },
+    "hard": {
+      "object_id": 23620,
+      "map_id": 885,
+      "position": [
+        2.0,
+        0.0,
+        0.0
+      ],
+      "wire_action": 0,
+      "wire_parameter": 0,
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 503,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 542,
+            "clx": 41,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 562,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1452,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "original_payload_sha256": "c0d992650b5d99740a710128747f4493afc4a46b155ddefa191559ba80b7a3ff",
+      "descriptor_sha256": "1318e72e4f80ad077bb0401a6493ef340df84c602785747b68be6b69b568c855",
+      "approaches": [
+        [
+          1,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "evidence": "Original native sources23626/505/1457 public entrance and23619/502/1451 normal vs23620/503/1452 hard; exact source payload/descriptor hashes. Native QV mask/orientation yields original Sm6 approaches. Disabled until native order mechanics, scoring, persistence and normal encounter integration are complete. No score/form/spawn or quest advancement is produced by admission."
+}

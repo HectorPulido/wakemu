@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "id": "line4-final-handoffs",
+  "evidence": [
+    "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion.",
+    "Native2715 admission requires reallevel21 and completed2714, while5350 separately asks reallevel25 plus a genuine future victory. Only successor admission is supplied; no5350/5351 objective or later chapter completion is manufactured."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "line4-earned-2720-2712",
+      "quest_id": 2712,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2720
+      },
+      "requires_completed": [
+        2720
+      ]
+    },
+    {
+      "id": "line4-recovery-2720-2712",
+      "quest_id": 2712,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2720
+      ],
+      "minimum_level": 20,
+      "admission_evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+    },
+    {
+      "id": "line4-earned-2712-2713",
+      "quest_id": 2713,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2712
+      },
+      "requires_completed": [
+        2712
+      ]
+    },
+    {
+      "id": "line4-recovery-2712-2713",
+      "quest_id": 2713,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2712
+      ],
+      "minimum_level": 20,
+      "admission_evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+    },
+    {
+      "id": "line4-earned-2713-2714",
+      "quest_id": 2714,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2713
+      },
+      "requires_completed": [
+        2713
+      ]
+    },
+    {
+      "id": "line4-recovery-2713-2714",
+      "quest_id": 2714,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2713
+      ],
+      "minimum_level": 20,
+      "admission_evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+    },
+    {
+      "id": "line4-earned-2714-2715",
+      "quest_id": 2715,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2714
+      },
+      "requires_completed": [
+        2714
+      ]
+    },
+    {
+      "id": "line4-recovery-2714-2715",
+      "quest_id": 2715,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2714
+      ],
+      "minimum_level": 21,
+      "admission_evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+    }
+  ]
+}

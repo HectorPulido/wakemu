@@ -43,6 +43,28 @@ class CoreInputContractTests(unittest.TestCase):
         with self.assertRaises(UnknownCoreLayout):
             decode_core_packet(12053, struct.pack(">ihBBiB", 99, 7, 2, 0, 6, 0))
 
+    def test_between_phase_new_turn_recovery_accepts_native_previous_cursor(self):
+        fight_id = 44523
+        members = (382, 673)
+        timeline = bytearray(struct.pack(">hibq", 1, 13, 2, 0))
+        timeline += struct.pack(">bqq", len(members), *members)
+        timeline += struct.pack(">bqq", len(members), *members)
+        timeline += struct.pack(">bqhqh", len(members), members[0], 12, members[1], 7)
+        timeline += struct.pack(">b", -1)  # between-phase previous cursor
+        timeline += b"\x00\x00"  # no removed actors or bonuses
+        envelope = struct.pack(">BBiB", 1, 0, 6, 0)
+        envelope += struct.pack(">h", len(timeline)) + timeline
+        body = struct.pack(">i", fight_id) + struct.pack(">h", len(envelope)) + envelope
+
+        recovered = decode_core_packet(12053, body)
+        self.assertEqual(recovered["fight"], fight_id)
+        self.assertEqual(
+            (recovered["timeline"]["turn"], recovered["timeline"]["phase"]),
+            (13, 2),
+        )
+        self.assertEqual(recovered["timeline"]["index"], -1)
+        self.assertIsNone(recovered["timeline"]["current"])
+
     def test_decoder_sources_do_not_import_serializers_or_game_authority(self):
         from wakfu_server import combat_core_reconstruction as module
 

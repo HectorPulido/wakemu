@@ -1,0 +1,35 @@
+{
+  "schema": "native-passive-box-sources-v1",
+  "source": "Installed aMb3889 direct cle/csb/csc export and native action5589 target criterion",
+  "constructors": {
+    "3889": {
+      "reference": 3889,
+      "native_class": "aMb",
+      "min_level": 1,
+      "max_level": 1,
+      "native_abilities": [],
+      "initial_state_triples": [
+        4062,
+        1,
+        1
+      ],
+      "fight_properties": [
+        88,
+        15,
+        114
+      ],
+      "world_properties": [
+        35,
+        102,
+        7
+      ],
+      "state_id": 4062,
+      "state_level": 1,
+      "state_source_sha256": "eaaee989ac4280ce53b9f24b43b63ea4dfcaeac8ce0cad7d18f01508eab4671e",
+      "goal_area_reference": 1020,
+      "goal_evidence": "Original4062\u2192173361/event187\u2192173362\u2192173363 explicitly tests IsOnSpecificEffectArea(target,1020); nativebcT1020 particle800292 is the original point goal.",
+      "goal_death_effect_reference": 173367,
+      "goal_death_evidence": "Original4062 decurse321 removes its carrier; native173367 class28 executes from the removed state container and registers the box death. Goal settlement observes these genuine deaths without manufacturing a winner."
+    }
+  }
+}

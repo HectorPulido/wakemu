@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "whisper-prison-1299",
+  "version": 1,
+  "map_id": 1299,
+  "entry": {
+    "map_id": 1295,
+    "object_id": 16254,
+    "destination_id": 938
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    32768
+  ],
+  "controller_file": "whisper-prison-1299.json",
+  "encounters_file": "whisper-prison-1299-encounters.json",
+  "exploration_file": "whisper-prison-1299.exploration.json",
+  "provenance": "Reviewed reconstructed server bindings from installed native1299 Sm6, original exterior16254/830/938 and exit32768/831/939, original1450 General/prisoner/key events and native2144/2099 prototypes. Original private actor positions/server key award are absent. Reviewed native14553 key grant after genuine General victory and nonconsuming door possession gate are explicit reconstruction, not original captured loot."
+}

@@ -881,7 +881,29 @@ class RuntimeMessages:
     @native_delivery_boundary
     @atomic_area_turn
     def end_automatic_npc_turn(self, actor_id, global_turn):
-        return self._end_server_boundary(
+        packets = []
+        if getattr(self.fight, "native_order_movement_policy", None) is not None:
+            from .native_order_trial_movement import move_current, area_provider
+
+            if (
+                self.fight.current is None
+                or self.fight.current.id != actor_id
+                or self.fight.turn_id != global_turn
+                or self.awaiting_ack is not None
+                or self.pending
+            ):
+                raise ValueError("Stale native order turn")
+            packets = move_current(self, area_provider=area_provider(self))
+            if self.fight.phase != "active":
+                self._close_terminal_turn()
+                return packets
+            if (
+                self.fight.current is None
+                or self.fight.current.id != actor_id
+                or self.fight.turn_id != global_turn
+            ):
+                return packets
+        return packets + self._end_server_boundary(
             actor_id, global_turn, defensive_facing=None, automatic=True
         )
 

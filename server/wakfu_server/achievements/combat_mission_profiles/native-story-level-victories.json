@@ -1,0 +1,15 @@
+{
+  "schema": "combat_mission_bindings_v1",
+  "revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "quest_id": 2692,
+      "objective_id": 5312,
+      "kind": "victory",
+      "minimum_level": 20,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed native story2692 objective5312 English label: Reach level20 and win a fight. Native cjP20, cjI IsAchievementComplete(2691), objective ckf/ckc/cke empty. Native objective5313 is a separate archaeologist conversation. Reconstructed producer requires an already assigned quest, real character level>=20 and a fresh durable owned PvE victory with original defeated enemies; existing combat mission receipts preserve retry and prevent historical backfill."
+    }
+  ]
+}

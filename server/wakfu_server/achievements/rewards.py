@@ -3,6 +3,7 @@
 The caller locks account before character and owns replay protection, savepoints,
 commit and publication. Capacity errors do not mutate inventory. Item rewards preflight all eligible bags and merge only identical plain stacks.
 """
+
 from psycopg.pq import TransactionStatus
 
 
@@ -15,14 +16,19 @@ def validate(reward):
     if not isinstance(reward, dict):
         raise ValueError("Invalid achievement reward")
     kind, parameters = reward.get("aeV"), reward.get("ckl")
-    if type(kind) is not int or kind not in (2, 3, 5, 6, 11, 12, 15, 17):
+    if type(kind) is not int or kind not in (2, 3, 5, 6, 11, 12, 15, 16, 17):
         raise ValueError("Unsupported native achievement reward")
-    if not isinstance(parameters, (list, tuple)) or len(parameters) != (
-        2 if kind == 5 else 1
+    if not isinstance(parameters, (list, tuple)) or len(parameters) not in (
+        (2, 3) if kind == 5 else (1,)
     ):
         raise ValueError("Invalid native achievement reward arity")
-    if any(type(value) is not int or not 0 < value < (1 << 31) for value in parameters):
+    amounts = parameters[:2] if kind == 5 else parameters
+    if any(type(value) is not int or not 0 < value < (1 << 31) for value in amounts):
         raise ValueError("Invalid native achievement reward parameters")
+    if kind == 5 and len(parameters) == 3:
+        from wakfu_server.item_binding import validate_override
+
+        validate_override(parameters[2])
     if kind == 2 and parameters[0] > 65535:
         raise ValueError("Native title identity exceeds unsigned16")
     if kind in (11, 15) and (
@@ -33,6 +39,19 @@ def validate(reward):
         raise ValueError(
             "Native scoped rewards require an exact reward identity and scope"
         )
+    if kind == 16:
+        from wakfu_server.spells import COMMON_ITEM_SPELLS
+
+        if parameters[0] not in COMMON_ITEM_SPELLS:
+            raise ValueError("Native spell reward has no reviewed ownership domain")
+        if (
+            reward.get("ckk") is not False
+            or type(reward.get("d")) is not int
+            or reward["d"] <= 0
+        ):
+            raise ValueError(
+                "Native spell reward requires its original identity and scope"
+            )
     if kind == 17:
         from .scaled_xp import _payload
 
@@ -70,6 +89,8 @@ def grant(db, store, character, reward, *, entitlement=None):
         return [] if earned == 0 else _xp(db, store, character, earned)
     if kind == 15:
         return _zaap(db, character, reward, entitlement)
+    if kind == 16:
+        return _spell(db, character, reward, entitlement)
     if kind == 17:
         from .scaled_xp import amount
 
@@ -155,7 +176,7 @@ def _kamas(db, character, reward, entitlement):
     return [(12753, account_kamas_update(wallet["kamas"]))]
 
 
-def _item(db, store, character, reference, quantity):
+def _item(db, store, character, reference, quantity, binding_type=None):
     from wakfu_server.inventory_move import ACQUISITION_STACKS as STACKS
     from wakfu_server.inventory_uids import allocate
     from wakfu_server.inventory_elements import create, save
@@ -186,7 +207,7 @@ def _item(db, store, character, reference, quantity):
     # Native mounts are individual units even when a catalog stack rule differs.
     is_mount = (
         db.execute(
-            "SELECT 1 FROM mount_models WHERE reference=%s", (reference,)
+            "SELECT 1 FROM mount_item_models WHERE reference=%s", (reference,)
         ).fetchone()
         is not None
     )
@@ -199,7 +220,6 @@ def _item(db, store, character, reference, quantity):
     if is_mount or is_pet:
         maximum = 1
     from wakfu_server.combat_drop_delivery import (
-        _binding_rows,
         _container_can_hold,
         _effective_bound,
         _equipped_uids,
@@ -209,6 +229,7 @@ def _item(db, store, character, reference, quantity):
         _item_proto,
     )
     from wakfu_server.inventory_elements import hydrate, masks
+    from wakfu_server.item_binding import hydrate as hydrate_bindings
     import struct
 
     containers = [
@@ -229,12 +250,20 @@ def _item(db, store, character, reference, quantity):
             ).fetchall()
         ],
     )
-    bindings = _binding_rows(db, items)
+    hydrate_bindings(db, items)
+    bindings = {item["uid"]: item.get("bound", False) for item in items}
     excluded = _equipped_uids(store, character["account_id"], character["id"], db)
     excluded.update(_identified_uids(db, items))
     selection = create(reference)
     selected_masks = None if selection is None else masks(selection)
     bound = _template_bound(reference)
+    expected_binding_type = binding_type
+    if expected_binding_type is None:
+        from wakfu_server.combat_drop_delivery import _template_binding
+
+        expected_binding_type = _template_binding(reference)[1]
+    if binding_type is not None:
+        bound = binding_type in (2, 4, 6, 8)
     eligible_ids = {bag["uid"] for bag in eligible}
     compatible = []
     for item in items:
@@ -247,6 +276,7 @@ def _item(db, store, character, reference, quantity):
             and item["uid"] not in excluded
             and item["reference"] == reference
             and _effective_bound(item) == bound
+            and item.get("binding_type", 0) == expected_binding_type
             and masks(item) == selected_masks
         ):
             compatible.append(item)
@@ -275,6 +305,12 @@ def _item(db, store, character, reference, quantity):
             item.update(selection)
         _save_binding(db, uid, reference, bound)
         item["bound"] = bound
+        if binding_type is not None:
+            from wakfu_server.item_binding import save_override
+
+            item["binding_type"], item["bound"] = save_override(
+                db, uid, reference, binding_type
+            )
         if is_mount:
             from wakfu_server.mount_inventory import initialize
 
@@ -319,6 +355,59 @@ def _plan_item_capacity(containers, items, compatible, quantity, maximum):
             "Insufficient eligible inventory capacity for achievement reward"
         )
     return merges, placements
+
+
+def _spell(db, character, reward, entitlement):
+    """Native GIVE_PLAYER_SPELL notification; retained-item eligibility persists.
+
+    Original reward order can put this before its scroll. The knowledge packet
+    does not consume or fabricate that scroll. The native item/level predicate
+    remains authoritative when the book, saved deck and real cast are resolved.
+    """
+    import struct
+    from wakfu_server.spells import COMMON_ITEM_SPELLS, published_item_spell_references
+    from wakfu_server.combat_common_spell_catalog import effects
+
+    reference = reward["ckl"][0]
+    if reference not in published_item_spell_references() or (
+        COMMON_ITEM_SPELLS[reference]["kind"] == "active"
+        and reference not in effects()["spell_references"]
+    ):
+        raise ValueError("Native spell reward effect domain is not published")
+    if (
+        not isinstance(entitlement, dict)
+        or entitlement.get("payload") != reward
+        or entitlement.get("reward_key") != str(reward["d"])
+    ):
+        raise ValueError("Native spell reward requires its earned outbox entitlement")
+    pending = db.execute(
+        "SELECT payload,delivered_at FROM character_achievement_reward_outbox "
+        "WHERE character_id=%s AND achievement_id=%s AND cycle_key=%s AND reward_key=%s FOR UPDATE",
+        (
+            character["id"],
+            entitlement["achievement_id"],
+            entitlement["cycle_key"],
+            entitlement["reward_key"],
+        ),
+    ).fetchone()
+    if pending is None or pending["payload"] != reward:
+        raise ValueError("Missing exact native spell reward entitlement")
+    if pending["delivered_at"] is not None:
+        return []
+    if character["level"] < COMMON_ITEM_SPELLS[reference]["unlock_level"]:
+        raise ValueError("Native spell reward requires its original real level")
+    return [
+        (
+            12503,
+            struct.pack(
+                ">qiqh",
+                character["id"],
+                reference,
+                (character["id"] << 32) | reference,
+                character["level"],
+            ),
+        )
+    ]
 
 
 def _title(db, character, title_id):

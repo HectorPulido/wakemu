@@ -1,0 +1,114 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "huppermage-store-1024",
+  "map_id": 1024,
+  "provenance": "Reviewed reconstruction on original1024 School storage asset. Native25799/2348 entry and25800/2349 exit are free and remain usable with or without2784. Original2078 takes four hoodlum arguments; native3935/3936/3937/3938 retain original levels, stats, states and spell books. One of each and the original2078 final four actor positions are reviewed formation policy, not recovered server composition. The guide names the Small Dresser: actual26251 descriptor991 has only default effect2492, so joining that exact authenticated object to objective5616 is an explicit reviewed server bridge, not an encoded native quest action. Original16523 is omitted because it references undefined playedId and moves the player; no unsafe movie or fabricated callback is used. Original16524 guide remains once-only; normal real owned victory alone grants5617. External Bonta5619 and NPC debrief5618/5620 are separate producers.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "store-clue-inspected"
+      ],
+      "bounds": [
+        -6,
+        -16,
+        6,
+        1
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -7,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3935,
+          "count": 1
+        },
+        {
+          "reference": 3936,
+          "count": 1
+        },
+        {
+          "reference": 3937,
+          "count": 1
+        },
+        {
+          "reference": 3938,
+          "count": 1
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "huppermage-store-native-1024",
+        "authority": "Reviewed four original School80 hoodlums with original2078 final NPC poses; hero retains actual approach",
+        "source_uri": "installed-native-scenario2078-final-actor-poses-and-reviewed-four-hoodlum-guide",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 3935,
+            "occurrence": 0,
+            "cell": [
+              1,
+              -3,
+              0
+            ],
+            "direction": 7,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed-native-scenario2078-final-actor-poses-and-reviewed-four-hoodlum-guide",
+              "sha256": "950ab4e005c3bb70b6b89656fa1f2081125cba8d357ca47329ca38a70c7d396f"
+            }
+          },
+          {
+            "reference": 3936,
+            "occurrence": 0,
+            "cell": [
+              -1,
+              -3,
+              0
+            ],
+            "direction": 7,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed-native-scenario2078-final-actor-poses-and-reviewed-four-hoodlum-guide",
+              "sha256": "950ab4e005c3bb70b6b89656fa1f2081125cba8d357ca47329ca38a70c7d396f"
+            }
+          },
+          {
+            "reference": 3937,
+            "occurrence": 0,
+            "cell": [
+              -2,
+              -5,
+              0
+            ],
+            "direction": 7,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed-native-scenario2078-final-actor-poses-and-reviewed-four-hoodlum-guide",
+              "sha256": "950ab4e005c3bb70b6b89656fa1f2081125cba8d357ca47329ca38a70c7d396f"
+            }
+          },
+          {
+            "reference": 3938,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -5,
+              0
+            ],
+            "direction": 7,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed-native-scenario2078-final-actor-poses-and-reviewed-four-hoodlum-guide",
+              "sha256": "950ab4e005c3bb70b6b89656fa1f2081125cba8d357ca47329ca38a70c7d396f"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

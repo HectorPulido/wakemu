@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "astrub-forge",
+  "evidence": [
+    "Reviewed native quest2017/objective4082 explicitly requires producing five Coarse Handles; native recipe3599 (profession83) creates exactly one item18782 per batch execution.",
+    "The existing qualified N.D. Hammersmith conversation activates2017 only through offered2711/6503 while2015 is running; actual quest4083 item payment remains separate.",
+    "Native objective4082 explicitly binds variable451 (nbMancheGrossierCrafted)>=5. Each committed native recipe3599 batch increments that native counter by quantity; one product is produced per batch."
+  ],
+  "bindings": [
+    {
+      "id": "produce-five-coarse-handles",
+      "quest_id": 2017,
+      "objective_id": 4082,
+      "event": {
+        "kind": "craft_completed",
+        "reference": 3599
+      },
+      "count": "quantity",
+      "variable_id": 451
+    }
+  ],
+  "links": [],
+  "activations": []
+}

@@ -3,6 +3,7 @@
 Six cells per team is an explicit configurable local formation policy, not a
 claim about the official server's placement generator. No terrain is invented.
 """
+
 from collections import defaultdict, deque
 import hashlib
 
@@ -68,6 +69,7 @@ def generate(
     spread_teams=False,
     occupied_cells=(),
     team_capacities=None,
+    eligible_cells=None,
 ):
     """Return disjoint team0/1 placement sets containing every current actor.
 
@@ -102,6 +104,20 @@ def generate(
     if not isinstance(seeds, dict) or set(seeds) != {0, 1}:
         raise ValueError("Both placement teams require actor seeds")
     selected = {team: {_cell(seed) for seed in group} for team, group in seeds.items()}
+    eligible = {team: cells for team in (0, 1)}
+    if eligible_cells is not None:
+        if not isinstance(eligible_cells, dict) or set(eligible_cells) != {0, 1}:
+            raise ValueError("Placement eligibility needs both logical teams")
+        eligible = {
+            team: {_cell(cell) for cell in eligible_cells[team]} for team in (0, 1)
+        }
+        if any(
+            not eligible[team] <= cells or not selected[team] <= eligible[team]
+            for team in (0, 1)
+        ):
+            raise ValueError(
+                "Placement actor seed leaves its qualified native surfaces"
+            )
     if (
         any(not group or not group <= cells for group in selected.values())
         or selected[0] & selected[1]
@@ -157,7 +173,12 @@ def generate(
         return (cell in avoided, distance, tie, cell)
 
     candidates = {
-        team: deque(sorted(distances[team], key=lambda c: candidate_order(team, c)))
+        team: deque(
+            sorted(
+                set(distances[team]) & eligible[team],
+                key=lambda c: candidate_order(team, c),
+            )
+        )
         for team in (0, 1)
     }
     blocked = {_cell(cell) for cell in occupied_cells}

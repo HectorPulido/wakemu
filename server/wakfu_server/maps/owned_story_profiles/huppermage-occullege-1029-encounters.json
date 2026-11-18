@@ -1,0 +1,181 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "huppermage-occullege-1029",
+  "map_id": 1029,
+  "provenance": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "occullege-entered"
+      ],
+      "bounds": [
+        151,
+        137,
+        172,
+        175
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        1,
+        2
+      ],
+      "arena_seed": [
+        162,
+        162,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3922,
+          "count": 2
+        },
+        {
+          "reference": 3923,
+          "count": 2
+        },
+        {
+          "reference": 3924,
+          "count": 1
+        },
+        {
+          "reference": 3925,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "occullege-room-1-won"
+      ],
+      "bounds": [
+        94,
+        84,
+        115,
+        122
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        1,
+        2
+      ],
+      "arena_seed": [
+        105,
+        109,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3922,
+          "count": 1
+        },
+        {
+          "reference": 3923,
+          "count": 2
+        },
+        {
+          "reference": 3924,
+          "count": 2
+        },
+        {
+          "reference": 3925,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "occullege-room-2-won"
+      ],
+      "bounds": [
+        44,
+        29,
+        65,
+        67
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        1,
+        2
+      ],
+      "arena_seed": [
+        55,
+        54,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3922,
+          "count": 1
+        },
+        {
+          "reference": 3923,
+          "count": 1
+        },
+        {
+          "reference": 3924,
+          "count": 2
+        },
+        {
+          "reference": 3925,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "physical_room": 4,
+      "requires": [
+        "occullege-room-3-won"
+      ],
+      "bounds": [
+        -64,
+        -64,
+        -43,
+        -26
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        1,
+        2
+      ],
+      "arena_seed": [
+        -53,
+        -39,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3922,
+          "count": 2
+        },
+        {
+          "reference": 3923,
+          "count": 2
+        },
+        {
+          "reference": 3924,
+          "count": 1
+        },
+        {
+          "reference": 3925,
+          "count": 1
+        },
+        {
+          "reference": 3926,
+          "count": 1,
+          "role": "boss"
+        }
+      ]
+    }
+  ]
+}

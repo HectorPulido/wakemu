@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "wild-estate-staff-followup",
+  "evidence": [
+    "Reviewed reconstruction of native Wild Estate1677: real resource542 action1343 has original aNn.csO loot2355 and2000ms occupation; original native probabilities and products are retained. Six finite East dig placements use connected native723 Sm6 floor and are reconstructed, not captured. Real native2779 kills produce three17851 fragments, native5160 merges three into17821. Actual workshop20460/478 produces17822 after real inputs17820/17821; actual model20428 consumes staff before original1650/19851 and13132 presentation. Actual skeleton-chief2793 victory opens native20429/20430/20431 before note20659 credits3109. Original boss placement/formation and item-input settlement joins are explicitly reviewed server reconstruction. No walk proximity, client callback or ordinary unrelated win grants components or quest completion."
+  ],
+  "bindings": [
+    {
+      "id": "staff-genuine-native-dig-output",
+      "quest_id": 1677,
+      "objective_id": 3105,
+      "event": {
+        "kind": "resource_harvest",
+        "reference": 17820
+      },
+      "count": "operation",
+      "maps": [
+        723
+      ]
+    },
+    {
+      "id": "staff-genuine-three-fragment-assembly",
+      "quest_id": 1677,
+      "objective_id": 3106,
+      "event": {
+        "kind": "item_action_completed",
+        "reference": 5160
+      },
+      "count": "operation",
+      "maps": [
+        723
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "staff-earned-after-inscription",
+      "quest_id": 1677,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1623
+      },
+      "requires_completed": [
+        1623
+      ]
+    },
+    {
+      "id": "staff-earned-recovery",
+      "quest_id": 1677,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1623
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed reconstruction of native Wild Estate1677: real resource542 action1343 has original aNn.csO loot2355 and2000ms occupation; original native probabilities and products are retained. Six finite East dig placements use connected native723 Sm6 floor and are reconstructed, not captured. Real native2779 kills produce three17851 fragments, native5160 merges three into17821. Actual workshop20460/478 produces17822 after real inputs17820/17821; actual model20428 consumes staff before original1650/19851 and13132 presentation. Actual skeleton-chief2793 victory opens native20429/20430/20431 before note20659 credits3109. Original boss placement/formation and item-input settlement joins are explicitly reviewed server reconstruction. No walk proximity, client callback or ordinary unrelated win grants components or quest completion."
+    }
+  ]
+}

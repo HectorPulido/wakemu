@@ -263,4 +263,11 @@ class NativeSummonHandler:
             self.initialize_registered_gameplay(
                 self.fight, actor, registration, effect, invocation
             )
+        if getattr(self.fight, "native_order_trial", None) is not None:
+            from .native_order_trial_events import record_spawn
+
+            record_spawn(self, effect, invocation, actor, runner_uid=effect_uid)
+            from .native_order_trial_birth import activate
+
+            activate(self, actor)
         return True

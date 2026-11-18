@@ -98,6 +98,79 @@ def _party_reserved_cells(record, cells, placement, player_team):
     return reserved
 
 
+def ordinary_generated_eligibility(record, cells, roles, *, map_id):
+    """Qualify ordinary generated zones without changing scripted placements."""
+    if any(
+        record.get(key) is not None
+        for key in (
+            "native_encounter_scene",
+            "native_encounter_scene_layout",
+            "native_rii_lesson_layout",
+            "native_rii_guardian_layout",
+            "native_emiw_border",
+        )
+    ):
+        return None
+    proof = record.get("native_ordinary_point_placement")
+    if proof is None:
+        return None
+    if (
+        not isinstance(proof, dict)
+        or set(proof)
+        != {
+            "schema",
+            "map_id",
+            "source_sha256",
+            "player_cells",
+            "npc_cells",
+            "player_point_only",
+            "npc_point_only",
+        }
+        or proof["schema"] != "wakemu-ordinary-point-placement-v1"
+        or proof["map_id"] != map_id
+        or any(
+            type(proof[key]) is not bool
+            for key in ("player_point_only", "npc_point_only")
+        )
+    ):
+        raise ValueError("Invalid ordinary placement surface authority")
+    from .combat_sn_path import NativeSnColumns
+    from .combat_walk_surface_policy import (
+        native_player_point_placement_allowed,
+        native_npc_point_placement_allowed,
+    )
+
+    columns = NativeSnColumns.from_published(map_id)
+    if columns.source_sha256 != proof["source_sha256"]:
+        raise ValueError("Ordinary placement physical source changed")
+    eligible = {}
+    for name, allowed in (
+        ("player_cells", native_player_point_placement_allowed),
+        ("npc_cells", native_npc_point_placement_allowed),
+    ):
+        declared = set(map(tuple, proof[name]))
+        point = proof[
+            "player_point_only" if name == "player_cells" else "npc_point_only"
+        ]
+        if (
+            not declared <= set(cells)
+            or (point and any(not allowed(columns, cell) for cell in declared))
+            or (not point and declared != set(cells))
+        ):
+            raise ValueError(
+                "Ordinary placement contains an unsupported native surface"
+            )
+        eligible[name] = declared
+    return (
+        {0: eligible["player_cells"], 1: eligible["npc_cells"]}
+        if roles is None
+        else {
+            roles.player_team: eligible["player_cells"],
+            roles.npc_team: eligible["npc_cells"],
+        }
+    )
+
+
 def partition_scene_helper_seeds(
     arena, seeds, *, original_npc_seeds, map_id, instance_id, account_id, character_id
 ):
@@ -592,6 +665,9 @@ def freeze(
                 spread_teams=selected_arena.get("native_border_policy")
                 == "wakemu.compact-cardinal-perimeter-v1",
                 avoid_cells=selected_arena.get("native_border_cells", ()),
+                eligible_cells=ordinary_generated_eligibility(
+                    selected_arena, cells, roles, map_id=map_id
+                ),
                 **helper_capacity,
             )
         from .combat_border_policy import choose as choose_border

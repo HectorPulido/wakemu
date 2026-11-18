@@ -4,6 +4,7 @@ Capacity is calculated after both outgoing offers, permitting a swap between
 two full inventories. Whole units keep UID; splits use the shared allocator.
 Only identical native stack metadata can merge. No client slots are trusted.
 """
+
 from copy import deepcopy
 from . import item_custody_metadata
 from .inventory_move import STACKS
@@ -13,7 +14,8 @@ def _metadata_identity(item):
     metadata = item_custody_metadata.identity(item.get("_custody_metadata", {}))
     # The caller already resolved template/default and explicit binding into
     # `bound`. An absent default row and the same explicit value are equivalent.
-    metadata.pop("inventory_item_bindings", None)
+    if metadata.get("inventory_item_bindings", {}).get("binding_type") is None:
+        metadata.pop("inventory_item_bindings", None)
     return metadata
 
 

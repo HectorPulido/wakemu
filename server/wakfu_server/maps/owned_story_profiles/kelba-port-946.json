@@ -1,0 +1,109 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "kelba-port-946",
+  "map_id": 946,
+  "maximum_members": 1,
+  "provenance": "Reviewed reconstruction from actual native1961, public25104/2195 route and originalSm6 map946. This port is a zero-combat narrative context. Hadibal placement is reviewed on native floor near the literal player9,2 animation endpoint, not an official capture. Only authenticated native action61 and the genuine departure timer may qualify original5035. Questless and completed visits retain mechanical return without cinematic replay.",
+  "admission": {
+    "quest_id": 2536,
+    "objective_id": null,
+    "continuation_quest_id": 2537
+  },
+  "native_sources": {
+    "path": "kelba-port-946.native.v1.json",
+    "sha256": "99bbccaadb89c2f29dffd32d6684473ff94497165006a37318340821da4e7953"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "port-arrival",
+      "kind": "world_ready",
+      "reference": 946,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1961,
+          "event": 15772,
+          "arguments": [
+            "story_npc:1147",
+            0
+          ]
+        }
+      ],
+      "evidence": "Actual1961arrival15772 uses HadibalUID and cineStartDone; original UI tutorial at18500ms."
+    },
+    {
+      "id": "port-arrival-done",
+      "kind": "scenario_complete",
+      "reference": 15772,
+      "requires": [
+        "port-arrival"
+      ],
+      "effects": [],
+      "evidence": "Reviewed server deadline18500ms after actual native arrival/tutorial; no fictional client callback required."
+    },
+    {
+      "id": "package-briefing",
+      "kind": "npc_spoken",
+      "reference": 1147,
+      "requires": [
+        "port-arrival-done"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1961,
+          "event": 15657,
+          "arguments": [
+            "story_npc:1147",
+            0
+          ]
+        }
+      ],
+      "evidence": "Only accepted authentic scoped native speaker1147/action61 begins package departure scene15657."
+    },
+    {
+      "id": "departure-finished",
+      "kind": "scenario_complete",
+      "reference": 15658,
+      "requires": [
+        "package-briefing"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1961,
+          "event": 15658
+        },
+        {
+          "kind": "scene_position",
+          "scenario": 1961,
+          "event": 15657,
+          "position": [
+            8,
+            5,
+            0
+          ]
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2536,
+          "objective_id": 5035
+        }
+      ],
+      "evidence": "Native1961 final animation at40000ms; reviewed41000ms timer dispatches actual endCine15658 then existing objective5035 settlement. No package item is invented."
+    }
+  ],
+  "terminal_returns": {
+    "schema": "owned-story-step-return-v1",
+    "after_steps": [
+      "departure-finished"
+    ],
+    "source_map_id": 943,
+    "source_id": 25104,
+    "source_sha256": "f2c6b83781fa5c717cfae21de34160d9831aafa60d5fe98f9636d6b902a5cbac",
+    "destination_id": 2170,
+    "evidence": "Actual original public25104 fallback2170 returns to943(-6,0,-80); no fake interior portal or new coordinates. Actual owned entrysource must match."
+  }
+}

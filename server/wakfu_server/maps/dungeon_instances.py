@@ -5,7 +5,10 @@ server's native criterion, source interaction/proximity, and configured route.
 This module owns session creation and party authorization, not room composition,
 map movement, combat, or reward policy.
 """
+
 from __future__ import annotations
+
+from contextlib import nullcontext
 from wakfu_server import native_catalog as protocol_catalog
 
 from dataclasses import dataclass, replace
@@ -59,12 +62,31 @@ def _load_routes(rows=None):
         "native_localization_key",
     }
     for raw in rows:
-        legacy = (
+        generic_choice = (
             isinstance(raw, dict)
-            and raw.get("registration_policy") == "local_legacy_map_registry"
+            and raw.get("registration_policy") == "native_generic_choice"
+        )
+        npc_choice = (
+            isinstance(raw, dict)
+            and raw.get("registration_policy") == "native_npc_choice"
+        )
+        legacy = isinstance(raw, dict) and raw.get("registration_policy") in (
+            "local_legacy_map_registry",
+            "native_npc_choice",
+            "native_generic_choice",
         )
         if not isinstance(raw, dict) or set(raw) != (
-            required | legacy_fields if legacy else required
+            required
+            | legacy_fields
+            | (
+                {"native_npc_entry"}
+                if npc_choice
+                else {"native_generic_entry"}
+                if generic_choice
+                else set()
+            )
+            if legacy
+            else required
         ):
             raise RuntimeError("Invalid dungeon entry route configuration")
         if (
@@ -82,6 +104,18 @@ def _load_routes(rows=None):
         if entrance in entrances:
             raise RuntimeError("Duplicate dungeon native entrance")
         entrances.add(entrance)
+        if npc_choice or generic_choice:
+            if generic_choice:
+                from wakfu_server.owned_story_generic_entry import validate_route
+            else:
+                from wakfu_server.owned_story_npc_entry import validate_route
+
+            validate_route(raw)
+            result[raw["key"]] = EntryRoute(
+                **{field: raw[field] for field in required},
+                native_template_id=None,
+            )
+            continue
         source = native_sources.get((raw["entry_map_id"], raw["entry_object_id"]))
         destination = (
             None
@@ -279,6 +313,9 @@ def load_runtime_routes(store):
             pinned_configuration(db, row["route_key"], row["policy_version"])
             for row in active
         ]
+    from wakfu_server.quest_instance_configuration import merge_runtime_routes
+
+    prepared = merge_runtime_routes(prepared, configurations)
     prepared = _derive_entry_aliases(prepared, configurations)
     _ROUTES = prepared
     return tuple(prepared.values())
@@ -321,6 +358,15 @@ def entry_object_ids(map_id):
     )
 
 
+def routes_for_object(map_id, object_id):
+    """Cheap routing candidates; the pinned entry adapter still authorizes them."""
+    return tuple(
+        row
+        for row in _ROUTES.values()
+        if row.entry_map_id == map_id and row.entry_object_id == object_id
+    )
+
+
 def create_or_reuse(
     store,
     account_id,
@@ -334,6 +380,7 @@ def create_or_reuse(
     initialize_instance=None,
     resolve_destination=None,
     allowed_position_accounts=None,
+    _db=None,
 ):
     """Create/reuse the party's durable run after a server-owned entry check.
 
@@ -357,7 +404,7 @@ def create_or_reuse(
     if resolve_destination is not None and not callable(resolve_destination):
         raise ValueError("Dungeon destination resolver must be a trusted callback")
 
-    with store.connection() as db:
+    with store.connection() if _db is None else nullcontext(_db) as db:
         initial = db.execute(
             "SELECT p.id,p.leader_id,p.revision FROM player_parties p "
             "JOIN player_party_members m ON m.party_id=p.id "

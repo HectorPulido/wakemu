@@ -1,0 +1,616 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "bovis-lair-1002-encounters",
+  "map_id": 1002,
+  "provenance": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "bovis-lair-explored"
+      ],
+      "arena_seed": [
+        -1,
+        -11,
+        0
+      ],
+      "bounds": [
+        -6,
+        -19,
+        5,
+        0
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        2
+      ],
+      "monsters": [
+        {
+          "reference": 3774,
+          "count": 2,
+          "role": "monster"
+        },
+        {
+          "reference": 3234,
+          "count": 2,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.bovis-room1-native-pillars.v1",
+        "authority": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged.",
+        "source_uri": "client/contents/scripts/scripts.jar:scenario/2045.lua;native986/987/988;native4004",
+        "full_room_scope": true,
+        "native_initial_glyphs": [
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              -4,
+              -10,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              -1,
+              -12,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              1,
+              -7,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              4,
+              -9,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "bovis-room1-victory"
+      ],
+      "arena_seed": [
+        17,
+        -10,
+        0
+      ],
+      "bounds": [
+        8,
+        -18,
+        24,
+        -5
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        2
+      ],
+      "monsters": [
+        {
+          "reference": 3774,
+          "count": 2,
+          "role": "monster"
+        },
+        {
+          "reference": 3234,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.bovis-room2-native-pillars.v1",
+        "authority": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged.",
+        "source_uri": "client/contents/scripts/scripts.jar:scenario/2045.lua;native986/987/988;native4004",
+        "full_room_scope": true,
+        "native_initial_glyphs": [
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              14,
+              -8,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              14,
+              -12,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              22,
+              -8,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              22,
+              -12,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "bovis-room2-victory"
+      ],
+      "arena_seed": [
+        36,
+        -12,
+        0
+      ],
+      "bounds": [
+        28,
+        -20,
+        44,
+        -4
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        2
+      ],
+      "monsters": [
+        {
+          "reference": 3840,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 3841,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.bovis-room3-native-pillars.v1",
+        "authority": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged.",
+        "source_uri": "client/contents/scripts/scripts.jar:scenario/2045.lua;native986/987/988;native4004",
+        "full_room_scope": true,
+        "native_initial_glyphs": [
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              32,
+              -10,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              36,
+              -10,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              40,
+              -10,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          }
+        ]
+      }
+    },
+    {
+      "order": 4,
+      "physical_room": 4,
+      "requires": [
+        "bovis-mimi-rescue-outcome"
+      ],
+      "arena_seed": [
+        36,
+        15,
+        0
+      ],
+      "bounds": [
+        28,
+        0,
+        44,
+        29
+      ],
+      "z": 0,
+      "altitudes": [
+        0,
+        2
+      ],
+      "monsters": [
+        {
+          "reference": 3845,
+          "count": 1,
+          "role": "boss"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.bovis-room4-native-pillars.v1",
+        "authority": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged.",
+        "source_uri": "client/contents/scripts/scripts.jar:scenario/2045.lua;native986/987/988;native4004",
+        "full_room_scope": true,
+        "native_initial_glyphs": [
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              32,
+              24,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              32,
+              15,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              36,
+              19,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              40,
+              24,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              40,
+              15,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              36,
+              11,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              32,
+              6,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          },
+          {
+            "reference": 986,
+            "level": 0,
+            "cell": [
+              40,
+              6,
+              2
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-hp-faw-v1",
+              "prototype_sha256": "f0be30f7841c942f14d8a1908081f4744eb45e37029b3136c572ed3fec04ba55"
+            },
+            "state_programs": [
+              {
+                "state_id": 4004,
+                "level": 1,
+                "protected": false,
+                "source_sha256": "661839aa0b0fc76a1e747677e381d075823a306ae381a2c9d1fbe0055b4d9497",
+                "evidence": "Reviewed external scene publisher for actual Bovis1002 neutralpillar faW PVs: original986/987/988 HP100only constructors plus complete original4004 SELF state graph, including native minimumHP1 and afterHP171257→171258→171291 explosion. It is not an aMb fighter innate or fabricatedNPC. Exact originalworldpillar positions are retained atnativez2. Originalserver variant/facing mapping is absent; all19literalplacements use original rotationally invariant986 in explicit reviewed reconstruction, preserving native neutral facing-1. No orientation is fabricated for directional987/988. ActualnativeHP/resources/eventmasks/effects unchanged; noordinaryAI, automatickill or objectivecallback substitutes for destruction. Explicit reviewed-owned-marker-cell-damage-v1 selects actual occupants of the chosen owned997marker cell for original pointdamage descendants; this missing spatialrecipient join is reviewed reconstruction, not a claim that raw clientselection serialized serverrebinding. Originaleffectidentity, criterion, team, amount and markergeometry remain unchanged."
+              }
+            ],
+            "marker_damage_selection": "reviewed-owned-marker-cell-damage-v1"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "huppermage-platform-1030",
+  "version": 1,
+  "map_id": 1030,
+  "entry": {
+    "kind": "native_npc_choice",
+    "map_id": 527,
+    "reference_id": 3934,
+    "action_id": 729,
+    "node_id": 3359,
+    "choice_id": 8297,
+    "position": [
+      79,
+      42,
+      0
+    ],
+    "interaction_anchor": [
+      79,
+      46,
+      3
+    ],
+    "interaction_range": 4,
+    "arrival": [
+      128,
+      -15,
+      0
+    ],
+    "direction": 3,
+    "evidence": "Reviewed placement uses native introduction waypoint79,42 and native accepted ready8297 region x78..86/y45..53. Actual original offered choice/proof required; current1030 platform is an explicit reviewed geometry relocation."
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25674
+  ],
+  "controller_file": "huppermage-platform-1030.json",
+  "encounters_file": "huppermage-platform-1030-encounters.json",
+  "exploration_file": "huppermage-platform-1030.exploration.json",
+  "provenance": "Reviewed version relocation: original2067 platform choreography uses unavailable/unaligned old map coordinates0. Current installed1030 retains an actual150-cell floor0 component122..136,-22..-8. Native family807 actors3927/3928/3929, grades/stats/spells and4091/909 remain original; composition/placement are reviewed reconstruction, not recovered original formation. Guide corroborates three foes and ring-out challenge. Unsafe16393/16395 movie omitted; safe16396 native tutorial retained once."
+}

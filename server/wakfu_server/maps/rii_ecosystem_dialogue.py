@@ -4,9 +4,10 @@ The 5762 quest-return edges were captured from the original server. Alternate
 population roots and the informational 5792–5794 chain are inferred from
 native localized question/answer text; they were not captured in the session.
 """
+
 from wakfu_server import npc_world, npc_protectors, npc_observed_dialogue
 from wakfu_server.npc_dialogue import DialogueSession, catalog
-from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+from wakfu_server.dungeon_achievement_authority import queries_from_state
 from wakfu_server import dungeon_criteria
 
 ACTOR = -1706442046308328
@@ -36,9 +37,7 @@ def _snapshot(store, account_id, character_id):
     if row is None:
         raise ValueError("Missing Rii quest authority")
     value = row["snapshot"]
-    queries_from_snapshot(
-        {key: value[key] for key in ("running", "completed", "objectives")}
-    )
+    queries_from_state(value)
     return value
 
 
@@ -134,9 +133,7 @@ def begin(store, character_provider, rows_provider, account_id, actor_id, action
         if not expression:
             return True
         current, snapshot = current_state()
-        queries = queries_from_snapshot(
-            {key: snapshot[key] for key in ("running", "completed", "objectives")}
-        )
+        queries = queries_from_state(snapshot)
         return dungeon_criteria.evaluate(
             store, expression, character=current, queries=queries
         )

@@ -122,6 +122,27 @@ def rebind_recovered_owner(
         for snapshot in fight.native_instance_difficulty_snapshots.values()
         if snapshot.difficulty is not None
     }
+    if not original_gn:
+        from .native_order_trial_encounter import policy_for
+
+        players, npcs = native_roster_bindings(fight)
+        policy = policy_for(fight)
+        # Ordinary players have Optional.empty GN. The original one-team
+        # placement and its registered307 descendants still freeze GN through
+        # the original written publication, without inventing an NPC snapshot.
+        if policy is not None and players == (policy.owner_id,):
+            from .native_order_trial_events import _owned_summon
+
+            for identity in npcs:
+                actor = fight.actors[identity]
+                if actor.controlled or actor.team != policy.npc_team:
+                    raise ValueError("Order recovery has a foreign native actor")
+                _owned_summon(fight, actor, policy.owner_id)
+            if all(
+                type(row) is tuple and len(row) == 5 and type(row[4]) is int
+                for row in receipts
+            ):
+                original_gn = {row[4] for row in receipts}
     if len(original_gn) != 1:
         raise ValueError("Native recovery lacks one original concrete NPC difficulty")
     frozen_gn = next(iter(original_gn))

@@ -1,0 +1,145 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1026,
+  "scenario_id": 2076,
+  "lua_sha256": "e55a220a10318bb1899bd5531b814377ccceb70928ec54c327ca7334191892cd",
+  "objects": [
+    {
+      "x": 0.0,
+      "y": -43.0,
+      "z": 3.0,
+      "id": 26172,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-3",
+      "map_id": 1026,
+      "payload_hex": "02000000000b010000000d000001040200000000ffffffd50003000101000300010000000339383100000000000101",
+      "native_parameters": "981",
+      "descriptor_id": 981
+    }
+  ],
+  "scenario_events": [
+    16502,
+    16503,
+    16504,
+    16512,
+    16513,
+    16509,
+    16511,
+    16510,
+    16514,
+    16506,
+    16507,
+    16508
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "16502": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16503": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 0
+    },
+    "16504": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16512": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 0
+    },
+    "16513": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16509": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16511": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 7000
+    },
+    "16510": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16514": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16506": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16507": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16508": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    }
+  },
+  "programs": {
+    "26172": {
+      "native_class": "aLl",
+      "descriptor_id": 981,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1220,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1242,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2452,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "loot_tables": {},
+  "native_scripts": {
+    "2452": {
+      "present": true,
+      "sha256": "43283caaf92b0835bcfca7af9216412127a530d34168be1adc9ec3a006bf5be7",
+      "source": "-- Action Id : 2452\n-- Action Type : 1\n\nInteractiveElement.setAnimation(elementId,\"AnimTrans_1_3_0\")\n"
+    }
+  },
+  "provenance": "Original2076 callbacks/981 chest program and native1026 floor. Combat oxygen turn timing becomes reviewed one-cell world movement; initial oxygen4 and finite bubble layout are explicit reviewed reconstruction, never ordinary fight victory."
+}

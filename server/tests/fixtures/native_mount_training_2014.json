@@ -1,0 +1,82 @@
+{
+  "source": "Installed native quest metadata3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2014)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 35 and IsAchievementComplete(2013)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -87,
+              "ckh": -55,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4103,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 4074,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 2,
+          "ckk": false,
+          "ckl": [
+            296
+          ],
+          "d": 3465,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            54300
+          ],
+          "d": 3480,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.515",
+      "d": 2014,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ]
+}

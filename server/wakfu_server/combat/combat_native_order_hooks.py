@@ -247,6 +247,20 @@ class NativeOrderHookHandler:
             self._phase(effect, invocation, runner, 3)
             self._phase(effect, invocation, runner, 4)
             notify_runner_value(invocation, runner.value)
+            if (
+                family == 328
+                and getattr(self.fight, "native_order_trial", None) is not None
+            ):
+                from .native_order_trial_movement import record
+
+                record(
+                    self,
+                    effect,
+                    invocation,
+                    runner_uid=runner.uid,
+                    cell=cell,
+                    value=runner.value,
+                )
             return True
         finally:
             self.cancel_prepared(invocation)

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "id": "bilbyza-dj-dance-challenge",
+  "evidence": [
+    "The native 1264 objective is completed only after the player enters DJ Bilbiboy's four-color dance challenge. The challenge is activated by the real completion of 1263. Ordering by native levels 6-9 and the matching color plus dance/beatbox command is a reviewed reconstruction from the client guide; the native 3700/95219/95845/1941 setup, 2518 command book, native area registry, and ordinary accepted casts remain authoritative."
+  ],
+  "bindings": [
+    {
+      "id": "four-native-ordered-dj-inputs",
+      "quest_id": 1264,
+      "objective_id": 2393,
+      "event": {
+        "kind": "scenario_completed",
+        "reference": 2393
+      },
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "begin-dj-dance-challenge",
+      "quest_id": 1264,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1263
+      },
+      "requires_completed": [
+        1263
+      ]
+    }
+  ]
+}

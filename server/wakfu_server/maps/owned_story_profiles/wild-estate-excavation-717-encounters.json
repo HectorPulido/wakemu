@@ -1,0 +1,201 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "wild-estate-excavation-717",
+  "map_id": 717,
+  "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "bounds": [
+        -17,
+        -5,
+        2,
+        7
+      ],
+      "z": 0,
+      "arena_seed": [
+        -1,
+        1,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 2802,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wild-estate-excavation-717-room-1",
+        "authority": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717.native.v1.json",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 2802,
+            "occurrence": 0,
+            "cell": [
+              -10,
+              2,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717.native.v1.json",
+              "sha256": "490ba1d72c1b06af2bdba6be136cfdfced43d1b311d7506a5263e5d2680d86ee"
+            }
+          }
+        ],
+        "native_initial_glyphs": [
+          {
+            "reference": 633,
+            "level": 0,
+            "cell": [
+              -10,
+              3,
+              0
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-removal-hp-faw-v1",
+              "prototype_sha256": "278a590faac2316f853970167677b2b39941bbf6747b317d6440d06a717ea8dd"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "excavation-room-1-cured"
+      ],
+      "bounds": [
+        -22,
+        9,
+        -3,
+        23
+      ],
+      "z": -12,
+      "arena_seed": [
+        -16,
+        11,
+        -12
+      ],
+      "monsters": [
+        {
+          "reference": 2802,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wild-estate-excavation-717-room-2",
+        "authority": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717.native.v1.json",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 2802,
+            "occurrence": 0,
+            "cell": [
+              -16,
+              18,
+              -12
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717.native.v1.json",
+              "sha256": "490ba1d72c1b06af2bdba6be136cfdfced43d1b311d7506a5263e5d2680d86ee"
+            }
+          }
+        ],
+        "native_initial_glyphs": [
+          {
+            "reference": 633,
+            "level": 0,
+            "cell": [
+              -17,
+              18,
+              -12
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-removal-hp-faw-v1",
+              "prototype_sha256": "278a590faac2316f853970167677b2b39941bbf6747b317d6440d06a717ea8dd"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "excavation-room-2-cured"
+      ],
+      "bounds": [
+        -4,
+        7,
+        8,
+        23
+      ],
+      "z": -24,
+      "arena_seed": [
+        -3,
+        18,
+        -24
+      ],
+      "monsters": [
+        {
+          "reference": 2802,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wild-estate-excavation-717-room-3",
+        "authority": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717.native.v1.json",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 2802,
+            "occurrence": 0,
+            "cell": [
+              3,
+              17,
+              -24
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717.native.v1.json",
+              "sha256": "490ba1d72c1b06af2bdba6be136cfdfced43d1b311d7506a5263e5d2680d86ee"
+            }
+          }
+        ],
+        "native_initial_glyphs": [
+          {
+            "reference": 633,
+            "level": 0,
+            "cell": [
+              3,
+              18,
+              -24
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-removal-hp-faw-v1",
+              "prototype_sha256": "278a590faac2316f853970167677b2b39941bbf6747b317d6440d06a717ea8dd"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

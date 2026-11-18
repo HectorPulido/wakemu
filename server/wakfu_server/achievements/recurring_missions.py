@@ -4,6 +4,7 @@ A caller must qualify and authenticate the event, serialize the character via
 achievement storage, persist the cycle receipt and commit rewards atomically.
 This module does not publish missions or decide which event completes them.
 """
+
 from copy import deepcopy
 
 
@@ -34,6 +35,9 @@ def reset(state, definition):
     """Remove only this definition's projection when a previous cycle expires."""
     candidate = deepcopy(state)
     identity = definition["d"]
+    from . import lifecycle
+
+    lifecycle.reset(candidate, identity)
     objective_ids = {obj["d"] for obj in definition["cjJ"]}
     for name in ("running", "completed", "tracking"):
         candidate[name] = [x for x in candidate[name] if x != identity]
@@ -90,6 +94,9 @@ def finish(state, definition, objective_id, *, now_ms, accepted_cycle, policy):
         return result, [], False
     if identity not in result["running"]:
         raise ValueError("Recurring mission is not running")
+    from . import lifecycle
+
+    lifecycle.retain_activation(result)
     result["objectives"] = sorted(set(result["objectives"]) | {objective_id})
     rewards = []
     if objectives <= set(result["objectives"]):

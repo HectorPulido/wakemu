@@ -40,7 +40,10 @@ def prepare_configuration(
     from .dungeon_optional_rooms import main_room_orders
 
     main_room_orders(topology)
-    if orders != list(range(1, len(orders) + 1)) or not orders:
+    from wakfu_server import owned_noncombat_context
+
+    noncombat = owned_noncombat_context.selected(topology)
+    if orders != list(range(1, len(orders) + 1)) or (not orders and noncombat is None):
         raise ValueError("Dungeon room orders must be contiguous")
     if (
         topology["asset_map_id"] != plan["asset_map_id"]
@@ -139,6 +142,19 @@ def prepare_configuration(
     from wakfu_server import dungeon_exit
 
     dungeon_exit.validate_foreign_exterior(topology)
+    if noncombat is not None:
+        from wakfu_server import owned_story_mechanics
+
+        owned_story_mechanics.sources(noncombat)
+    if topology.get("owned_story_controller") is not None:
+        from wakfu_server import owned_story_controller, owned_story_mechanics
+
+        selected_story = owned_story_controller.policy(dict(topology=topology))
+        owned_story_mechanics.sources(selected_story)
+        if selected_story.get("cinematic_continuation") is not None:
+            from wakfu_server import owned_cinematic_continuations
+
+            owned_cinematic_continuations.policy(selected_story)
     from wakfu_server.dungeon_stage_levels import prepare_policy
 
     selected_level_policy = prepare_policy(level_policy, provenance=provenance)
@@ -217,7 +233,12 @@ def require_monster_admission(config):
     the same current authority as room spawning, including its source-qualified
     empty-book event controllers, before any configuration write can commit.
     """
-    from wakfu_server import dungeon_entry_paths
+    from wakfu_server import dungeon_entry_paths, owned_noncombat_context
+
+    if owned_noncombat_context.selected(config["topology"]) is not None:
+        if config["compiled_plan"]["rooms"]:
+            raise ValueError("Noncombat content cannot admit ordinary monsters")
+        return
 
     paths = dungeon_entry_paths.validate_policy(config["topology"])
     if paths and config["topology"].get("selected_entry_path") is None:
@@ -248,6 +269,18 @@ def require_monster_admission(config):
                 ),
             )
             identity = (monster["ref_id"], level)
+            from wakfu_server.combat_scene_box_goals import passive_admission
+
+            if passive_admission(
+                config, room["order"], monster["ref_id"], level, native
+            ):
+                continue
+            from wakfu_server.combat_scene_ball_goals import native_admission
+
+            if native_admission(
+                config, room["order"], monster["ref_id"], level, native
+            ):
+                continue
             if identity not in checked:
                 dungeon_monster_admission.require(
                     policy, monster["ref_id"], level, level, native=native

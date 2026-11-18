@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "authority": "authorized_native_content_reconstruction",
+  "map_id": 980,
+  "provenance": "Explicit reviewed adapted enemy constructor positions on the existing 52-cell deck. Original enemy coordinates are unrecovered; original scripts receive server-created actor IDs. Original maps290/303/304 are absent. No native terrain flags, radii, stats, spells, roster counts or controller progress are changed.",
+  "native_geometry_sha256": "a31dcb0154d363e9b89aa656d700215f35516b0c6db3a7221b2e0f201f5240cd",
+  "native_scripts": [
+    {
+      "scenario_id": 2015,
+      "source_uri": "client/contents/scripts/scripts.jar:scenario/2015.lua",
+      "sha256": "4fc40be470cd4a5960333e3014bb74e65cbb6fafbc8edfe133bf395d692ee1ff"
+    },
+    {
+      "scenario_id": 2018,
+      "source_uri": "client/contents/scripts/scripts.jar:scenario/2018.lua",
+      "sha256": "e5af932eebfaaadbf7323874a169ae1e370bc78eb4308199ab322a854a6c8789"
+    },
+    {
+      "scenario_id": 2016,
+      "source_uri": "client/contents/scripts/scripts.jar:scenario/2016.lua",
+      "sha256": "999060bc777b2bcca31d4c4ec7d8c7e2b589ad962f8e875abbb6595bdb51169c"
+    }
+  ],
+  "phases": [
+    {
+      "room_order": 1,
+      "positions": [
+        {
+          "reference": 3771,
+          "occurrence": 0,
+          "cell": [
+            2,
+            -4,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3771,
+          "occurrence": 1,
+          "cell": [
+            4,
+            -4,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3771,
+          "occurrence": 2,
+          "cell": [
+            2,
+            -2,
+            0
+          ],
+          "direction": 5
+        }
+      ]
+    },
+    {
+      "room_order": 2,
+      "positions": [
+        {
+          "reference": 3783,
+          "occurrence": 0,
+          "cell": [
+            2,
+            -4,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3783,
+          "occurrence": 1,
+          "cell": [
+            4,
+            -4,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3783,
+          "occurrence": 2,
+          "cell": [
+            2,
+            -2,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3784,
+          "occurrence": 0,
+          "cell": [
+            4,
+            -2,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3784,
+          "occurrence": 1,
+          "cell": [
+            2,
+            0,
+            0
+          ],
+          "direction": 5
+        }
+      ]
+    },
+    {
+      "room_order": 3,
+      "positions": [
+        {
+          "reference": 3769,
+          "occurrence": 0,
+          "cell": [
+            2,
+            -4,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3769,
+          "occurrence": 1,
+          "cell": [
+            4,
+            -4,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3769,
+          "occurrence": 2,
+          "cell": [
+            2,
+            -2,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3770,
+          "occurrence": 0,
+          "cell": [
+            4,
+            -2,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3770,
+          "occurrence": 1,
+          "cell": [
+            2,
+            0,
+            0
+          ],
+          "direction": 5
+        },
+        {
+          "reference": 3770,
+          "occurrence": 2,
+          "cell": [
+            4,
+            0,
+            0
+          ],
+          "direction": 5
+        }
+      ]
+    }
+  ]
+}

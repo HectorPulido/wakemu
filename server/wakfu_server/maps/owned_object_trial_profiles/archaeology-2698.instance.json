@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "content_policy": "owned-object-trials-v1",
+  "id": "archaeology-2698",
+  "version": 1,
+  "map_id": 1001,
+  "entry": {
+    "map_id": 1134,
+    "object_id": 25474,
+    "destination_id": 2290
+  },
+  "native_entry_criterion": "IsAchievementActive(2698)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    31332
+  ],
+  "controller_file": "archaeology-2698.json",
+  "exploration_file": "archaeology-1001.exploration.json",
+  "provenance": "Reviewed reconstruction of native2048 archaeological training. Zero ordinary fights, exact native25474/2290 entry and31332/3943 return, complete475cell nativeSm6 walking. Physical access is independent of assigned story; native quest eligibility/rewards remain separate. Scroll order joined to inspected guide image; carry hazards are literal native25492 cells with explicit reviewed safe stair edges."
+}

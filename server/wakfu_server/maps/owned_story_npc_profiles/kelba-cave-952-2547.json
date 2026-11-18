@@ -1,0 +1,39 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "kelba-cave-952-2547",
+  "controller_id": "kelba-cave-952",
+  "map_id": 952,
+  "policy_version": 1,
+  "quest_id": 2547,
+  "requires": [
+    "chapter2-discovered"
+  ],
+  "render_requires": [
+    "chapter2-discovered"
+  ],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 3580,
+      "action_ids": [
+        673
+      ],
+      "action_criterion": "",
+      "dialogue_root": 3149,
+      "choice_id": 7804,
+      "choice_type": 8,
+      "objective_id": 5065,
+      "x": -2,
+      "y": 0,
+      "z": 0,
+      "direction": 5,
+      "interaction_range": 4,
+      "interaction_anchor": {
+        "x": -1,
+        "y": 0,
+        "z": 0
+      },
+      "provenance": "Original Kelba chapter2 source943/25138/destination2185 enters952 at(0,0,0); exit25119/2173 returns943(-154,12,-50). Original scenario1967 films15832,15833,15834 require real Kabrok3580 UID and end19799 explicitly validates2547/2548 discovery5046/5047. The existing native dialogue3149/7804 then earns separate talk5065/5064. Reviewed reconstruction: native server actor placement and callback orchestration are absent; use connected original Sm6 floor(-2,0,0), explicit6.5s/7.5s/31.5s delays, no combat or later chapter credit. Mutually exclusive native introductions remain alternatives, never both required."
+    }
+  ]
+}

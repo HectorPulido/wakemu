@@ -72,9 +72,9 @@ class CombatSessionMixin:
             self.state.fight is not None and self.state.fight.id != old_fight_id
         ):
             return False
-        self.state.fight = self.state.fight_messages = self.state.combat_session = (
-            self.state.group_lease
-        ) = None
+        self.state.fight = (
+            self.state.fight_messages
+        ) = self.state.combat_session = self.state.group_lease = None
         if self.state.checkpoint_id == old_fight_id:
             self.state.checkpoint_id = self.state.checkpoint_revision = None
             self.state.checkpoint_terminal = True
@@ -2667,9 +2667,9 @@ class CombatSessionMixin:
             native_fight_attached=False,
         )
         self.state.pending_terminal_world_recovery = None
-        self.state.combat_session = self.state.fight = self.state.fight_messages = (
-            self.state.group_lease
-        ) = None
+        self.state.combat_session = (
+            self.state.fight
+        ) = self.state.fight_messages = self.state.group_lease = None
         self.state.checkpoint_id = self.state.checkpoint_revision = None
         self.state.checkpoint_terminal = False
         return True
@@ -2956,9 +2956,9 @@ class CombatSessionMixin:
             key: self.state.character[key] for key in ("x", "y", "z")
         }
         self.state.movement_state = self.runtime.Movement(self.state.position)
-        self.state.fight = self.state.fight_messages = self.state.combat_session = (
-            self.state.group_lease
-        ) = None
+        self.state.fight = (
+            self.state.fight_messages
+        ) = self.state.combat_session = self.state.group_lease = None
         self.state.checkpoint_id = self.state.checkpoint_revision = None
         self.state.checkpoint_terminal = False
         self.state.pending_terminal_world_recovery = None
@@ -3415,6 +3415,7 @@ class CombatSessionMixin:
                 action_id=action_id,
                 attachment_authority=attachments,
                 fight_start=os.environ.get("WAKFU_COMBAT_START_EVENTS", "1") == "1",
+                before_fight_start=lambda initialized: initialized.finalize_initial_turn(),
             )
             initial_packets = [*encounter_packets, *owned_packets]
             if getattr(preview, "rii_element_lesson_contract", None) is not None:
@@ -3516,21 +3517,23 @@ class CombatSessionMixin:
 
     def release_completed_combat_action_results(self):
         """Drop synchronous action receipts after request diagnostics finish."""
-        self.state.transaction = self.state.action_results = self.state.delivery = (
-            self.state.shared_cast
-        ) = self.state.shared_weapon = None
+        self.state.transaction = (
+            self.state.action_results
+        ) = (
+            self.state.delivery
+        ) = self.state.shared_cast = self.state.shared_weapon = None
 
     def release_completed_combat_return_aliases(self):
         """Release socket-frame battle aliases after successful world delivery."""
-        self.state.shared_state = self.state.shared = self.state.shared_selection = (
-            self.state.shared_rift
-        ) = None
-        self.state.candidate = self.state.hero_admission = (
-            self.state.companion_admission
-        ) = None
-        self.state.selection_runtime = self.state.orientation_runtime = (
-            self.state.checkpoint_local_shared
-        ) = None
+        self.state.shared_state = (
+            self.state.shared
+        ) = self.state.shared_selection = self.state.shared_rift = None
+        self.state.candidate = (
+            self.state.hero_admission
+        ) = self.state.companion_admission = None
+        self.state.selection_runtime = (
+            self.state.orientation_runtime
+        ) = self.state.checkpoint_local_shared = None
         self.state.pending = self.state.returned = None
         self.state.finish_return = self.state.abandon_messages = None
 
@@ -3667,6 +3670,10 @@ class CombatSessionMixin:
                                 *packet,
                                 exclude_generation=self.state.generation,
                             )
+        if self.state.group_lease is not None and self.state.group_lease[0][1] > 0:
+            from wakfu_server import owned_quest_pools
+
+            owned_quest_pools.refresh_after_finish(self, self.state.group_lease[0])
         self.runtime.join_world(
             self.state.generation, self.state.connection, self.state.character
         )

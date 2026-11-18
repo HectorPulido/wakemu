@@ -1,0 +1,181 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1018,
+  "objects": [
+    {
+      "chunk": "-1_-1",
+      "id": 25716,
+      "payload_hex": "02000000000b010000000d00000103faffffffeffffffff600000000010103000100000003313937000000276c0000",
+      "x": -17.0,
+      "y": -10.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26183,
+      "payload_hex": "02000000000b010000000d00000103faffffffe6fffffffe0000000101010100000001ffffffe6fffffffe00000004323132340000003baf0001",
+      "x": -26.0,
+      "y": -2.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "-2_-2",
+      "id": 25662,
+      "payload_hex": "02000000000b010000000d00000103faffffffe1ffffffde00000000010103000100000003313937000000276c0000",
+      "x": -31.0,
+      "y": -34.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "-2_-3",
+      "id": 25684,
+      "payload_hex": "02000000000b010000000d00000103faffffffe2ffffffdb00040001010101000100000004323038390000003baf0001",
+      "x": -30.0,
+      "y": -37.0,
+      "map_id": 1018,
+      "z": 4.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "-2_-4",
+      "id": 25682,
+      "payload_hex": "02000000000b010000000d00000103faffffffedffffffbc000000010101010001000000043230383700000000000000",
+      "x": -19.0,
+      "y": -68.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "-2_-4",
+      "id": 26216,
+      "payload_hex": "02000000000b010000000d00000103faffffffe5ffffffbe0003000101010100010000000339383500000000000101",
+      "x": -27.0,
+      "y": -66.0,
+      "map_id": 1018,
+      "z": 3.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-3_-1",
+      "id": 26212,
+      "payload_hex": "02000000000b010000000d00000103faffffffd7fffffff30000000101010100080000000339383300000000000101",
+      "x": -41.0,
+      "y": -13.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_-4",
+      "id": 25654,
+      "payload_hex": "02000000000b010000000d00000103fa00000010ffffffbd0000000001010100010000000331393700000020520000",
+      "x": 16.0,
+      "y": -67.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "0_-4",
+      "id": 25653,
+      "payload_hex": "02000000000b010000000d00000103fa00000010ffffffbe0000000001010100010000000331393700000020520000",
+      "x": 16.0,
+      "y": -66.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "0_-4",
+      "id": 25652,
+      "payload_hex": "02000000000b010000000d00000103fa00000010ffffffbf0000000001010100010000000331393700000020520000",
+      "x": 16.0,
+      "y": -65.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "0_-4",
+      "id": 25651,
+      "payload_hex": "02000000000b010000000d00000103fa00000010ffffffc00000000001010100010000000331393700000020520000",
+      "x": 16.0,
+      "y": -64.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "0_0",
+      "id": 25691,
+      "payload_hex": "02000000000b010000000d00000103fa00000000000000010000000101010100000001000000000000000100000004323039370000003baf0001",
+      "x": 0.0,
+      "y": 1.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "1_-1",
+      "id": 25720,
+      "payload_hex": "02000000000b010000000d00000103fa00000023fffffffc000000010101010000000100000023fffffffc00000004323130320000003baf0001",
+      "x": 35.0,
+      "y": -4.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "1_-4",
+      "id": 25657,
+      "payload_hex": "02000000000b010000000d00000103fa00000017ffffffc200000000010103000100000003313937000000276c0000",
+      "x": 23.0,
+      "y": -62.0,
+      "map_id": 1018,
+      "z": 0.0,
+      "auto": false,
+      "type": "Stool"
+    },
+    {
+      "chunk": "2_-3",
+      "id": 26215,
+      "payload_hex": "02000000000b010000000d00000103fa0000002affffffd3fff40001010101000a0000000339383400000000000101",
+      "x": 42.0,
+      "y": -45.0,
+      "map_id": 1018,
+      "z": -12.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    }
+  ],
+  "scenario_id": 2066,
+  "scenario_events": [
+    16392,
+    16604
+  ],
+  "scenes": {},
+  "presentations": [
+    16392
+  ],
+  "event_signatures": {}
+}

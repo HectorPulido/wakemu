@@ -1,0 +1,50 @@
+{
+  "schema": "reviewed-native-mercenary-boards-v1",
+  "boards": [
+    {
+      "object_id": 23865,
+      "playable_quests": [
+        2135,
+        2140
+      ],
+      "interaction_anchor": {
+        "x": 18,
+        "y": 45,
+        "z": 0
+      },
+      "anchor_evidence": "Reviewed native527 floor at18,45,0 with bidirectional exterior edges in original geometry0bfbbc314349dd929561c9a93dd65fed6c3d52a78a886cbabb28515893394cb0. Native interactive pin18,46,13 is preserved as a decorative elevation; player position is checked against this adjacent actual floor."
+    },
+    {
+      "object_id": 24162,
+      "playable_quests": [
+        2138,
+        2143,
+        2144,
+        2145,
+        2146
+      ],
+      "interaction_anchor": {
+        "x": 16,
+        "y": 45,
+        "z": 0
+      },
+      "anchor_evidence": "Reviewed native527 connected floor16,45,0 with bidirectional exterior edges in original geometry0bfbbc314349dd929561c9a93dd65fed6c3d52a78a886cbabb28515893394cb0. Original decorative sprite16,46,13 remains unchanged; player range/height use this actual adjacent floor."
+    },
+    {
+      "object_id": 24110,
+      "playable_quests": [
+        2139,
+        2147,
+        2149,
+        2150,
+        2151
+      ],
+      "interaction_anchor": {
+        "x": -20,
+        "y": 14,
+        "z": 0
+      },
+      "anchor_evidence": "Reviewed actual native546 floor-20,14,0 andbidirectionaledge to-21,14,0, geometry14329d080c48f16bd01c01296016695fd20bcd55a5c54bcbd726f5bcbc16d25d. Nativeelevatedsprite-20,13,13 ispreserved; actualfloor controlsownedrange. Highercontracts retainallnative lower-rank prerequisites;2149 genuinearcade isnotimplementedorofferedbythispublication."
+    }
+  ]
+}

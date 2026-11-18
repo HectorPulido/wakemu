@@ -1,0 +1,73 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "huppermage-seed-1018",
+  "map_id": 1018,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2778,
+    "objective_id": null,
+    "continuation_quest_id": 2778
+  },
+  "provenance": "Reviewed native-content version adaptation: actual1018 courtyard floor-8 hosts the unchanged installed seed173588/173589 seven-red/four-blue point pattern. Original greenhouse floor-14 cannot contain every original point on one native component. No point offsets, native programs, stats or spells are altered; no manual decoy placement substitutes for initial4071 construction. Actual Janine3312/8198 starts the private challenge. Original3907 enemy seed, genuine4072 temporary player form, original5599 collection eligibility and actual terminal outcome qualify5670.",
+  "native_sources": {
+    "path": "huppermage-seed-1018.native.v1.json",
+    "sha256": "2a2bd43db60f047038e5d78927992d47d817a2118ee1ae18e1bd7c627b49f843"
+  },
+  "initial_elements": [],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "seed-ready"
+    ],
+    "evidence": "Actual accepted native Janine start-fight8198 and loaded owned courtyard unlock one real native3907 constructor. Readiness/tutorial never grant seed success."
+  },
+  "terminal_returns": {
+    "schema": "owned-story-terminal-return-v1",
+    "room_order": 1,
+    "victory": {
+      "kind": "recorded_entry"
+    },
+    "defeat": {
+      "kind": "recorded_entry"
+    },
+    "evidence": "Both authentic terminal outcomes restore the actual accepted Janine public source through normal recorded entry/outbox, without an invented greenhouse teleporter."
+  },
+  "steps": [
+    {
+      "id": "seed-ready",
+      "kind": "world_ready",
+      "reference": 1018,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2066,
+          "event": 16392
+        }
+      ],
+      "evidence": "Original2066/16392 standalone tutorial dialog is once per character after native owned scene load."
+    },
+    {
+      "id": "seed-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "seed-ready"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2066,
+          "event": 16604
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2778,
+          "objective_id": 5670
+        }
+      ],
+      "evidence": "Only actual original3907 seed defeat and normal authenticated terminal victory qualify. Native5599 requires an enemy3907 seed; red/blue decoys cannot substitute."
+    }
+  ]
+}

@@ -1,0 +1,568 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Finite Kelba market investigation arc: native-exclusive2533/2534, then actual shop visit2570, Miranda agreement2573 and Hadibal package briefing2535. No parcel pickup2536, convoy escort2537 or later fights are activated by this publication. Reviewed story admission begins at guide level65 while preserving native2533 earning criteria and any existing active legacy variant.",
+  "speakers": [
+    {
+      "actor_id": -2251799934952534,
+      "action_id": 61,
+      "quest_ids": [
+        2534,
+        2533,
+        2570,
+        2535
+      ],
+      "native_marker": {
+        "quest_id": 2534,
+        "objective_id": 5090
+      },
+      "available_quests_on_open": [
+        2534,
+        2533,
+        2570,
+        2535
+      ],
+      "placement": {
+        "quest_id": 2534,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934952534,
+          "reference_id": 1147,
+          "map_id": 943,
+          "instance_id": 0,
+          "x": -99,
+          "y": 0,
+          "z": -47,
+          "direction": 3,
+          "dialogue_root": 278,
+          "action_ids": [
+            61
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION of Hadibal1147/action61 from native Kelba intro marker. Exact native predicates and dialogue text retained; edges are reviewed narrative reconstruction, not captured original server transitions."
+        },
+        "interaction_anchor": {
+          "x": -100,
+          "y": 0,
+          "z": -47
+        },
+        "interaction_anchor_evidence": "Original native943 directed floor connects this approach through raised market tiles to the public ground; geometry26ccda82976f46bd81cab394f1b5e05f5a9ac1a5e2970fb76a392d7642b9f26e. The marker is not claimed to be a captured original actor position.",
+        "opening_quest_criteria": {
+          "2534": "GetRealLevel() >= 65",
+          "2533": "GetRealLevel() >= 65",
+          "2570": "IsAchievementComplete(2533) || IsAchievementComplete(2534)"
+        },
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2534,
+          "objective_id": 5090,
+          "node_id": 278,
+          "choice_id": 7687,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2534,
+          "branch_binding": true
+        },
+        {
+          "quest_id": 2534,
+          "objective_id": 5090,
+          "node_id": 3092,
+          "choice_id": 7840,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2534,
+          "branch_binding": true
+        },
+        {
+          "quest_id": 2533,
+          "objective_id": 5089,
+          "node_id": 278,
+          "choice_id": 7687,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2533,
+          "branch_binding": true
+        },
+        {
+          "quest_id": 2533,
+          "objective_id": 5089,
+          "node_id": 3092,
+          "choice_id": 7840,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2533,
+          "branch_binding": true
+        },
+        {
+          "quest_id": 2535,
+          "objective_id": 5034,
+          "node_id": 3095,
+          "choice_id": 7701,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              278,
+              7698,
+              3093
+            ],
+            [
+              3093,
+              7699,
+              3094
+            ],
+            [
+              3094,
+              7700,
+              3095
+            ],
+            [
+              3095,
+              7701,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          278,
+          7687,
+          3160
+        ],
+        [
+          278,
+          7692,
+          3092
+        ],
+        [
+          3092,
+          7840,
+          3160
+        ],
+        [
+          3092,
+          7697,
+          278
+        ],
+        [
+          3092,
+          7696,
+          0
+        ],
+        [
+          3160,
+          7839,
+          3161
+        ],
+        [
+          3161,
+          7841,
+          3091
+        ],
+        [
+          3091,
+          7690,
+          0
+        ],
+        [
+          278,
+          7838,
+          3091
+        ],
+        [
+          278,
+          7844,
+          3162
+        ],
+        [
+          3162,
+          7846,
+          278
+        ],
+        [
+          3162,
+          7845,
+          0
+        ],
+        [
+          278,
+          7694,
+          0
+        ],
+        [
+          278,
+          7698,
+          3093
+        ],
+        [
+          3093,
+          7699,
+          3094
+        ],
+        [
+          3094,
+          7700,
+          3095
+        ],
+        [
+          3095,
+          7701,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934950945,
+      "action_id": 674,
+      "quest_ids": [
+        2570,
+        2573
+      ],
+      "available_quests_on_open": [
+        2570,
+        2573
+      ],
+      "reviewed_site_placement": {
+        "source_id": 25121,
+        "geometry_sha256": "60dc6dd6cd52eb4122e72556fef8459854243aaa579a01bc27603ba25b619ba8",
+        "evidence": "Actual native shop exit/connected original shop terrain establishes the physical context. The Native NPC variant is named Miranda; its exact interior position is explicit reviewed reconstruction."
+      },
+      "placement": {
+        "quest_id": 2570,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934950945,
+          "reference_id": 3581,
+          "map_id": 945,
+          "instance_id": 0,
+          "x": 3,
+          "y": 1,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 3081,
+          "action_ids": [
+            674
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION of native Miranda3581/action674 on original shop floor. Both original945 story and944 default shop contexts remain reachable without changing native door criteria; placement and dialogue edges are reviewed, not captured spawns/server choreography."
+        },
+        "interaction_anchor": {
+          "x": 2,
+          "y": 1,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Both actor3,1,0 and approach2,1,0 are original connected native floor cells with bidirectional edges. The same NPC is present in both authentic door-selected contexts, preventing a stranded2573 reentry.",
+        "opening_quest_criteria": {
+          "2570": "IsAchievementComplete(2533) || IsAchievementComplete(2534)"
+        },
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2570,
+          "objective_id": 5088,
+          "node_id": 3081,
+          "choice_id": 7671,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            5087
+          ],
+          "running_branch": 2570,
+          "branch_binding": true
+        },
+        {
+          "quest_id": 2573,
+          "objective_id": 5092,
+          "node_id": 3081,
+          "choice_id": 7843,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2573,
+          "branch_binding": true
+        }
+      ],
+      "spoken_objectives": [
+        {
+          "quest_id": 2570,
+          "objective_id": 5087,
+          "action_ids": [
+            674
+          ],
+          "evidence": "An authenticated conversation inside the actual shop confirms the native go-to-shop objective, including existing occupants and the default944 reentry branch. It does not fabricate a remote physical portal activation."
+        }
+      ],
+      "graph": [
+        [
+          3081,
+          7671,
+          3085
+        ],
+        [
+          3085,
+          7681,
+          3086
+        ],
+        [
+          3086,
+          7682,
+          3087
+        ],
+        [
+          3087,
+          7683,
+          3088
+        ],
+        [
+          3088,
+          7684,
+          0
+        ],
+        [
+          3081,
+          7843,
+          3088
+        ],
+        [
+          3081,
+          7685,
+          3089
+        ],
+        [
+          3089,
+          7686,
+          0
+        ],
+        [
+          3081,
+          7672,
+          3082
+        ],
+        [
+          3082,
+          7674,
+          3081
+        ],
+        [
+          3082,
+          7675,
+          0
+        ],
+        [
+          3081,
+          7673,
+          3083
+        ],
+        [
+          3083,
+          7676,
+          3081
+        ],
+        [
+          3083,
+          7677,
+          0
+        ],
+        [
+          3081,
+          7678,
+          3084
+        ],
+        [
+          3084,
+          7679,
+          3081
+        ],
+        [
+          3084,
+          7680,
+          0
+        ],
+        [
+          3081,
+          7666,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934950944,
+      "action_id": 674,
+      "quest_ids": [
+        2570,
+        2573
+      ],
+      "available_quests_on_open": [
+        2570,
+        2573
+      ],
+      "reviewed_site_placement": {
+        "source_id": 25120,
+        "geometry_sha256": "da70ba221d621ce58a27a07fdce70c126846ed5781a3639b52bd3384b210d281",
+        "evidence": "Actual native shop exit/connected original shop terrain establishes the physical context. The Native NPC variant is named Miranda; its exact interior position is explicit reviewed reconstruction."
+      },
+      "placement": {
+        "quest_id": 2570,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934950944,
+          "reference_id": 3581,
+          "map_id": 944,
+          "instance_id": 0,
+          "x": 3,
+          "y": 1,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 3081,
+          "action_ids": [
+            674
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION of native Miranda3581/action674 on original shop floor. Both original945 story and944 default shop contexts remain reachable without changing native door criteria; placement and dialogue edges are reviewed, not captured spawns/server choreography."
+        },
+        "interaction_anchor": {
+          "x": 2,
+          "y": 1,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Both actor3,1,0 and approach2,1,0 are original connected native floor cells with bidirectional edges. The same NPC is present in both authentic door-selected contexts, preventing a stranded2573 reentry.",
+        "opening_quest_criteria": {
+          "2570": "IsAchievementComplete(2533) || IsAchievementComplete(2534)"
+        },
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2570,
+          "objective_id": 5088,
+          "node_id": 3081,
+          "choice_id": 7671,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            5087
+          ],
+          "running_branch": 2570,
+          "branch_binding": true
+        },
+        {
+          "quest_id": 2573,
+          "objective_id": 5092,
+          "node_id": 3081,
+          "choice_id": 7843,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2573,
+          "branch_binding": true
+        }
+      ],
+      "spoken_objectives": [
+        {
+          "quest_id": 2570,
+          "objective_id": 5087,
+          "action_ids": [
+            674
+          ],
+          "evidence": "An authenticated conversation inside the actual shop confirms the native go-to-shop objective, including existing occupants and the default944 reentry branch. It does not fabricate a remote physical portal activation."
+        }
+      ],
+      "graph": [
+        [
+          3081,
+          7671,
+          3085
+        ],
+        [
+          3085,
+          7681,
+          3086
+        ],
+        [
+          3086,
+          7682,
+          3087
+        ],
+        [
+          3087,
+          7683,
+          3088
+        ],
+        [
+          3088,
+          7684,
+          0
+        ],
+        [
+          3081,
+          7843,
+          3088
+        ],
+        [
+          3081,
+          7685,
+          3089
+        ],
+        [
+          3089,
+          7686,
+          0
+        ],
+        [
+          3081,
+          7672,
+          3082
+        ],
+        [
+          3082,
+          7674,
+          3081
+        ],
+        [
+          3082,
+          7675,
+          0
+        ],
+        [
+          3081,
+          7673,
+          3083
+        ],
+        [
+          3083,
+          7676,
+          3081
+        ],
+        [
+          3083,
+          7677,
+          0
+        ],
+        [
+          3081,
+          7678,
+          3084
+        ],
+        [
+          3084,
+          7679,
+          3081
+        ],
+        [
+          3084,
+          7680,
+          0
+        ],
+        [
+          3081,
+          7666,
+          0
+        ]
+      ]
+    }
+  ]
+}

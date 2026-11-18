@@ -1,0 +1,95 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "kelba-lair-951",
+  "map_id": 951,
+  "maximum_members": 1,
+  "provenance": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented.",
+  "admission": {
+    "quest_id": 2544,
+    "objective_id": null,
+    "continuation_quest_id": 2544
+  },
+  "native_sources": {
+    "path": "kelba-lair-951.native.v1.json",
+    "sha256": "22162f80c49734f96aded1e405e55aade95efbf70fe30f723a4b6171ff63b9d7"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "kabrok-reveal-start",
+      "kind": "world_ready",
+      "reference": 951,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1977,
+          "event": 15758,
+          "arguments": [
+            "scene_actor:kabrok"
+          ]
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented."
+    },
+    {
+      "id": "kabrok-player-arrival",
+      "kind": "scenario_complete",
+      "reference": 15876,
+      "requires": [
+        "kabrok-reveal-start"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1977,
+          "event": 15774,
+          "arguments": [
+            "scene_actor:kabrok"
+          ]
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented."
+    },
+    {
+      "id": "kabrok-explanation",
+      "kind": "scenario_complete",
+      "reference": 15774,
+      "requires": [
+        "kabrok-player-arrival"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1977,
+          "event": 15759,
+          "arguments": [
+            "scene_actor:kabrok"
+          ]
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented."
+    },
+    {
+      "id": "kabrok-reveal-finished",
+      "kind": "scenario_complete",
+      "reference": 19800,
+      "requires": [
+        "kabrok-explanation"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1977,
+          "event": 19800
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2544,
+          "objective_id": 5043
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented."
+    }
+  ]
+}

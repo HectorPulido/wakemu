@@ -1,0 +1,33 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "kelba-port-946",
+  "controller_id": "kelba-port-946",
+  "policy_version": 1,
+  "map_id": 946,
+  "requires": [],
+  "quest_id": 2536,
+  "physical_visit": true,
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 1147,
+      "action_ids": [
+        61
+      ],
+      "action_type": 4,
+      "action_criterion": "",
+      "controller_reference": 1147,
+      "x": 10,
+      "y": 2,
+      "z": 0,
+      "direction": 5,
+      "interaction_range": 4,
+      "interaction_anchor": {
+        "x": 9,
+        "y": 2,
+        "z": 0
+      },
+      "provenance": "Original native speaker1147/action61 type4, unguarded criterion. Reconstructed Hadibal placement on actual946Sm6 floor beside original player animation endpoint9,2. Direct action triggers the owned story only after native arrival completion; rendering never earns5035."
+    }
+  ]
+}

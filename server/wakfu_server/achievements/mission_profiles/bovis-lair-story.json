@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "id": "bovis-lair-story",
+  "evidence": [
+    "Original2710 completed2709 predecessor, level23 actualvictory5359 and native1134/25510/2260 admission to1002. Native scenario2045 requires four actual room victories; third original TeamMissile battle rescuesMimi for2711/5346; final original3845 Bovis plus offered nativecapture leads2720/5358 and unchanged native19660wool reward. Activation joins2710\u21922711\u21922720 are reviewed story reconstruction, never fabricated objective completions."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "bovis-earned-2710",
+      "quest_id": 2710,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2709
+      },
+      "requires_completed": [
+        2709
+      ]
+    },
+    {
+      "id": "bovis-recover-2710",
+      "quest_id": 2710,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2709
+      ],
+      "minimum_level": 20,
+      "admission_evidence": "Original2710 completed2709 predecessor, level23 actualvictory5359 and native1134/25510/2260 admission to1002. Native scenario2045 requires four actual room victories; third original TeamMissile battle rescuesMimi for2711/5346; final original3845 Bovis plus offered nativecapture leads2720/5358 and unchanged native19660wool reward. Activation joins2710\u21922711\u21922720 are reviewed story reconstruction, never fabricated objective completions."
+    },
+    {
+      "id": "bovis-earned-2711",
+      "quest_id": 2711,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2710
+      },
+      "requires_completed": [
+        2710
+      ]
+    },
+    {
+      "id": "bovis-recover-2711",
+      "quest_id": 2711,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2710
+      ],
+      "minimum_level": 20,
+      "admission_evidence": "Original2710 completed2709 predecessor, level23 actualvictory5359 and native1134/25510/2260 admission to1002. Native scenario2045 requires four actual room victories; third original TeamMissile battle rescuesMimi for2711/5346; final original3845 Bovis plus offered nativecapture leads2720/5358 and unchanged native19660wool reward. Activation joins2710\u21922711\u21922720 are reviewed story reconstruction, never fabricated objective completions."
+    },
+    {
+      "id": "bovis-earned-2720",
+      "quest_id": 2720,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2711
+      },
+      "requires_completed": [
+        2711
+      ]
+    },
+    {
+      "id": "bovis-recover-2720",
+      "quest_id": 2720,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2711
+      ],
+      "minimum_level": 21,
+      "admission_evidence": "Original2710 completed2709 predecessor, level23 actualvictory5359 and native1134/25510/2260 admission to1002. Native scenario2045 requires four actual room victories; third original TeamMissile battle rescuesMimi for2711/5346; final original3845 Bovis plus offered nativecapture leads2720/5358 and unchanged native19660wool reward. Activation joins2710\u21922711\u21922720 are reviewed story reconstruction, never fabricated objective completions."
+    }
+  ]
+}

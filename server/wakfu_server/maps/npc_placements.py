@@ -76,6 +76,30 @@ def load_scene(db, map_id, instance_id):
 def spawn(row):
     """Publish native format11 with every original collection action masked."""
     validate(row)
+    return _spawn(row)
+
+
+def spawn_owned(row, *, character):
+    """Share the render-only native encoder after owned story qualification.
+
+    Instance membership and source prototypes belong to the caller's locked
+    controller scope. The wire model has no world-instance field; transport
+    delivery still stays on that authenticated owner's private scene.
+    """
+    if (
+        type(character.get("instance_id")) is not int
+        or character["instance_id"] <= 0
+        or row.get("instance_id") != character["instance_id"]
+        or row.get("map_id") != character.get("map_id")
+        or row.get("owner_id") != character.get("id")
+        or row.get("native_action_ids") != []
+    ):
+        raise ValueError("Render-only actor lost its authenticated private scope")
+    validate(dict(row, instance_id=0))
+    return _spawn(row)
+
+
+def _spawn(row):
     name = row["name_es"].encode("utf-8")
     out = (
         b"\x0b"

@@ -1,4 +1,5 @@
 """Scoped original retained-item common spells, independent of class grants."""
+
 from functools import lru_cache
 
 from wakfu_server import native_catalog as protocol_catalog
@@ -13,7 +14,10 @@ def effects():
     references = data.get("spell_references")
     if (
         data.get("schema") != "native-retained-item-common-spell-effects-v1"
-        or references != sorted(COMMON_ITEM_SPELLS)
+        or not isinstance(references, list)
+        or references != sorted(set(references))
+        or not references
+        or not set(references) <= set(COMMON_ITEM_SPELLS)
         or set(data.get("spells", {})) != {str(ref) for ref in references}
     ):
         raise ValueError("Unattested retained-item common spell domain")

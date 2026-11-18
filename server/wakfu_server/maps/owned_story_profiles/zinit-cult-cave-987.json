@@ -1,0 +1,247 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "zinit-cult-cave-987",
+  "map_id": 987,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2689,
+    "objective_id": null,
+    "continuation_quest_id": 2689
+  },
+  "provenance": "Reviewed reconstruction, not captured original formations: installed map987/scenario2019 explicitly define two clears, native drill key state3679, a drill-triggered boss with six adds and a cleared terminal exit. Native family842 cultists and master retain all original level20 statistics/spells. Counts in the first two groups and species composition are authored local policy; final actor end positions are literal installed Lua. Only actual original-roster clear and the authenticated exit earn objective5308; Ullu5309 stays a real NPC debrief.",
+  "steps": [
+    {
+      "id": "cave-beach-explored",
+      "kind": "world_ready",
+      "reference": 987,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2688,
+          "objective_id": 5307
+        }
+      ],
+      "evidence": "Reviewed exploration producer: actual authenticated98625392/2233 admission and loaded owned987 destination prove that the assigned traveller explored the beach to the cave. Normal completion activates2689; no public Ullu is invented. Physical unassigned/completed visits produce only the mechanical entry-ready flag."
+    },
+    {
+      "id": "cave-room1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "cave-beach-explored"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16019,
+          "arguments": [
+            0
+          ]
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16020
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25373,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Actual first native cultist clear opens literal door25373; no talk or arbitrary interaction substitutes for victory."
+    },
+    {
+      "id": "cave-drill-key",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "cave-room1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "native_state",
+          "state_id": 3679,
+          "active": true
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16021
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16022
+        }
+      ],
+      "evidence": "Actual second clear earns original state3679 (Drill Key), marker159866/op400; it is not an inventory item."
+    },
+    {
+      "id": "cave-drill-activated",
+      "kind": "interactive",
+      "reference": 25374,
+      "requires": [
+        "cave-drill-key"
+      ],
+      "effects": [
+        {
+          "kind": "native_state",
+          "state_id": 3679,
+          "active": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16038
+        }
+      ],
+      "evidence": "Authenticated native drill950/action1193 at54,-24,-15 requires and consumes its real owned key carrier; native branch2404 is HasState3679."
+    },
+    {
+      "id": "cave-boss-intro",
+      "kind": "room_available",
+      "reference": 3,
+      "requires": [
+        "cave-drill-activated"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16039,
+          "arguments": [
+            0,
+            "boss_actor",
+            "room_actor:3:1",
+            "room_actor:3:2",
+            "room_actor:3:3",
+            "room_actor:3:4",
+            "room_actor:3:5",
+            "room_actor:3:6"
+          ]
+        }
+      ],
+      "evidence": "Original eight-argument16039 uses actual registered master+six cultist IDs; first unused BossGroupId is literal0. All end positions are source-pinned before presentation."
+    },
+    {
+      "id": "cave-boss-intro-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "cave-boss-intro"
+      ],
+      "effects": [],
+      "evidence": "Only the pending native scene callback or its literal5000ms recovery completes the introduction."
+    },
+    {
+      "id": "cave-boss-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "cave-boss-intro-done"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16023
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2019,
+          "event": 16024,
+          "arguments": [
+            0
+          ]
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25431,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Actual original master and all six adds must be defeated; then the terminal native door opens and the3000ms drill exit scene runs."
+    },
+    {
+      "id": "cave-exit-scene-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "cave-boss-victory"
+      ],
+      "effects": [],
+      "evidence": "Pending actual exit scene completes without inventing quest progress."
+    },
+    {
+      "id": "cave-authenticated-exit",
+      "kind": "native_travel",
+      "reference": 2234,
+      "requires": [
+        "cave-exit-scene-done"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2689,
+          "objective_id": 5308
+        }
+      ],
+      "evidence": "Actual exact native return2234 after real three-room clear earns crossing5308 within the same durable exit transaction. Early retreat cannot qualify."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 25373,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25431,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25374,
+      "state": 0,
+      "visible": true,
+      "usable": true,
+      "blocks_movement": false
+    }
+  ],
+  "native_sources": {
+    "path": "zinit-cult-cave-987.native.v1.json",
+    "sha256": "50e9dd4c03e567bf060786f8653411830c6cbd7b3168eb7e97af035460176f07"
+  },
+  "native_links": [
+    {
+      "source_id": 25395,
+      "destination_id": 2234,
+      "requires": []
+    },
+    {
+      "source_id": 25430,
+      "destination_id": 2234,
+      "requires": []
+    }
+  ],
+  "cinematic_continuation": {
+    "path": "zinit-ullu-986.v2.json",
+    "sha256": "7c5f6a52895ea0e469d1cdbd2f80919c3750df5317fc984dbef81cf5aaf1b45b"
+  }
+}

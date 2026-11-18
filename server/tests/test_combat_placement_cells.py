@@ -147,3 +147,124 @@ class PlacementCellTests(unittest.TestCase):
         self.assertEqual(fight.phase, "placement")
         fight.ready(8)
         self.assertEqual(fight.phase, "active")
+
+    def test_ordinary_point_eligibility_filters_nest_room_two_without_changing_terrain(
+        self,
+    ):
+        import json
+        from pathlib import Path
+        from types import SimpleNamespace
+
+        from wakfu_server.combat_placement_policy import ordinary_generated_eligibility
+        from wakfu_server.combat_encounter_roles import EncounterRoles
+        from wakfu_server.combat_sn_path import NativeSnColumns
+        from wakfu_server.combat_walk_surface_policy import (
+            native_npc_point_placement_allowed,
+            native_player_point_placement_allowed,
+        )
+        from wakfu_server.combat_terrain import published_geometry
+
+        config_path = (
+            Path(__file__).parents[1]
+            / "wakfu_server/maps/owned_story_profiles/astrub-nest-728.configuration.json"
+        )
+        room = json.loads(config_path.read_text())["topology"]["rooms"][1]
+        cells = {tuple(cell) for cell in room["cells"]}
+        geometry = published_geometry(728)
+        edges = {
+            (cell, neighbor)
+            for cell in cells
+            for neighbor in geometry.outgoing.get(cell, ())
+            if neighbor in cells
+        }
+        original_cells, original_edges = set(cells), set(edges)
+        columns = NativeSnColumns.from_published(728)
+        player_cells = {
+            cell
+            for cell in cells
+            if native_player_point_placement_allowed(columns, cell)
+        }
+        npc_cells = {
+            cell for cell in cells if native_npc_point_placement_allowed(columns, cell)
+        }
+        forbidden = (0, 20, 0)
+        player_seed, npc_seed = (-1, 18, 0), (0, 18, 0)
+        self.assertIn(forbidden, cells)
+        self.assertNotIn(forbidden, player_cells)
+        self.assertNotIn(forbidden, npc_cells)
+        self.assertIn(player_seed, player_cells)
+        self.assertIn(npc_seed, npc_cells)
+
+        record = {
+            "native_ordinary_point_placement": dict(
+                schema="wakemu-ordinary-point-placement-v1",
+                map_id=728,
+                source_sha256=columns.source_sha256,
+                player_cells=sorted(player_cells),
+                npc_cells=sorted(npc_cells),
+                player_point_only=True,
+                npc_point_only=True,
+            )
+        }
+        roles = EncounterRoles(
+            "test-inverted",
+            "fixture",
+            728,
+            (735, 125),
+            player_team=1,
+            npc_team=0,
+        )
+        eligible = ordinary_generated_eligibility(record, cells, roles, map_id=728)
+        self.assertEqual(eligible, {1: player_cells, 0: npc_cells})
+        reserved = set(sorted(player_cells - {player_seed})[:6])
+        placement = generate(
+            cells,
+            edges,
+            {0: {npc_seed}, 1: {player_seed}},
+            slots_per_team=4,
+            eligible_cells=eligible,
+            occupied_cells=reserved,
+        )
+        self.assertNotIn(forbidden, placement[0] | placement[1])
+        self.assertFalse(reserved & (placement[0] | placement[1]))
+        self.assertTrue({npc_seed} <= placement[0])
+        self.assertTrue({player_seed} <= placement[1])
+        self.assertEqual(cells, original_cells)
+        self.assertEqual(edges, original_edges)
+
+        # Whole-body/non-point policies retain the whole authored room; the
+        # ordinary filter does not narrow footprints for different birth rules.
+        full_body = {
+            "native_ordinary_point_placement": dict(
+                schema="wakemu-ordinary-point-placement-v1",
+                map_id=728,
+                source_sha256=columns.source_sha256,
+                player_cells=sorted(cells),
+                npc_cells=sorted(cells),
+                player_point_only=False,
+                npc_point_only=False,
+            )
+        }
+        ordinary_roles = EncounterRoles(
+            "test-normal",
+            "fixture",
+            728,
+            (735, 125),
+            player_team=0,
+            npc_team=1,
+        )
+        self.assertEqual(
+            ordinary_generated_eligibility(
+                full_body, cells, ordinary_roles, map_id=728
+            ),
+            {0: cells, 1: cells},
+        )
+        # An authored scene uses its declared native layout instead.
+        self.assertIsNone(
+            ordinary_generated_eligibility(
+                {**record, "native_encounter_scene": {"schema_version": 1}},
+                cells,
+                roles,
+                map_id=728,
+            )
+        )

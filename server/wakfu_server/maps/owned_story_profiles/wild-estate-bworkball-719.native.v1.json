@@ -1,0 +1,301 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 719,
+  "scenario_id": 1645,
+  "objects": [
+    {
+      "x": -12.0,
+      "y": 6.0,
+      "z": -6.0,
+      "id": 20383,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_0",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cffffffff400000006fffa000101010100010000000332303500000000000101"
+    },
+    {
+      "x": -12.0,
+      "y": -8.0,
+      "z": -6.0,
+      "id": 20406,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cffffffff4fffffff8fffa000101010100010000000332343000000000000101"
+    },
+    {
+      "x": -12.0,
+      "y": -1.0,
+      "z": -6.0,
+      "id": 20407,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cffffffff4fffffffffffa000101010100010000000332333900000000000101"
+    },
+    {
+      "x": 1.0,
+      "y": 14.0,
+      "z": -6.0,
+      "id": 20443,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cf000000010000000efffa00010101010004000000043132393200000000000000"
+    },
+    {
+      "x": -2.0,
+      "y": -8.0,
+      "z": -6.0,
+      "id": 20841,
+      "auto": false,
+      "type": "BackgroundDisplay",
+      "chunk": "-1_-1",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cffffffffefffffff8fffa000101010300010000000331303900000000000101"
+    },
+    {
+      "x": 2.0,
+      "y": -10.0,
+      "z": 5.0,
+      "id": 21078,
+      "auto": true,
+      "type": "AudioMarker",
+      "chunk": "0_-1",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cf00000002fffffff600050001010103ffff000000023136000000332d0000"
+    },
+    {
+      "x": -2.0,
+      "y": -10.0,
+      "z": 5.0,
+      "id": 21079,
+      "auto": true,
+      "type": "AudioMarker",
+      "chunk": "-1_-1",
+      "map_id": 719,
+      "payload_hex": "02000000000b010000000d00000102cffffffffefffffff600050001010103ffff000000023136000000332d0000"
+    }
+  ],
+  "scenario_events": [
+    13081,
+    13084,
+    13085
+  ],
+  "event_signatures": {
+    "13081": {
+      "argument_count": 0
+    },
+    "13084": {
+      "argument_count": 0
+    },
+    "13085": {
+      "argument_count": 0
+    }
+  },
+  "scenes": {},
+  "programs": {
+    "20383": {
+      "native_class": "aLl",
+      "descriptor_id": 205,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 228,
+          "clx": 250,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 228,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 446,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20407": {
+      "native_class": "aLl",
+      "descriptor_id": 239,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 266,
+          "clx": 251,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 266,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 487,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20406": {
+      "native_class": "aLl",
+      "descriptor_id": 240,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 267,
+          "clx": 252,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 267,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 488,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "446": {
+      "present": false,
+      "sha256": null
+    },
+    "487": {
+      "present": false,
+      "sha256": null
+    },
+    "488": {
+      "present": false,
+      "sha256": null
+    }
+  },
+  "interaction_approaches": {
+    "20383": [
+      [
+        -11,
+        6,
+        -6
+      ]
+    ],
+    "20407": [
+      [
+        -11,
+        -1,
+        -6
+      ]
+    ],
+    "20406": [
+      [
+        -11,
+        -8,
+        -6
+      ]
+    ]
+  },
+  "teleporters": {
+    "20443": {
+      "x": 1.0,
+      "y": 14.0,
+      "z": -6.0,
+      "id": 20443,
+      "map_id": 719,
+      "destinations": [
+        {
+          "x": -55,
+          "y": -163,
+          "z": -40,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 3,
+          "destination_id": 1415,
+          "item_reference": 0,
+          "arrival_heights": [
+            -40
+          ],
+          "display_reference": 87,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 4,
+      "definition_id": 1292,
+      "native_parameters": "1292",
+      "approach_positions": [
+        {
+          "x": 1,
+          "y": 13,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "presentations": [
+    13081
+  ],
+  "presentation_quests": {
+    "13081": 1638
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1645.lua": "20eaa9b15083f7908708110c88170f5d65f77d43ddc60dac83f7e178cc135e47"
+  }
+}

@@ -3,6 +3,7 @@
 Characters retain the durable destination. Login recovers it after a process
 restart; this queue only prompts existing sockets to hydrate that destination.
 """
+
 import threading
 from contextlib import ExitStack
 
@@ -35,7 +36,9 @@ def queue(members, destination):
             )
 
 
-def queue_owned_position_refresh(account_id, generation, character_id, location):
+def queue_owned_position_refresh(
+    account_id, generation, character_id, location, *, context_receipt=None
+):
     """Refresh a superseded travel presentation without replacing newer work.
 
     The caller proved current selected ownership and committed supersession.
@@ -53,12 +56,24 @@ def queue_owned_position_refresh(account_id, generation, character_id, location)
         raise ValueError(
             "Owned position refresh requires its actual lease and location"
         )
+    if context_receipt is not None:
+        if (
+            not isinstance(context_receipt, dict)
+            or set(context_receipt) != {"profile_sha256", "instance_id", "step"}
+            or context_receipt["instance_id"] != location["instance_id"]
+        ):
+            raise ValueError("Invalid owned story context refresh proof")
     with _LOCK:
         _PENDING.setdefault(
             (account_id, generation, character_id),
             dict(
                 **{key: location[key] for key in keys},
-                refresh_current_owned_position=True
+                refresh_current_owned_position=True,
+                **(
+                    {"owned_story_refresh": dict(context_receipt)}
+                    if context_receipt is not None
+                    else {}
+                ),
             ),
         )
 
@@ -153,7 +168,7 @@ def enter(
             map_id,
             body,
             allowed_accounts=set(accounts),
-            **options
+            **options,
         )
         if result is None:
             return None

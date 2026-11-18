@@ -1,0 +1,161 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "astrub-night-1004",
+  "map_id": 1004,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2706,
+    "objective_id": null,
+    "continuation_quest_id": 2706
+  },
+  "provenance": "Reviewed reconstruction of native2706 night mission on original1004: actual25480/958/effect2409 takes3000ms and enters(1,1,0); actual fire25482/960/wire0/effect2411 takes3000ms before real encounter. Three original3836 possessed larvae retain native3933 death/parasite3837 mechanics, levels/statistics/spells; count3 and native floor positions are reviewed formation, not original recovered server counts. Only genuine full encounter victory grants5341. Native firewire1/effect2412 takes3000ms and uses normal exit/outbox to original1134(35,84,0). No cinematic, waiting click or arrival gives victory. Original2043 cinematic is omitted because its eight actor assumptions exceed this explicitly reconstructed minimal roster; mechanics do not require that presentation.",
+  "native_sources": {
+    "path": "astrub-night-1004.native.v1.json",
+    "sha256": "d6e9f5f5dc48a5c6669e397ba8950700595ffb2a6b2b3a0e5cb22555d0891112"
+  },
+  "interaction_approach_policy": "pinned_native_qv",
+  "initial_elements": [],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "night-watch"
+    ],
+    "evidence": "The actual timed campfire wait completes before a genuine normal queued attack; neither the click nor the timer grants5341."
+  },
+  "generic_returns": [
+    {
+      "schema": "owned-native-generic-return-v1",
+      "entry": {
+        "kind": "native_generic_choice",
+        "source": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0,
+          "id": 25482,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 1004,
+          "payload_hex": "02000000000b010000000d00000103ec00000001000000000000000101010100080000000339363000000000000101",
+          "native_parameters": "960",
+          "descriptor_id": 960
+        },
+        "program": {
+          "native_class": "aLl",
+          "descriptor_id": 960,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 1182,
+              "clx": 299,
+              "cod": 0,
+              "coe": 0,
+              "cof": false,
+              "cnd": 0,
+              "cog": 3000,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 1204,
+                  "criterion": "IsAchievementRunning(2706) and not IsAchievementObjectiveComplete(5341)",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 2411,
+                      "effect_type": 1,
+                      "criterion": "IsAchievementRunning(2706) and !IsAchievementObjectiveComplete(5341)",
+                      "parameters": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "native_class": "aLo",
+              "id": 1183,
+              "clx": 298,
+              "cod": 0,
+              "coe": 0,
+              "cof": false,
+              "cnd": 0,
+              "cog": 3000,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 1,
+                  "native_id": 1205,
+                  "criterion": "IsAchievementObjectiveComplete(5341)",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 2412,
+                      "effect_type": 3,
+                      "criterion": "IsAchievementObjectiveComplete(5341)",
+                      "parameters": [
+                        "{35,84,0}",
+                        "1134",
+                        "3"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "wire_action": 1,
+        "effect_reference": 2412,
+        "approaches": [
+          [
+            1,
+            1,
+            0
+          ]
+        ],
+        "evidence": "Original25482/960/group1183/action1205/WIRE1/effect2412 takes3000ms and returns{35,84,0},1134,direction3. Mission-status bypass for physical departure follows existing owned-entry/reentry policy; no quest progress or rewards are emitted by return."
+      },
+      "requires": [],
+      "evidence": "Physical free native return remains available on an unfinished/completed/absent story; exit consumes its own original3000ms action through the normal departure transaction and grants no objective."
+    }
+  ],
+  "steps": [
+    {
+      "id": "night-arrival",
+      "kind": "world_ready",
+      "reference": 1004,
+      "requires": [],
+      "effects": [],
+      "evidence": "Real owned1004 load establishes mechanics only; no5341credit."
+    },
+    {
+      "id": "night-watch",
+      "kind": "interactive",
+      "reference": 25482,
+      "requires": [
+        "night-arrival"
+      ],
+      "effects": [],
+      "evidence": "Exact native25482/WIRE0 wait via existing owned_story_object_operations3000ms timer, source/owner/position qualified, not a fabricated completed encounter."
+    },
+    {
+      "id": "night-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "night-watch"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2706,
+          "objective_id": 5341
+        }
+      ],
+      "evidence": "Only actual terminal victory over the original larvae and their native resulting enemy actors qualifies; no arrival, wait, loss or unrelated win."
+    }
+  ]
+}

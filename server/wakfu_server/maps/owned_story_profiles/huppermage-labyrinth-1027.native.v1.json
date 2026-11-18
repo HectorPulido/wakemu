@@ -1,0 +1,609 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1027,
+  "scenario_id": 2075,
+  "objects": [
+    {
+      "chunk": "-1_-1",
+      "id": 26158,
+      "payload_hex": "02000000000b010000000d0000010403ffffffeffffffff00000000101010100000011fffffffdfffffff80000fffffff5000000000000ffffffe0fffffff70000ffffffe1fffffff50000ffffffe9fffffff20000fffffff3fffffff40000ffffffe5ffffffe70000ffffffe0ffffffe60000ffffffecffffffe40000fffffff1ffffffea0000fffffff5ffffffee0000fffffffaffffffec0000fffffff1ffffffe20000fffffff5ffffffe20000fffffffeffffffe10000fffffffffffffffe0000ffffffe4000000000000000000000000000000",
+      "x": -17.0,
+      "y": -16.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "StoppingPositionTrigger"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 26188,
+      "payload_hex": "02000000000b010000000d0000010403fffffff9ffffffff0000000101000300030000000000000000000101",
+      "x": -7.0,
+      "y": -1.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door"
+    },
+    {
+      "x": -1.0,
+      "y": -18.0,
+      "z": 0.0,
+      "id": 26169,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403ffffffffffffffee0000000101010300010000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "x": -7.0,
+      "y": -10.0,
+      "z": 0.0,
+      "id": 26166,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403fffffff9fffffff60000000101010300080000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "x": -2.0,
+      "y": -1.0,
+      "z": 0.0,
+      "id": 26163,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403fffffffeffffffff0000000101010300110000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "x": -13.0,
+      "y": -30.0,
+      "z": 0.0,
+      "id": 26167,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403fffffff3ffffffe20000000101010300010000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "x": -3.0,
+      "y": -28.0,
+      "z": 0.0,
+      "id": 26213,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403fffffffdffffffe40000000101010100020000000338363800000000000101",
+      "native_parameters": "868",
+      "descriptor_id": 868
+    },
+    {
+      "x": -2.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 26171,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_0",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403fffffffe000000000000000101010100010000000338363800000000000101",
+      "native_parameters": "868",
+      "descriptor_id": 868
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26186,
+      "payload_hex": "02000000000b010000000d0000010403ffffffdffffffff80000000101010100000001ffffffdffffffff80000000000000000000000",
+      "x": -33.0,
+      "y": -8.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "StoppingPositionTrigger"
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26189,
+      "payload_hex": "02000000000b010000000d0000010403ffffffdcfffffff80000000101010100000001ffffffdcfffffff800000004323133370000003baf0001",
+      "x": -36.0,
+      "y": -8.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "x": -21.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 26164,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-1",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403ffffffebfffffffc0000000101010300080000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "x": -32.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 26165,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-1",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe0fffffffc0000000101010100010000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "chunk": "-2_-2",
+      "id": 26214,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe1ffffffe90000000101000300030000000000000000000101",
+      "x": -31.0,
+      "y": -23.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door"
+    },
+    {
+      "x": -25.0,
+      "y": -30.0,
+      "z": 0.0,
+      "id": 26168,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe7ffffffe20000000101010100040000000339383000000066320101",
+      "native_parameters": "980",
+      "descriptor_id": 980
+    },
+    {
+      "x": -32.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 26187,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_0",
+      "map_id": 1027,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe0000000000000000101010100010000000338363800000000000101",
+      "native_parameters": "868",
+      "descriptor_id": 868
+    },
+    {
+      "chunk": "0_0",
+      "id": 26170,
+      "payload_hex": "02000000000b010000000d000001040300000001000000000000000101010100000001000000010000000000000004323132310000003baf0001",
+      "x": 1.0,
+      "y": 0.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    }
+  ],
+  "programs": {
+    "26163": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26164": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26165": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26166": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26167": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26168": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26169": {
+      "native_class": "aLl",
+      "descriptor_id": 980,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1219,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1241,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2450,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26171": {
+      "native_class": "aLl",
+      "descriptor_id": 868,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1077,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1097,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2262,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26187": {
+      "native_class": "aLl",
+      "descriptor_id": 868,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1077,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1097,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2262,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "26213": {
+      "native_class": "aLl",
+      "descriptor_id": 868,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1077,
+          "clx": 66,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1097,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2262,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "scenario_events": [
+    16495,
+    16492,
+    16497,
+    16501
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "16495": {
+      "argument_count": 1,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16492": {
+      "argument_count": 6,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16497": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16501": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    }
+  },
+  "presentations": [],
+  "lua_sources": {
+    "id": 2075,
+    "archive": "client/contents/scripts/scripts.jar",
+    "entry": "scenario/2075.lua",
+    "sha256": "0a366ffaca15c2e3174c3c7ea953902c4ad0b54ecea4f4df0a981dcb550ef6d3",
+    "callbacks": {
+      "initialize": 16499,
+      "start_with_base_time": 16495,
+      "lamp_with_extra_time": 16492,
+      "exit_success": 16515,
+      "trap_fall": 16496,
+      "timer_expiry": 16497,
+      "door_one": 16516,
+      "door_two": 16556
+    }
+  },
+  "version_boundary": {
+    "policy": "reviewed-elapsed-world-light-v1",
+    "evidence": "Reviewed world labyrinth reconstruction on unchanged native1027. Original2075 callbacks, seven980 lamps, three868 levers, twoDoor objects, seventeen literal trap cells and native exit are unchanged. Original server timer quantities/minimum light/lever-door joins were not recovered: version1 explicitly uses120s initial+30s per lamp,minimum4 collected lamps,26187->26188 and26213->26214. No combat/talk/admin success. Server elapsed clock,source-qualified12870 actions and accepted native floor movement own every result."
+  }
+}

@@ -1,0 +1,1237 @@
+{
+  "schema": "owned-object-trials-v1",
+  "id": "archaeology-2698",
+  "map_id": 1001,
+  "maximum_members": 1,
+  "story_quest_id": 2698,
+  "native_sources": {
+    "path": "archaeology-1001.native.v1.json",
+    "sha256": "5126b8813d3fc45528777265d4c007195a9a91b6394c4ae74b0a49b31eff55b6"
+  },
+  "provenance": "Reviewed reconstruction from actual native2048/map1001/descriptor2416-2421 missing server scripts and the inspected Oropo Project Nations chapter2 guide images. Scroll placement/order and distinct dig sources are qualified; fragile safe stair exceptions are explicit reviewed reconstruction, not recovered original server predicates. Source only until whole native entry/runtime/exit acceptance.",
+  "entry_effects": [
+    {
+      "kind": "scenario_event",
+      "scenario": 2048,
+      "event": 16178
+    }
+  ],
+  "allowed_item_transfers": [],
+  "trials": [
+    {
+      "id": "chronological-scrolls",
+      "kind": "ordered_objects",
+      "requires": [],
+      "sources": [
+        25512,
+        25514,
+        25513,
+        25515
+      ],
+      "source_effects": {
+        "25512": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16192
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Scrolls read in order: ",
+                {
+                  "fact": "index"
+                },
+                "/4."
+              ]
+            }
+          ]
+        },
+        "25514": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16220
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Scrolls read in order: ",
+                {
+                  "fact": "index"
+                },
+                "/4."
+              ]
+            }
+          ]
+        },
+        "25513": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16221
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Scrolls read in order: ",
+                {
+                  "fact": "index"
+                },
+                "/4."
+              ]
+            }
+          ]
+        },
+        "25515": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16222
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Scrolls read in order: ",
+                {
+                  "fact": "index"
+                },
+                "/4."
+              ]
+            }
+          ]
+        }
+      },
+      "effects": {
+        "begin": [],
+        "success": [
+          {
+            "kind": "scenario_event",
+            "scenario": 2048,
+            "event": 16234
+          },
+          {
+            "kind": "quest_objective",
+            "quest_id": 2698,
+            "objective_id": 5330
+          }
+        ],
+        "failure": [
+          {
+            "kind": "scenario_event",
+            "scenario": 2048,
+            "event": 16228,
+            "arguments": [
+              {
+                "fact": "previous_index"
+              }
+            ]
+          },
+          {
+            "kind": "information",
+            "text": "That scroll is out of order. Start the sequence again."
+          }
+        ]
+      }
+    },
+    {
+      "id": "ancient-relic-identification",
+      "kind": "distinct_discoveries",
+      "requires": [
+        "chronological-scrolls"
+      ],
+      "sources": [
+        25488,
+        25489,
+        25490,
+        25521
+      ],
+      "source_effects": {
+        "25488": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16223
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Ancient relics identified: ",
+                {
+                  "fact": "discovery_count"
+                },
+                "/4."
+              ]
+            }
+          ]
+        },
+        "25489": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16224
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Ancient relics identified: ",
+                {
+                  "fact": "discovery_count"
+                },
+                "/4."
+              ]
+            }
+          ]
+        },
+        "25490": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16225
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Ancient relics identified: ",
+                {
+                  "fact": "discovery_count"
+                },
+                "/4."
+              ]
+            }
+          ]
+        },
+        "25521": {
+          "accept": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16226
+            },
+            {
+              "kind": "information",
+              "text": [
+                "Ancient relics identified: ",
+                {
+                  "fact": "discovery_count"
+                },
+                "/4."
+              ]
+            }
+          ]
+        }
+      },
+      "effects": {
+        "begin": [],
+        "success": [
+          {
+            "kind": "scenario_event",
+            "scenario": 2048,
+            "event": 16227,
+            "arguments": [
+              0
+            ]
+          },
+          {
+            "kind": "quest_objective",
+            "quest_id": 2698,
+            "objective_id": 5331
+          }
+        ],
+        "failure": []
+      }
+    },
+    {
+      "id": "fragile-relic-carry",
+      "kind": "fragile_carry",
+      "requires": [
+        "ancient-relic-identification"
+      ],
+      "pickup_source": 25491,
+      "destination_cells": [
+        [
+          -12,
+          -12,
+          -3
+        ]
+      ],
+      "hazard_cells": [
+        [
+          0,
+          -18,
+          -3
+        ],
+        [
+          -7,
+          -19,
+          0
+        ],
+        [
+          8,
+          -19,
+          0
+        ],
+        [
+          -14,
+          -9,
+          0
+        ],
+        [
+          -4,
+          -18,
+          -2
+        ],
+        [
+          -14,
+          -8,
+          0
+        ],
+        [
+          2,
+          -8,
+          -1
+        ],
+        [
+          2,
+          -18,
+          -8
+        ],
+        [
+          -12,
+          -11,
+          1
+        ],
+        [
+          -14,
+          -15,
+          0
+        ],
+        [
+          -14,
+          -6,
+          0
+        ],
+        [
+          -4,
+          -17,
+          -6
+        ],
+        [
+          -1,
+          -7,
+          2
+        ],
+        [
+          1,
+          -18,
+          -6
+        ],
+        [
+          -13,
+          -6,
+          -1
+        ],
+        [
+          -14,
+          -5,
+          0
+        ],
+        [
+          -9,
+          -22,
+          0
+        ],
+        [
+          -13,
+          -5,
+          -1
+        ],
+        [
+          -14,
+          -7,
+          0
+        ],
+        [
+          3,
+          -20,
+          0
+        ],
+        [
+          -12,
+          -20,
+          5
+        ],
+        [
+          2,
+          -17,
+          -10
+        ],
+        [
+          -14,
+          -2,
+          0
+        ],
+        [
+          -1,
+          -18,
+          -6
+        ],
+        [
+          -14,
+          -3,
+          0
+        ],
+        [
+          6,
+          -19,
+          0
+        ],
+        [
+          -14,
+          -4,
+          0
+        ],
+        [
+          -14,
+          -14,
+          0
+        ],
+        [
+          -4,
+          -13,
+          -10
+        ],
+        [
+          -11,
+          -20,
+          0
+        ],
+        [
+          3,
+          -7,
+          -5
+        ],
+        [
+          5,
+          -20,
+          0
+        ],
+        [
+          -8,
+          -12,
+          -1
+        ],
+        [
+          -14,
+          -12,
+          0
+        ],
+        [
+          7,
+          -19,
+          0
+        ],
+        [
+          4,
+          -20,
+          0
+        ],
+        [
+          -14,
+          -10,
+          2
+        ],
+        [
+          2,
+          -7,
+          3
+        ],
+        [
+          -14,
+          -11,
+          6
+        ],
+        [
+          -8,
+          -22,
+          0
+        ]
+      ],
+      "max_height_delta": 1,
+      "safe_edges": [
+        [
+          [
+            -3,
+            -15,
+            -10
+          ],
+          [
+            -4,
+            -15,
+            -8
+          ]
+        ],
+        [
+          [
+            -4,
+            -15,
+            -8
+          ],
+          [
+            -3,
+            -15,
+            -10
+          ]
+        ],
+        [
+          [
+            -4,
+            -15,
+            -8
+          ],
+          [
+            -5,
+            -15,
+            -5
+          ]
+        ],
+        [
+          [
+            -5,
+            -15,
+            -5
+          ],
+          [
+            -4,
+            -15,
+            -8
+          ]
+        ],
+        [
+          [
+            -5,
+            -17,
+            -5
+          ],
+          [
+            -5,
+            -18,
+            -3
+          ]
+        ],
+        [
+          [
+            -5,
+            -18,
+            -3
+          ],
+          [
+            -5,
+            -17,
+            -5
+          ]
+        ],
+        [
+          [
+            -5,
+            -18,
+            -3
+          ],
+          [
+            -5,
+            -19,
+            0
+          ]
+        ],
+        [
+          [
+            -5,
+            -19,
+            0
+          ],
+          [
+            -5,
+            -18,
+            -3
+          ]
+        ],
+        [
+          [
+            -13,
+            -17,
+            -2
+          ],
+          [
+            -14,
+            -17,
+            0
+          ]
+        ],
+        [
+          [
+            -14,
+            -17,
+            0
+          ],
+          [
+            -13,
+            -17,
+            -2
+          ]
+        ]
+      ],
+      "failure_policy": "return_to_pickup",
+      "effects": {
+        "begin": [
+          {
+            "kind": "scenario_event",
+            "scenario": 2048,
+            "event": 16183
+          }
+        ],
+        "success": [
+          {
+            "kind": "scenario_event",
+            "scenario": 2048,
+            "event": 16217,
+            "arguments": [
+              0,
+              0
+            ]
+          },
+          {
+            "kind": "quest_objective",
+            "quest_id": 2698,
+            "objective_id": 5332
+          }
+        ],
+        "failure": [
+          {
+            "kind": "relocate",
+            "position": {
+              "fact": "failure_cell"
+            }
+          },
+          {
+            "kind": "information",
+            "text": "The relic broke. Return to the relic to try again."
+          }
+        ]
+      },
+      "reconstruction_note": "Only the forty literal25492 hazard cells are hazards. Native upper/lower regions are not blanket hazards. Max height delta1 plus five explicit bidirectional native stair/ramp exceptions preserve the guide route and reject jumping upper/lower borders.",
+      "hazard_zone_ids": [
+        25492
+      ],
+      "destination_zone_ids": [
+        25508
+      ],
+      "failure_feedback": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2048,
+          "event": 16188,
+          "arguments": [
+            0
+          ]
+        }
+      ],
+      "failure_regions": [
+        {
+          "native_zone_id": 25495,
+          "cells": [
+            [
+              -12,
+              -19,
+              0
+            ],
+            [
+              -7,
+              -9,
+              0
+            ],
+            [
+              -12,
+              -2,
+              0
+            ],
+            [
+              -14,
+              -16,
+              0
+            ],
+            [
+              -7,
+              -8,
+              0
+            ],
+            [
+              -7,
+              -18,
+              0
+            ],
+            [
+              -7,
+              -7,
+              0
+            ],
+            [
+              -8,
+              -2,
+              0
+            ],
+            [
+              -11,
+              -19,
+              0
+            ],
+            [
+              -7,
+              -17,
+              0
+            ],
+            [
+              -7,
+              -5,
+              0
+            ],
+            [
+              -9,
+              -19,
+              0
+            ],
+            [
+              -7,
+              -15,
+              0
+            ],
+            [
+              -7,
+              -6,
+              0
+            ],
+            [
+              -11,
+              -2,
+              0
+            ],
+            [
+              -14,
+              -18,
+              0
+            ],
+            [
+              -7,
+              -16,
+              0
+            ],
+            [
+              -7,
+              -14,
+              0
+            ],
+            [
+              -7,
+              -3,
+              0
+            ],
+            [
+              -10,
+              -19,
+              0
+            ],
+            [
+              -7,
+              -4,
+              0
+            ],
+            [
+              -7,
+              -10,
+              0
+            ],
+            [
+              -9,
+              -2,
+              0
+            ],
+            [
+              -7,
+              -13,
+              0
+            ],
+            [
+              -13,
+              -2,
+              0
+            ],
+            [
+              -7,
+              -12,
+              0
+            ],
+            [
+              -10,
+              -2,
+              0
+            ],
+            [
+              -7,
+              -2,
+              0
+            ],
+            [
+              -13,
+              -19,
+              0
+            ],
+            [
+              -7,
+              -11,
+              0
+            ],
+            [
+              -13,
+              -18,
+              -1
+            ]
+          ],
+          "effects": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16211,
+              "arguments": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "native_zone_id": 25496,
+          "cells": [
+            [
+              -8,
+              -9,
+              -3
+            ],
+            [
+              -8,
+              -8,
+              -3
+            ],
+            [
+              -8,
+              -17,
+              -3
+            ],
+            [
+              -12,
+              -18,
+              -3
+            ],
+            [
+              -8,
+              -15,
+              -3
+            ],
+            [
+              -8,
+              -5,
+              -3
+            ],
+            [
+              -8,
+              -6,
+              -3
+            ],
+            [
+              -8,
+              -16,
+              -3
+            ],
+            [
+              -11,
+              -18,
+              -3
+            ],
+            [
+              -10,
+              -3,
+              -3
+            ],
+            [
+              -8,
+              -7,
+              -3
+            ],
+            [
+              -8,
+              -18,
+              -3
+            ],
+            [
+              -11,
+              -3,
+              -3
+            ],
+            [
+              -13,
+              -3,
+              -3
+            ],
+            [
+              -8,
+              -14,
+              -3
+            ],
+            [
+              -9,
+              -18,
+              -3
+            ],
+            [
+              -9,
+              -3,
+              -3
+            ],
+            [
+              -13,
+              -16,
+              -3
+            ],
+            [
+              -8,
+              -13,
+              -3
+            ],
+            [
+              -10,
+              -18,
+              -3
+            ],
+            [
+              -8,
+              -4,
+              -3
+            ],
+            [
+              -8,
+              -11,
+              -3
+            ],
+            [
+              -8,
+              -10,
+              -3
+            ],
+            [
+              -8,
+              -3,
+              -3
+            ],
+            [
+              -12,
+              -3,
+              -3
+            ]
+          ],
+          "effects": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16218,
+              "arguments": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "native_zone_id": 25497,
+          "cells": [
+            [
+              -13,
+              -17,
+              -2
+            ]
+          ],
+          "effects": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16219,
+              "arguments": [
+                0
+              ]
+            }
+          ]
+        },
+        {
+          "native_zone_id": 25498,
+          "cells": [
+            [
+              -14,
+              -17,
+              0
+            ]
+          ],
+          "effects": [
+            {
+              "kind": "scenario_event",
+              "scenario": 2048,
+              "event": 16216,
+              "arguments": [
+                0
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": 25488,
+      "position": [
+        -1,
+        -16,
+        -14
+      ],
+      "descriptor_id": 962,
+      "action": 0,
+      "duration_ms": 5000,
+      "payload_sha256": "0fdd0b38bb903d2e4daa5be68de03948f2f86cb01b94851b292c7e1106509477",
+      "approaches": [
+        [
+          -2,
+          -16,
+          -10
+        ],
+        [
+          -1,
+          -17,
+          -10
+        ]
+      ]
+    },
+    {
+      "id": 25489,
+      "position": [
+        -5,
+        -5,
+        -3
+      ],
+      "descriptor_id": 962,
+      "action": 0,
+      "duration_ms": 5000,
+      "payload_sha256": "1a7a3505f9583d22d27d614eee78c01a27ac2577f4ae61b6e1c992e615ccf5cf",
+      "approaches": [
+        [
+          -6,
+          -5,
+          0
+        ],
+        [
+          -5,
+          -6,
+          0
+        ],
+        [
+          -5,
+          -4,
+          -3
+        ],
+        [
+          -4,
+          -5,
+          -3
+        ]
+      ]
+    },
+    {
+      "id": 25490,
+      "position": [
+        -11,
+        -8,
+        -6
+      ],
+      "descriptor_id": 962,
+      "action": 0,
+      "duration_ms": 5000,
+      "payload_sha256": "bd2f05ef61bdd19410064548c69b32e72fb720456923c768ecdb943646397741",
+      "approaches": [
+        [
+          -12,
+          -8,
+          -3
+        ]
+      ]
+    },
+    {
+      "id": 25491,
+      "position": [
+        2,
+        -18,
+        -8
+      ],
+      "descriptor_id": 963,
+      "action": 0,
+      "duration_ms": 5000,
+      "payload_sha256": "9f9ed86e987e5cf6bc1ec19f812d96ac94eca0d9096d8913c5670212e57f6426",
+      "approaches": [
+        [
+          1,
+          -18,
+          -6
+        ],
+        [
+          2,
+          -17,
+          -10
+        ],
+        [
+          3,
+          -18,
+          -10
+        ]
+      ]
+    },
+    {
+      "id": 25512,
+      "position": [
+        -15,
+        -18,
+        0
+      ],
+      "descriptor_id": 964,
+      "action": 0,
+      "duration_ms": 2000,
+      "payload_sha256": "a3b95d74c075de47b16ec06b5d838b8af13b32f6ab2e2c9f5e2885b48af5cc45",
+      "approaches": [
+        [
+          -15,
+          -19,
+          0
+        ],
+        [
+          -14,
+          -18,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 25513,
+      "position": [
+        -8,
+        -22,
+        0
+      ],
+      "descriptor_id": 966,
+      "action": 0,
+      "duration_ms": 2000,
+      "payload_sha256": "3fdeb9432fdeb880f8d8738d8a3aebffa022be140db775bac12f443bb5300c88",
+      "approaches": [
+        [
+          -9,
+          -22,
+          0
+        ],
+        [
+          -8,
+          -21,
+          0
+        ]
+      ]
+    },
+    {
+      "id": 25514,
+      "position": [
+        0,
+        -18,
+        -10
+      ],
+      "descriptor_id": 965,
+      "action": 0,
+      "duration_ms": 2000,
+      "payload_sha256": "de584d26bba6de02d86bad2b5f013726f30e186c3b18a961879b742ac383bd19",
+      "approaches": [
+        [
+          -1,
+          -18,
+          -6
+        ],
+        [
+          0,
+          -17,
+          -10
+        ],
+        [
+          1,
+          -18,
+          -6
+        ]
+      ]
+    },
+    {
+      "id": 25515,
+      "position": [
+        2,
+        -7,
+        -5
+      ],
+      "descriptor_id": 967,
+      "action": 0,
+      "duration_ms": 2000,
+      "payload_sha256": "41c1fb4d3c2aad729218d4fbbad5938afb4fa95468f2a5c53f71c07b725b66b3",
+      "approaches": [
+        [
+          2,
+          -8,
+          -1
+        ],
+        [
+          2,
+          -6,
+          -5
+        ],
+        [
+          3,
+          -7,
+          -5
+        ]
+      ]
+    },
+    {
+      "id": 25521,
+      "position": [
+        -11,
+        -9,
+        -6
+      ],
+      "descriptor_id": 962,
+      "action": 0,
+      "duration_ms": 5000,
+      "payload_sha256": "8e844e756294d9647b42bce610ef45b5559e5fafea25ffdb73237bdc02bcfdcd",
+      "approaches": [
+        [
+          -12,
+          -9,
+          -3
+        ],
+        [
+          -11,
+          -10,
+          -3
+        ]
+      ]
+    }
+  ]
+}

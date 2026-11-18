@@ -1,0 +1,56 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "huppermage-seed-1018",
+  "map_id": 1018,
+  "provenance": "Reviewed native-content version adaptation: actual1018 courtyard floor-8 hosts the unchanged installed seed173588/173589 seven-red/four-blue point pattern. Original greenhouse floor-14 cannot contain every original point on one native component. No point offsets, native programs, stats or spells are altered; no manual decoy placement substitutes for initial4071 construction. Actual Janine3312/8198 starts the private challenge. Original3907 enemy seed, genuine4072 temporary player form, original5599 collection eligibility and actual terminal outcome qualify5670. Actual native173658 orientation303/mode4 establishes facing3 before native pointset summons; field qualification retains the resulting rotated geometry.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "seed-ready"
+      ],
+      "bounds": [
+        -14,
+        -43,
+        7,
+        -27
+      ],
+      "z": -8,
+      "arena_seed": [
+        0,
+        -27,
+        -8
+      ],
+      "monsters": [
+        {
+          "reference": 3907,
+          "count": 1
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "huppermage-seed-native-courtyard-1018",
+        "authority": "Reviewed native-content version adaptation: actual1018 courtyard floor-8 hosts the unchanged installed seed173588/173589 seven-red/four-blue point pattern. Original greenhouse floor-14 cannot contain every original point on one native component. No point offsets, native programs, stats or spells are altered; no manual decoy placement substitutes for initial4071 construction. Actual Janine3312/8198 starts the private challenge. Original3907 enemy seed, genuine4072 temporary player form, original5599 collection eligibility and actual terminal outcome qualify5670.",
+        "source_uri": "https://oropoproject.wordpress.com/guide/quest-achievements/huppermage-school-1-anno/",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 3907,
+            "cell": [
+              0,
+              -40,
+              -8
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://oropoproject.wordpress.com/guide/quest-achievements/huppermage-school-1-anno/",
+              "sha256": "c0b2bf0fbe0c5f6a48f1c1375391a5357ea5589bf47fdad40b77fdc7387870a6"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ All operations share the caller's transaction. Source contracts never activate
 quests: acceptance requires a stored, source-qualified original NPC/share event.
 Original story, Almanax and guild daily quests are outside this module.
 """
+
 from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -258,6 +259,9 @@ def _load(db, definition_id, version=None):
 def _remove_current(state, identity, objective_id):
     _positive(identity, "definition")
     _positive(objective_id, "objective")
+    from wakfu_server.achievements import lifecycle
+
+    lifecycle.reset(state, identity)
     for key in ("running", "completed", "tracking"):
         state[key] = [i for i in state[key] if i != identity]
     state["objectives"] = [i for i in state["objectives"] if i != objective_id]
@@ -678,9 +682,11 @@ def settle_combat(db, store, character, fight, event):
             prefix = (
                 "modulox-daily:"
                 if source["interpretation_policy"] == MODULOX_POLICY
-                else "hunter-daily:"
-                if contract.period_ms == 86400000
-                else "hunter-weekly:"
+                else (
+                    "hunter-daily:"
+                    if contract.period_ms == 86400000
+                    else "hunter-weekly:"
+                )
             )
             cycle = prefix + str(period)
             storage.enqueue_reward(

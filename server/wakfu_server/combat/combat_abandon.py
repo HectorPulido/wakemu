@@ -108,7 +108,11 @@ def _terminal_packets(planned, losing_team):
         for a in planned.fight.actors.values()
         if a.team == losing_team and a.id not in hidden
     ]
-    if not winners or max(len(winners), len(losers)) > 127:
+    from .native_order_trial_encounter import empty_opposition_allowed
+
+    if (not winners and not empty_opposition_allowed(planned.fight)) or max(
+        len(winners), len(losers)
+    ) > 127:
         raise ValueError("Unsupported abandon team layout")
     payload = planned._prefix() + b"\x00"
     # ckc routes eIl (second list) through buH.W into jqB; aUH
@@ -307,6 +311,21 @@ def prepare(store, account_id, generation, character, runtime, body):
         )
         if character["id"] in rewards:
             exit_health["character"] = rewards[character["id"]]["character"]
+        from wakfu_server.achievements import native_order_trial_settlement
+
+        order_progression = (
+            native_order_trial_settlement.stage_abandon(
+                db,
+                store,
+                runtime.fight,
+                native_order_trial_settlement.load_rule(),
+                account_id=account_id,
+                generation=generation,
+                character_id=character["id"],
+            )
+            if getattr(runtime.fight, "native_order_trial", None) is not None
+            else {}
+        )
         cursor = db.execute(
             "UPDATE combat_fights SET status='aborted' WHERE id=%s "
             "AND status IN ('placement','active','aborted')",
@@ -329,6 +348,16 @@ def prepare(store, account_id, generation, character, runtime, body):
     runtime.action_id = planned.action_id
     runtime.abandon_owner = owner
     runtime.abandon_returned = False
+    if order_progression:
+        from .combat_progression_delivery import defer
+
+        defer(
+            runtime.fight,
+            account_id,
+            generation,
+            character["id"],
+            order_progression.get(account_id, ()),
+        )
     return dict(character=exit_health["character"], packets=packets, applied=True)
 
 
@@ -381,6 +410,11 @@ def return_to_world(
         packets = []
         if not duplicate:
             packets = combat_results.outside_fight_updates(runtime.fight)
+            from .combat_progression_delivery import after_return
+
+            packets.extend(
+                after_return(runtime.fight, account_id, generation, character["id"])
+            )
             packets.extend(
                 [
                     outside_progression(saved, wp=wp, ap=ap, mp=mp),

@@ -1,0 +1,23 @@
+{
+  "schema": "owned-physical-offers-v1",
+  "version": 1,
+  "appearance": {
+    "reference_id": 3275,
+    "action_id": 596,
+    "speaker_sha256": "2eaf97aa3dedbe814ede8cb8824f7ad2e50d578afe1ca7fa36c62fedc785ac3a",
+    "action_sha256": "3f95a81b2341ef0c8cd619cdac6d23dd6539ca982a8e94e5b4eab6d7b9cfe637"
+  },
+  "offers": [
+    {
+      "route_key": "quest-map-1002-25510-2260",
+      "policy_version": 1,
+      "configuration_sha256": "9bdf69588af63dbc2b992c1553e729704dcda230b02e1ca23e88324b581c2924",
+      "source_map_id": 1134,
+      "source_id": 25510,
+      "destination_id": 2260,
+      "native_source_sha256": "a95b9380758afe92345c0504fdc9577a85d2a8c8679f6164a3a9b7f42169b962",
+      "label": "Enter Bovis's Lair",
+      "evidence": "Reviewed physical-visit attendant beside actual1134/source25510. Native active2710+objective5359 menu mayhide ordinary questless/completed visits; offerretains the exactfree2260destination, nativeapproach, immutable1002configurationand normalownedinstance machinery. Reallevel23win5359and assignedquestprogressstayseparate; enteringunassigned/completed contentdoesnotgrantquestcredit, resetprogressor replayautomaticmovies."
+    }
+  ]
+}

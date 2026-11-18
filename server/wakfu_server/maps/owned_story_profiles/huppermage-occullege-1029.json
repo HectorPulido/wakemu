@@ -1,0 +1,138 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "huppermage-occullege-1029",
+  "map_id": 1029,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2792,
+    "objective_id": null,
+    "continuation_quest_id": 2792
+  },
+  "provenance": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support.",
+  "native_sources": {
+    "path": "huppermage-occullege-1029.native.v1.json",
+    "sha256": "d43cb7721b5968e2e4560a518170edf5f50abc55794dcb81a81c2f4bceacd04d"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "occullege-entered",
+      "kind": "world_ready",
+      "reference": 1029,
+      "requires": [],
+      "effects": [],
+      "evidence": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    },
+    {
+      "id": "occullege-room-1-won",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "occullege-entered"
+      ],
+      "effects": [
+        {
+          "kind": "stage_position",
+          "event": 16536,
+          "position": [
+            0,
+            -13,
+            0
+          ]
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    },
+    {
+      "id": "occullege-room-2-won",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "occullege-room-1-won"
+      ],
+      "effects": [
+        {
+          "kind": "stage_position",
+          "event": 16539,
+          "position": [
+            0,
+            -13,
+            0
+          ]
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    },
+    {
+      "id": "occullege-room-3-won",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "occullege-room-2-won"
+      ],
+      "effects": [
+        {
+          "kind": "stage_position",
+          "event": 16541,
+          "position": [
+            0,
+            -13,
+            0
+          ]
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    },
+    {
+      "id": "occullege-room-4-won",
+      "kind": "room_victory",
+      "reference": 4,
+      "requires": [
+        "occullege-room-3-won"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2792,
+          "objective_id": 5649
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2081,
+          "event": 16552
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original School Occullege2792/5649, not recovered original server formations. Original1017/26218/2356 enters actual1029; original2081 names ordered Air/Water/Earth/Fire fights and supplies seven final actor UIDs, boss sprite180103926, and terminal16552 after victory. Native3922-3925 Hoodlum prototypes and3926Vilenya retain their statistics/spells. First-three counts, species mix, spawn anchors and post-victory hub joins are explicitly authored reconstruction on installed nativeSm6/combat surfaces. Final group has original seven-actor count; exact original species mix is not serialized. All four genuine owned room outcomes are required; entering a portal, playing a movie, opening a conversation or merely reaching the boss never completes5649. Existing owned-story primitive admits one durable owner; native quest recommends six players, which is not claimed as implemented group support."
+    }
+  ],
+  "native_links": [
+    {
+      "source_id": 26277,
+      "destination_id": 2376,
+      "requires": [
+        "occullege-entered"
+      ]
+    },
+    {
+      "source_id": 26278,
+      "destination_id": 2377,
+      "requires": [
+        "occullege-room-1-won"
+      ]
+    },
+    {
+      "source_id": 26279,
+      "destination_id": 2378,
+      "requires": [
+        "occullege-room-2-won"
+      ]
+    },
+    {
+      "source_id": 26280,
+      "destination_id": 2379,
+      "requires": [
+        "occullege-room-3-won"
+      ]
+    }
+  ]
+}

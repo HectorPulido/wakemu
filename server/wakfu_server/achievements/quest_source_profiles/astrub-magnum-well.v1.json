@@ -1,0 +1,245 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2706)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2,
+      "cjG": 354,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(2705)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 144,
+              "ckh": 9,
+              "cki": 4,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5340,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": 83,
+              "cki": 0,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5341,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            3000
+          ],
+          "d": 4287,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 20,
+      "cjQ": 3,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 9,
+      "cka": "ach.354",
+      "d": 2706,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "astrub-2706-well-native2040",
+      "quest_id": 2706,
+      "objective_id": 5340,
+      "mode": "encounter",
+      "source": {
+        "x": 144.0,
+        "y": 9.0,
+        "z": 4.0,
+        "id": 25457,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "8_0",
+        "map_id": 1134,
+        "payload_hex": "02000000000b010000000d000001046e00000090000000090004000101010100040000000339353700000000000101",
+        "native_parameters": "957",
+        "descriptor_id": 957
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 957,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1179,
+            "clx": 25,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 2000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1201,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2408,
+                    "effect_type": 4,
+                    "criterion": "",
+                    "parameters": [
+                      "2508"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 1178,
+            "clx": 253,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 1200,
+                "criterion": "IsAchievementRunning(2706) and !IsAchievementObjectiveComplete(5340) and !IsHero()",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2407,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2706)\r\nand not IsAchievementObjectiveComplete(5340)\r\nand not IsHero()",
+                    "parameters": [
+                      "2040"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1178,
+        "clx": 253,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 1,
+            "native_id": 1200,
+            "criterion": "IsAchievementRunning(2706) and !IsAchievementObjectiveComplete(5340) and !IsHero()",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 2407,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2706)\r\nand not IsAchievementObjectiveComplete(5340)\r\nand not IsHero()",
+                "parameters": [
+                  "2040"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 1,
+        "native_id": 1200,
+        "criterion": "IsAchievementRunning(2706) and !IsAchievementObjectiveComplete(5340) and !IsHero()",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 2407,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2706)\r\nand not IsAchievementObjectiveComplete(5340)\r\nand not IsHero()",
+            "parameters": [
+              "2040"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          144,
+          8,
+          4
+        ]
+      ],
+      "native_occupation_ms": 0,
+      "roster": [
+        {
+          "reference": 3811,
+          "count": 1
+        },
+        {
+          "reference": 3812,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 2040,
+        "begin_event": 16119,
+        "win_event": 16120,
+        "loss_event": 16122,
+        "actor_slots": 2
+      },
+      "native_definition_sha256": "89d52b2b65baf649f03a3eb03fdca44b5bbfa1c7e41301e4242ecb8110c697a5",
+      "evidence": "Actual native1134well25457/957/group1178/action1200/WIRE1/effect2407/type10 launches2040. Native2040win16120/loss16122 remain distinct. Actual native3811/3812 wet-family creatures retain levels/statistics/books; one each is reviewed minimal formation, not recovered original count. Only genuine admitted owned roster victory earns5340. Source opening, normal water actionwire0, unrelated kills and loss do not."
+    }
+  ],
+  "provenance": "Reviewed original source-bound2706wet objective; no artificial mission victory or ordinary world kill is substituted."
+}

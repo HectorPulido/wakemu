@@ -5,6 +5,7 @@ precise trigger was not recovered.  This is an explicit local reconstruction.
 The caller owns the same transaction as the map transition and must only pass a
 route returned by native_transports.resolve for this character.
 """
+
 from . import mission_progress, storage, wire
 
 
@@ -83,4 +84,10 @@ def on_native_transport(db, store, source, destination, route):
         destination["id"], before, after, objectives, completed, now_ms
     )
     packets.extend(drain_rewards(db, store, destination))
+    if completed:
+        from . import mission_toolkit
+
+        packets.extend(
+            mission_toolkit.settle_completions(db, store, destination, completed)
+        )
     return packets

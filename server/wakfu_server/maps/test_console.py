@@ -238,6 +238,15 @@ def execute(
                 mission_packets = reached_level(db, store, updated, level)
                 if mission_packets:
                     updated = store.character(account, current["id"], db)
+            if latest["level"] < level:
+                from wakfu_server.achievements import mission_character_events
+
+                mission_packets.extend(
+                    mission_character_events.level_changed(
+                        db, store, updated, latest["level"]
+                    )
+                )
+                updated = store.character(account, current["id"], db)
             packet = outside_progression(
                 updated,
                 wp=(

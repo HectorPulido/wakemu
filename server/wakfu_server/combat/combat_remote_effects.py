@@ -257,3 +257,24 @@ def _live_actor_effects(fight, actor_id, *, now_milliseconds=None):
         record = RemoteRunningEffect(entry["effect_class"], payload, remaining)
         (carriers if entry["effect_class"] == 310 else ordinary).append(record)
     return encode_remote_effects((*carriers, *ordinary))
+
+
+def initial_order_actor_effects(fight, actor_id, *, now_milliseconds=None):
+    """Retain the authenticated original arcade form through native START."""
+    from .native_order_trial_encounter import policy_for
+    from .native_order_trial_checkpoint import validate_fight
+
+    policy = policy_for(fight)
+    if (
+        policy is None
+        or actor_id != policy.owner_id
+        or fight.phase != "placement"
+        or getattr(fight, "native_order_trial", None) is None
+    ):
+        raise ValueError("Missing native order constructor effect authority")
+    validate_fight(fight)
+    return (
+        _live_actor_effects(fight, actor_id)
+        if now_milliseconds is None
+        else _live_actor_effects(fight, actor_id, now_milliseconds=now_milliseconds)
+    )

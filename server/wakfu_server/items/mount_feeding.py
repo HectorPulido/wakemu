@@ -76,9 +76,10 @@ def feed(store, account_id, generation, character_id, body, *, in_fight):
             "SELECT m.*,model.reference AS model_reference,model.maximum_health,"
             "model.xp_per_level,model.maximum_level,model.meal_item_refs,"
             "model.xp_per_meal,model.meal_min_interval_seconds "
-            "FROM inventory_mounts m JOIN mount_models model USING(model_id) "
+            "FROM inventory_mounts m JOIN mount_item_models model "
+            "ON model.model_id=m.model_id AND model.reference=%s "
             "WHERE m.uid=%s FOR UPDATE OF m",
-            (pet_item["uid"],),
+            (pet_item["reference"], pet_item["uid"]),
         ).fetchone()
         if mount is None or pet_item["reference"] != mount["model_reference"]:
             raise ValueError("Pet item has no matching authoritative mount state")

@@ -368,6 +368,13 @@ class Store:
 
                 assign_new_character(db, account_id, character_id, tutorial=tutorial)
                 initialize(db, character_id)
+                from wakfu_server.universal_equipment_unlocks import (
+                    grant as grant_equipment_unlocks,
+                )
+
+                grant_equipment_unlocks(
+                    db, character_id, int(self.now().timestamp() * 1000)
+                )
                 db.execute(
                     "INSERT INTO character_progression(character_id,xp) VALUES(%s,0)",
                     (character_id,),
@@ -859,6 +866,13 @@ class Store:
             from wakfu_server.equipment_stacks import normalize
 
             normalize(db, character_id)
+            from wakfu_server.universal_equipment_unlocks import (
+                grant as grant_equipment_unlocks,
+            )
+
+            grant_equipment_unlocks(
+                db, character_id, int(self.now().timestamp() * 1000)
+            )
             character = self.character(account_id, character_id, db)
             if character.get("recustomization"):
                 raise ValueError("Character requires pending recustomization")
@@ -876,6 +890,14 @@ class Store:
             # Selection publishes a fresh absolute bootstrap. Retry earned
             # entitlements first, then reload XP, inventory and account unlocks;
             # incremental grant packets must not double-apply that snapshot.
+            from wakfu_server.achievements.earned_achievement_links import recover
+
+            recover(db, self, character)
+            from wakfu_server.achievements.completed_achievement_sets import (
+                recover as recover_completed_sets,
+            )
+
+            recover_completed_sets(db, self, character)
             drain_rewards(db, self, character)
             character = self.character(account_id, character_id, db)
             from wakfu_server.characters.cosmetic_store import load as load_cosmetics
@@ -949,7 +971,7 @@ class Store:
                 return current
             selected = dict(current, active_build_index=index)
             from wakfu_server.pet_hibernation import validate_equipment_change
-            from wakfu_server.equipment import validate_sheet
+            from wakfu_server.equipment import physical_sheet, validate_sheet
 
             old_equipment = bytes.fromhex(
                 current.get("builds", {})
@@ -965,11 +987,14 @@ class Store:
             validation_character = dict(
                 selected, level=selected_level, effective_level=selected_level
             )
-            validate_equipment_change(
-                selected,
-                old_equipment,
-                validate_sheet(validation_character, new_equipment),
+            from wakfu_server.mount_inventory import validate_equipment
+
+            validate_equipment(
+                validation_character,
+                physical_sheet(validation_character, new_equipment),
             )
+            entries = validate_sheet(validation_character, new_equipment)
+            validate_equipment_change(selected, old_equipment, entries)
             db.execute(
                 "UPDATE character_build_selection SET active_index=%s,revision=revision+1 WHERE character_id=%s",
                 (index, character_id),
@@ -1139,7 +1164,16 @@ class Store:
                 raise
             if split_items:
                 character = self.character(account_id, character_id, db)
-            merged = validated_saved_blobs(character, build_index, blobs)
+            from wakfu_server.mount_inventory import initialize_equipment
+
+            merged = validated_saved_blobs(
+                character,
+                build_index,
+                blobs,
+                prepare_equipment=lambda entries: initialize_equipment(
+                    db, character, entries, self.now()
+                ),
+            )
             values = [
                 merged[key] for key in ("sheet", "equipment", "deck", "aptitudes")
             ]

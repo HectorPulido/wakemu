@@ -1,0 +1,175 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 885,
+  "objects": [
+    {
+      "x": -2.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 23619,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_0",
+      "map_id": 885,
+      "payload_hex": "02000000000b010000000d0000010375fffffffe000000000000000101010100010000000335303200000000000101"
+    },
+    {
+      "x": 2.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 23620,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_0",
+      "map_id": 885,
+      "payload_hex": "02000000000b010000000d000001037500000002000000000000000101010100020000000335303300000000000101"
+    },
+    {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 23627,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 885,
+      "payload_hex": "02000000000b010000000d000001037500000000000000010000000101010100000001000000000000000100000004313836350000003baf0001"
+    }
+  ],
+  "scenario_id": 1719,
+  "scenario_events": [],
+  "scenes": {},
+  "event_signatures": {},
+  "programs": {
+    "23619": {
+      "native_class": "aLl",
+      "descriptor_id": 502,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 541,
+          "clx": 41,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 561,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1451,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23620": {
+      "native_class": "aLl",
+      "descriptor_id": 503,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 542,
+          "clx": 41,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 562,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1452,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {},
+  "teleporters": [
+    {
+      "map_id": 885,
+      "id": 23627,
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "native_parameters": "1865",
+      "definition_id": 1865,
+      "destinations": [
+        {
+          "destination_id": 2016,
+          "map_id": 546,
+          "x": -4,
+          "y": -8,
+          "z": 3,
+          "direction": 3,
+          "criterion": "",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": true,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            3
+          ],
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "approach_orientation": 1,
+      "approach_blocks_center": false,
+      "approach_positions": []
+    }
+  ],
+  "interaction_approaches": {
+    "23619": [
+      [
+        -1,
+        0,
+        0
+      ]
+    ],
+    "23620": [
+      [
+        1,
+        0,
+        0
+      ]
+    ]
+  },
+  "source_sha256": {
+    "topology": "0129f1fa98983d387f33a01445af40c9f895b61a255dd3253ee75531bb2363e4"
+  }
+}

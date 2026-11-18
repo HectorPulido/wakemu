@@ -1,0 +1,52 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "astrub-mount-training-879",
+  "map_id": 879,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2014,
+    "objective_id": 4103,
+    "continuation_quest_id": 2014
+  },
+  "provenance": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback. Admission explicitly preserves the original native Running criterion, including against server-wide mission-free visit policy. Completion does not authorize another training admission.",
+  "native_sources": {
+    "path": "astrub-mount-training-879.native.v1.json",
+    "sha256": "4c70dd5ebcb587ae5daa6315210c90ea274da81b86638a8d3f0466be7e103ac3"
+  },
+  "initial_elements": [],
+  "capture_qualification": [
+    {
+      "room_order": 1,
+      "original_monster_reference": 3173,
+      "native_effect_reference": 117956,
+      "evidence": "Original4478 requires endurance>=5, harness3002 and exhaustion>=12; only actual117956/native28 capture death followed by target death settles training."
+    }
+  ],
+  "steps": [
+    {
+      "id": "training-enclosure-loaded",
+      "kind": "world_ready",
+      "reference": 879,
+      "requires": [],
+      "effects": [],
+      "evidence": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback."
+    },
+    {
+      "id": "training-native-capture",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "training-enclosure-loaded"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2014,
+          "objective_id": 4074
+        }
+      ],
+      "evidence": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback."
+    }
+  ],
+  "enforce_native_entry_criterion": true
+}

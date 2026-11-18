@@ -1,0 +1,65 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "astrub-mount-training-879",
+  "map_id": 879,
+  "provenance": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "training-enclosure-loaded"
+      ],
+      "bounds": [
+        -15,
+        -25,
+        20,
+        18
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        0,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3173,
+          "count": 1
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "astrub-mount-native-training-879",
+        "authority": "Original native2998→3174 training program; reviewed actual879 formation",
+        "source_uri": "https://wakfu.fandom.com/wiki/A_Mount%3F",
+        "full_room_scope": true,
+        "controlled_state_programs": [
+          {
+            "state_id": 2998,
+            "level": 1,
+            "protected": false,
+            "source_sha256": "db4315a3d4dfc9df7e7c94703d2211a1ee8423bc86000bb0962efa0c39efed0e",
+            "evidence": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback."
+          }
+        ],
+        "fixed_actor_placements": [
+          {
+            "reference": 3173,
+            "cell": [
+              3,
+              -8,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://wakfu.fandom.com/wiki/A_Mount%3F",
+              "sha256": "cc44b72b1bb8417d1cf5e3433b5c9ab735498b9f0f6902df9e946e9fc8fcb6c2"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

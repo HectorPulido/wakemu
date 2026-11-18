@@ -3,10 +3,10 @@
 This adapter has no mission activation, combat-event or client-objective API.
 The caller owns the complete assembly transaction and account/session fence.
 """
+
 from copy import deepcopy
 
 from . import rewards, storage, wire
-
 
 DEFINITION = 2907
 MINIMUM_LEVEL = 178
@@ -184,6 +184,11 @@ def settle(db, store, character, receipt_id):
         )
         storage.mark_reward_delivered(
             db, character["id"], DEFINITION, "once", REWARD["d"]
+        )
+        from . import mission_toolkit
+
+        packets.extend(
+            mission_toolkit.settle_completions(db, store, character, completed)
         )
     return dict(
         packets=packets,

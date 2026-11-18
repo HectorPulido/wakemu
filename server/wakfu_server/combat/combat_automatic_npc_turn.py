@@ -65,6 +65,11 @@ def install_root_manifest(fight, manifest):
 
 def requires_automatic_npc_turn_end(fight, actor):
     """Return end-only authority for the actual unowned, non-AI current root."""
+    if getattr(fight, "native_order_trial", None) is not None:
+        from .native_order_trial_movement import eligible
+
+        if eligible(fight, actor):
+            return True
     if (
         actor is None
         or fight.phase != "active"

@@ -17,7 +17,6 @@ class CommonPassiveOwnershipTests(unittest.TestCase):
             5146: 55,
             5145: 65,
             5144: 75,
-            5621: 80,
         }
         breeds = {s["breed"] for s in spells.SPELLS.values() if s["breed"] > 0}
         for breed in breeds:
@@ -36,6 +35,11 @@ class CommonPassiveOwnershipTests(unittest.TestCase):
                         spells.validate_deck(
                             spells.encode_deck((), (reference,)), breed, threshold - 1
                         )
+        # 5621 is certificate/item gated, not an automatic breed passive.
+        for breed in breeds:
+            self.assertNotIn(
+                5621, {spell["id"] for spell in spells.available_spells(breed, 80)}
+            )
 
     def test_level_fifty_wire_owns_four_common_passives_without_acquisition_actives(
         self,

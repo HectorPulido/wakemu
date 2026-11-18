@@ -344,7 +344,11 @@ def plan(session, fight, runtime):
         for member in fight.actors.values()
         if member.team != actor.team and member.id not in hidden
     ]
-    if not winners or max(len(losers), len(winners)) > 127:
+    from .native_order_trial_encounter import empty_opposition_allowed
+
+    if (not winners and not empty_opposition_allowed(fight)) or max(
+        len(losers), len(winners)
+    ) > 127:
         raise ValueError("Unsupported PvE withdrawal result layout")
     payload = private._prefix() + b"\x00"
     for identities in (losers, winners, []):

@@ -1,0 +1,917 @@
+{
+  "schema": "native-quest-conversation-contracts-v1",
+  "admission_policy": "reconstructed_wakemu_qualified_talk_v1",
+  "native_source_sha256": {
+    "client/contents/bdata/1.jar": "a40b77575b015bee15fcfcaac700c6fa6f7417f52438121d61e86add825b6ad8",
+    "client/contents/bdata/115.jar": "533840407a60bcaabf19f3125655a1fe1cf4572942f20789a2b2f1ee6f9d02b5",
+    "client/contents/bdata/2.jar": "bf8c9304eab33876116b42533cb3927dcb709134e625cbe634b899696df98b76",
+    "client/contents/bdata/3.jar": "7c3a6a50e0cad375c99fa3b207d5ebaecd1cbcc71927ac2b75ea4f5ee52f4c8b",
+    "client/contents/i18n/i18n_en.jar": "a9a077c6805fbfc9caa28d1b398b1c1ec95e3df035f7f3853ace9d82e2d11830",
+    "client/contents/i18n/i18n_es.jar": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8",
+    "client/contents/i18n/i18n_fr.jar": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+    "client/contents/i18n/i18n_pt.jar": "e6f6a6ecbbd81a86c6235f6781e16a4f8b6c3c848b7239809baa80e461975020",
+    "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "sniffer/java/ExportNativeQuestDefinitions.java": "24b476f17125d2addf478195f32ad07b231e612851dfde100112d52402130284",
+    "ereboria-import:sniffer/java/ExportNativeQuestDefinitions.java": "ec8b0b50fc2795ba2651a61d59af4f7ec169aec128012738915226849f495c57"
+  },
+  "definitions": [
+    {
+      "aHe": "",
+      "aeV": 4,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 138,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2041,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            780000
+          ],
+          "d": 1964,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": true,
+      "cjN": true,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 1346457600000,
+      "cjU": 86400,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "",
+      "d": 1108,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1109)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 507,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2046,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            130250
+          ],
+          "d": 1960,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.507",
+      "d": 1109,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1224)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 507,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100 and IsAchievementComplete(1109)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2194,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            760000
+          ],
+          "d": 2021,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 2,
+      "cka": "ach.507",
+      "d": 1224,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1226)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 507,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100 and IsAchievementComplete(1224)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [
+            {
+              "ckm": "GetAchievementVariable(\"nbFrigostPeauGlagla\")>=10",
+              "ckn": [
+                268
+              ],
+              "d": 439,
+              "native_class": "aJQ"
+            }
+          ],
+          "d": 2196,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2212,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1500
+          ],
+          "d": 2112,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            2605000
+          ],
+          "d": 2025,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            16069,
+            1
+          ],
+          "d": 2027,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 2,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 3,
+      "cka": "ach.507",
+      "d": 1226,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1227)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 507,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100 and IsAchievementComplete(1226)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [
+            {
+              "ckm": "GetAchievementVariable(\"nbCarotteTaroudiumOpen\")>=10",
+              "ckn": [
+                258
+              ],
+              "d": 436,
+              "native_class": "aJQ"
+            }
+          ],
+          "d": 2197,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2198,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1500
+          ],
+          "d": 2113,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            1302500
+          ],
+          "d": 2028,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 4,
+      "cka": "ach.507",
+      "d": 1227,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1110)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 507,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100 and IsAchievementComplete(1227)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2228,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [
+            {
+              "ckm": "GetAchievementVariable(\"nbCargaisonTaroudium\")>=10",
+              "ckn": [
+                259
+              ],
+              "d": 437,
+              "native_class": "aJQ"
+            }
+          ],
+          "d": 2227,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2047,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2201,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            5000
+          ],
+          "d": 2117,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            3256250
+          ],
+          "d": 1598,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            15838,
+            1
+          ],
+          "d": 1965,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 2,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 5,
+      "cka": "ach.507",
+      "d": 1110,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1111)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1021,
+      "cjG": 507,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 100 and IsAchievementComplete(1110)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2048,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 2173,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            651250
+          ],
+          "d": 2067,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            10000
+          ],
+          "d": 7343,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 100,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 6,
+      "cka": "ach.507",
+      "d": 1111,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "quest_id": 1108,
+      "objective_id": 2041,
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 1985,
+      "choice_id": 4597,
+      "placement_sha256": "6057a64affc5661f61d74eb831cf327d6ac36bcf6ed9a0e473f89637afaa78cd",
+      "native_definition_sha256": "3f36ac70eb547ed643280b0becfdfc27d725240796fba1c9d8c505a1922527f0"
+    },
+    {
+      "quest_id": 1109,
+      "objective_id": 2046,
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 1985,
+      "choice_id": 4560,
+      "placement_sha256": "6057a64affc5661f61d74eb831cf327d6ac36bcf6ed9a0e473f89637afaa78cd",
+      "native_definition_sha256": "cb30e02e719f561dbdde2a3e0e38616e42e2408d16bd1bf4a6f0eb2d79a1af9a"
+    },
+    {
+      "quest_id": 1227,
+      "objective_id": 2198,
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 2049,
+      "choice_id": 4736,
+      "placement_sha256": "6057a64affc5661f61d74eb831cf327d6ac36bcf6ed9a0e473f89637afaa78cd",
+      "native_definition_sha256": "32dbc0dc775114ccd546fab61532814cd44465c05699c4087b670651363f970d"
+    },
+    {
+      "quest_id": 1224,
+      "objective_id": 2194,
+      "reference_id": 2394,
+      "action_id": 277,
+      "node_id": 2047,
+      "choice_id": 4738,
+      "placement_sha256": "c8f7b6be28848cbea38a8476260f89615454eade5f2d5c6fd733d1937cfe5044",
+      "native_definition_sha256": "0ddfc62884046b4e841c7cc3204f0c9e85de7abbb5e69adcbebf7cd836415682"
+    },
+    {
+      "quest_id": 1226,
+      "objective_id": 2212,
+      "reference_id": 2394,
+      "action_id": 277,
+      "node_id": 2047,
+      "choice_id": 4740,
+      "placement_sha256": "c8f7b6be28848cbea38a8476260f89615454eade5f2d5c6fd733d1937cfe5044",
+      "native_definition_sha256": "053911d3ea090cd589ce0ebe36dc9bed4e63578d45c8357612de59dad190b1ba"
+    },
+    {
+      "quest_id": 1110,
+      "objective_id": 2047,
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 1985,
+      "choice_id": 4594,
+      "placement_sha256": "6057a64affc5661f61d74eb831cf327d6ac36bcf6ed9a0e473f89637afaa78cd",
+      "native_definition_sha256": "20c53ce8f6d5aff0f9511af3677577956754c5611e0480a87380568b5b097281"
+    },
+    {
+      "quest_id": 1110,
+      "objective_id": 2201,
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 1997,
+      "choice_id": 4598,
+      "placement_sha256": "6057a64affc5661f61d74eb831cf327d6ac36bcf6ed9a0e473f89637afaa78cd",
+      "native_definition_sha256": "20c53ce8f6d5aff0f9511af3677577956754c5611e0480a87380568b5b097281"
+    }
+  ],
+  "placements": [
+    {
+      "row": {
+        "actor_id": -2251799934991108,
+        "reference_id": 2358,
+        "map_id": 504,
+        "instance_id": 0,
+        "x": 6,
+        "y": -8,
+        "z": 5,
+        "direction": 1,
+        "dialogue_root": 1985,
+        "action_ids": [
+          275
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Bill C. Berg from native protector 198 and native dialogue; actor join and transitions inferred"
+      },
+      "quest_id": 1108,
+      "activation_policy": "already_running",
+      "graph": [
+        [
+          1985,
+          4595,
+          1996
+        ],
+        [
+          1996,
+          4596,
+          0
+        ],
+        [
+          1985,
+          4597,
+          0
+        ],
+        [
+          1985,
+          4554,
+          0
+        ],
+        [
+          1985,
+          4562,
+          1988
+        ],
+        [
+          1988,
+          4563,
+          0
+        ],
+        [
+          1985,
+          4560,
+          1991
+        ],
+        [
+          1991,
+          4570,
+          0
+        ],
+        [
+          1985,
+          4735,
+          2074
+        ],
+        [
+          2074,
+          4814,
+          2049
+        ],
+        [
+          2049,
+          4736,
+          0
+        ],
+        [
+          1985,
+          4594,
+          1997
+        ],
+        [
+          1997,
+          4598,
+          0
+        ],
+        [
+          1985,
+          4689,
+          2027
+        ],
+        [
+          2027,
+          4690,
+          0
+        ]
+      ],
+      "available_quests_on_open": [
+        1109,
+        1110,
+        1111,
+        1224,
+        1227
+      ],
+      "choice_criteria": [
+        {
+          "node_id": 1997,
+          "choice_id": 4598,
+          "criterion": "IsAchievementRunning(1110) and IsAchievementObjectiveComplete(2047) and IsAchievementObjectiveComplete(2228) and IsAchievementObjectiveComplete(2227)",
+          "evidence": "Reviewed durable post-payment continuation: native4594 paid10cargo and earned2047 in the same transaction. The accepted equipment acknowledgment requires that real paid objective and both actual physical lair/collection objectives, not another inventory quantity after payment. No cargo source or item is invented."
+        }
+      ],
+      "running_roots": {
+        "1227": 1985,
+        "1110": 1985,
+        "1111": 1985
+      },
+      "running_root_branches": {
+        "1110": [
+          {
+            "root": 1997,
+            "criterion": "IsAchievementObjectiveComplete(2047) and not IsAchievementObjectiveComplete(2201)"
+          },
+          {
+            "root": 1985,
+            "criterion": "not (IsAchievementObjectiveComplete(2047) and not IsAchievementObjectiveComplete(2201))"
+          }
+        ]
+      }
+    },
+    {
+      "quest_id": 1224,
+      "activation_policy": "already_running",
+      "row": {
+        "actor_id": -2251799934991224,
+        "reference_id": 2394,
+        "map_id": 504,
+        "instance_id": 0,
+        "x": 24,
+        "y": -63,
+        "z": 9,
+        "direction": 3,
+        "dialogue_root": 2047,
+        "action_ids": [
+          277
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED NATIVE QUEST-POI ASSOCIATION. Native2394/action277/root2047 attributed to map504 hunter-camp POI3880 at24,-63,9, whose native labels specifically require Running1224 OR Running1226. POI and dialogue association is reviewed reconstruction, not a captured original actor/action join. Preserve blocked native visual cell; connected Sm6 approach25,-63,9."
+      },
+      "interaction_anchor": {
+        "x": 25,
+        "y": -63,
+        "z": 9
+      },
+      "interaction_anchor_evidence": "Actual map504 Sm6/0/4 hunter-camp floor proof frigost-hunter-camp-native-sm6.json SHA72f588881ca20b2695925f0ba08afdfd09e4560e1f09c50b3acbd6dfa03f93da, topology SHA97e5c11b5f3ea3f4623c40f20db6ad3131b36a6a3c56e8fcf7f9ac80a4b0451b. Visual24,-63,9 exists but has no incident walking edges. Anchor25,-63,9 has bidirectional native edges to25,-62,9 /25,-64,9 /26,-63,9. Native quest-POI source frigost-initial-native-poi.json SHA8d065c381e97701822f517c0d3e6d167a94a37a7b330436f317515d422924af3; no invented floor link to the blocked actor tile.",
+      "available_quests_on_open": [
+        1224,
+        1226,
+        1227
+      ],
+      "running_roots": {
+        "1224": 2047,
+        "1226": 2047,
+        "1227": 2052
+      },
+      "choice_starts": [
+        {
+          "quest_id": 1226,
+          "node_id": 2051,
+          "choice_id": 4739,
+          "criterion": "GetRealLevel() >= 100 and IsAchievementComplete(1224)",
+          "evidence": "Native type5 explicit acknowledgment of the Brrrbli-fur assignment after speaking for1224; preserve raw native1226 availability. Existing running/completed state makes this start idempotent."
+        },
+        {
+          "quest_id": 1227,
+          "node_id": 2052,
+          "choice_id": 4742,
+          "criterion": "GetRealLevel() >= 100 and IsAchievementComplete(1226)",
+          "evidence": "Native type5 acknowledgment after receiving the warm equipment and hearing about Pure Taroudium; preserve raw native1227 availability. Does not grant samples or counter258."
+        }
+      ],
+      "graph": [
+        [
+          2047,
+          4738,
+          2051
+        ],
+        [
+          2051,
+          4739,
+          0
+        ],
+        [
+          2047,
+          4740,
+          2052
+        ],
+        [
+          2052,
+          4742,
+          0
+        ],
+        [
+          2047,
+          4754,
+          0
+        ]
+      ],
+      "choice_criteria": [
+        {
+          "node_id": 2047,
+          "choice_id": 4740,
+          "criterion": "IsAchievementRunning(1226) && IsAchievementObjectiveComplete(2196)",
+          "evidence": "Reviewed selected native quest branch / final objective requires this owned running quest and earned preceding objectives."
+        }
+      ]
+    }
+  ],
+  "activation_links": [
+    {
+      "after_quest": 1109,
+      "start_quest": 1224,
+      "policy": "reconstructed_narrative",
+      "evidence": "Reviewed finite Frigost story continuation using an actually earned source completion and unchanged native destination availability; never a visibility/name scan. Recovers closing a dialogue before its acknowledgment without fabricating any physical objective."
+    },
+    {
+      "after_quest": 1224,
+      "start_quest": 1226,
+      "policy": "reconstructed_narrative",
+      "evidence": "Reviewed finite Frigost story continuation using an actually earned source completion and unchanged native destination availability; never a visibility/name scan. Recovers closing a dialogue before its acknowledgment without fabricating any physical objective."
+    },
+    {
+      "after_quest": 1226,
+      "start_quest": 1227,
+      "policy": "reconstructed_narrative",
+      "evidence": "Reviewed finite Frigost story continuation using an actually earned source completion and unchanged native destination availability; never a visibility/name scan. Recovers closing a dialogue before its acknowledgment without fabricating any physical objective."
+    },
+    {
+      "after_quest": 1227,
+      "start_quest": 1110,
+      "policy": "reconstructed_narrative",
+      "evidence": "Reviewed finite Frigost story continuation using an actually earned source completion and unchanged native destination availability; never a visibility/name scan. Recovers closing a dialogue before its acknowledgment without fabricating any physical objective."
+    },
+    {
+      "after_quest": 1110,
+      "start_quest": 1111,
+      "policy": "reconstructed_narrative",
+      "evidence": "Reviewed finite Frigost story continuation using an actually earned source completion and unchanged native destination availability; never a visibility/name scan. Recovers closing a dialogue before its acknowledgment without fabricating any physical objective."
+    }
+  ],
+  "turnins": [
+    {
+      "reference_id": 2394,
+      "action_id": 277,
+      "node_id": 2047,
+      "choice_id": 4740,
+      "item_reference": 16070,
+      "quantity": 10
+    },
+    {
+      "reference_id": 2358,
+      "action_id": 275,
+      "node_id": 1985,
+      "choice_id": 4594,
+      "item_reference": 16072,
+      "quantity": 10
+    }
+  ],
+  "reviewed_item_grants": [
+    {
+      "id": "frigost-core-tool-16073",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2394,
+      "action_id": 277,
+      "map_id": 504,
+      "node_id": 2052,
+      "choice_id": 4742,
+      "quest_id": 1227,
+      "item_reference": 16073,
+      "quantity": 1,
+      "required_completed": [
+        1226
+      ],
+      "blocked_objectives": [
+        2197
+      ],
+      "native_source_sha256": "103e236723ad9bac89ca8b0860c95d3bbc4d3e27ebbe2d60a4569e184f994343",
+      "evidence": "Explicitly reviewed missing-server tool supply, not a recovered native grant. Only actual accepted native David2052/4742 while quest1227 is running,1226 complete,2197 unfinished,public504/instance0 and tool missing grants one16073. Native4742 has no criterion; the existing raw1227 start criterion has no !Active/!Running gate. Reopening David during1227 selects2052 so this same original offer remains reachable. Never grant on NPC opening."
+    },
+    {
+      "id": "frigost-pirate-key-16158-initial",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2358,
+      "action_id": 275,
+      "map_id": 504,
+      "node_id": 2049,
+      "choice_id": 4736,
+      "quest_id": 1110,
+      "item_reference": 16158,
+      "quantity": 1,
+      "required_completed": [
+        1227
+      ],
+      "blocked_objectives": [
+        2047
+      ],
+      "native_source_sha256": "605db50c7fee6a5e41aa94adc74adb3189edda9e3af667c1cbf65bd34ef958a3",
+      "evidence": "Explicitly reviewed missing-server pirate key supply, not a recovered native grant. Only after the actually accepted native2049/4736 has genuinely completed1227 and activated1110, outside the private area on public504/instance0, with paid-cargo2047 unfinished and key missing, grant one16158. Keep the original source predicate unchanged; do not fabricate a voyage, kill, cargo collection or item on NPC opening."
+    },
+    {
+      "id": "frigost-pirate-key-16158-recovery",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2358,
+      "action_id": 275,
+      "map_id": 504,
+      "node_id": 2027,
+      "choice_id": 4690,
+      "quest_id": 1110,
+      "item_reference": 16158,
+      "quantity": 1,
+      "required_completed": [
+        1227
+      ],
+      "blocked_objectives": [
+        2047
+      ],
+      "native_source_sha256": "81bcafa5afce29e2aac8d0e439845a31556c7ac4ae8f39df1f4e6b6e0f9f2cc8",
+      "evidence": "Explicitly reviewed missing-server key recovery after an actual native reminder acknowledgment, not a recovered original grant. Public Bill1985/4689 is the original running1110/cargo<10 reminder offer, leading to native2027/4690. Only accepted4690 while1110 remains running,1227 complete,2047 unfinished,public504/instance0 and the key missing grants one16158. Native legacy !Objective2027 and cargo<10 entry predicates remain unchanged; no supply on opening or private-area callbacks."
+    }
+  ]
+}

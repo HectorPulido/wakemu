@@ -1,0 +1,18 @@
+{
+  "schema": "native-achievement-completed-sets-v1",
+  "native_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "achievement_id": 1707,
+      "objective_id": 3226,
+      "all_completed": [1695, 1708, 1715, 1717, 1719],
+      "evidence": "Native objective3226 explicitly requires the first five Life of a Hunter quests from the same Otomai Disciple. These exact native quest definitions form the authored I-V chain; original rewards and cjI remain authoritative. Native aHe is journal visibility, not an earning gate."
+    },
+    {
+      "achievement_id": 2873,
+      "objective_id": 5841,
+      "all_completed": [1695, 1708, 1715, 1717, 1719, 2869, 2870, 2871, 2872, 4733],
+      "evidence": "Native objective5841 explicitly requires all Life of a Hunter quests from the same Otomai Disciple. These exact native quest definitions form the authored I-X chain; original rewards and prerequisite cjI=IsAchievementComplete(1707) remain authoritative."
+    }
+  ]
+}

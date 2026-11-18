@@ -1,4 +1,5 @@
 """Synthetic isolated binding tests; no live chest or original quest activation."""
+
 from pathlib import Path
 import json
 import struct
@@ -101,6 +102,36 @@ class ChestSelectorTests(unittest.TestCase):
 
 
 class ChestRewardTransactionTests(PostgresCase):
+    def test_native_chest_completion_reaches_shared_toolkit_once(self):
+        from wakfu_server.achievements import chest_open, mission_toolkit
+
+        account, generation, character = self.owner("Completion")
+        self.configure()
+        with patch.object(
+            mission_toolkit,
+            "settle_completions",
+            wraps=mission_toolkit.settle_completions,
+        ) as followup:
+            for repeat in (False, True):
+                with self.store.connection() as db:
+                    current = self.store.character(account, character["id"], db)
+                    result = chest_open.claim(
+                        db,
+                        self.store,
+                        account,
+                        generation,
+                        current,
+                        struct.pack(">qHH", 31733, 22, 0),
+                        loaded=True,
+                        is_hero=False,
+                    )
+                    state = storage.load_locked(db, character["id"])
+                    self.assertIn(1853, state["completed"])
+                    self.assertIsInstance(state["completion_dates"]["1853"], int)
+                self.assertEqual(result["replay"], repeat)
+                followup.assert_called_once()
+                self.assertEqual(followup.call_args.args[-1], [1853])
+
     def setUp(self):
         super().setUp()
         with self.store.connection() as db:

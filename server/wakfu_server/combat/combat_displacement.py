@@ -979,6 +979,17 @@ class NativeDisplacementHandler:
             actors=tuple((actor.id, position) for actor, position in changed),
             path=path,
         )
+        if getattr(self.fight, "native_order_trial", None) is not None:
+            from .native_order_trial_events import record_displacement
+
+            record_displacement(
+                self,
+                effect,
+                invocation,
+                uid=uid,
+                positions_before=positions_before,
+                changed=changed,
+            )
         contract = getattr(self.fight, "rii_movement_lesson_contract", None)
         if isinstance(contract, dict):
             before = positions_before.get(contract.get("target"))

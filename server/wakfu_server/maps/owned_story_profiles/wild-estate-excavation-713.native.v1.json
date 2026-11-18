@@ -1,0 +1,381 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 713,
+  "objects": [
+    {
+      "x": 29.0,
+      "y": 1.0,
+      "z": 2.0,
+      "id": 20384,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "1_0",
+      "map_id": 713,
+      "payload_hex": "02000000000b010000000d00000102c90000001d0000000100020001000001000000010000001d00000001000200043132383600000000000000"
+    },
+    {
+      "x": 9.0,
+      "y": 4.0,
+      "z": 0.0,
+      "id": 20403,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_0",
+      "map_id": 713,
+      "payload_hex": "02000000000b010000000d00000102c900000009000000040000000101010300250000000332313800000000000101"
+    },
+    {
+      "x": 20.0,
+      "y": -5.0,
+      "z": 0.0,
+      "id": 20404,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_-1",
+      "map_id": 713,
+      "payload_hex": "02000000000b010000000d00000102c900000014fffffffb0000000101010100190000000332313900000000000101"
+    },
+    {
+      "x": 8.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20405,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 713,
+      "payload_hex": "02000000000b010000000d00000102c900000008fffffffc00000001010103003d0000000332313700000000000101"
+    }
+  ],
+  "scenario_id": 1646,
+  "scenario_events": [
+    13086,
+    13226,
+    13093,
+    13087,
+    13088,
+    13089
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "13086": {
+      "argument_count": 0
+    },
+    "13226": {
+      "argument_count": 0
+    },
+    "13093": {
+      "argument_count": 0
+    },
+    "13087": {
+      "argument_count": 0
+    },
+    "13088": {
+      "argument_count": 0
+    },
+    "13089": {
+      "argument_count": 0
+    }
+  },
+  "programs": {
+    "20403": {
+      "native_class": "aLl",
+      "descriptor_id": 218,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 243,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 243,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 462,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 465,
+                  "effect_type": 4,
+                  "criterion": "GetItemQuantity(17797) <= 0 and (IsAchievementActive(1632) or IsAchievementComplete(1632))",
+                  "parameters": [
+                    "2348"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20404": {
+      "native_class": "aLl",
+      "descriptor_id": 219,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 244,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 244,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 463,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 466,
+                  "effect_type": 4,
+                  "criterion": "GetItemQuantity(17799) <= 0",
+                  "parameters": [
+                    "2350"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20405": {
+      "native_class": "aLl",
+      "descriptor_id": 217,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 242,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 242,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 461,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 464,
+                  "effect_type": 4,
+                  "criterion": "GetItemQuantity(17797) <= 0 ",
+                  "parameters": [
+                    "2348"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "461": {
+      "present": true,
+      "sha256": "22c997a6e6cb97ed2ccbdeae854d6122803fed6d250f63676c8a5762bca63308"
+    },
+    "462": {
+      "present": true,
+      "sha256": "3e2a9d5c4f87bc92d90a96a106de6a86630db9bfbe249cde98ec55d4374bdc82"
+    },
+    "463": {
+      "present": true,
+      "sha256": "abcc5c1399019f925dae2785e35e8c2e11370b670621fbeeaae0bb212fb99080"
+    }
+  },
+  "loot_tables": {
+    "2348": {
+      "czg": 1,
+      "d": 2348,
+      "gBN": [
+        {
+          "aAi": 17797,
+          "bfh": 1,
+          "cmY": 1.0,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "",
+          "czl": 0,
+          "d": 2881,
+          "gBO": [],
+          "native_class": "fFe"
+        }
+      ],
+      "native_class": "fFc"
+    },
+    "2350": {
+      "czg": 1,
+      "d": 2350,
+      "gBN": [
+        {
+          "aAi": 17799,
+          "bfh": 1,
+          "cmY": 1.0,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "",
+          "czl": 0,
+          "d": 2883,
+          "gBO": [],
+          "native_class": "fFe"
+        }
+      ],
+      "native_class": "fFc"
+    }
+  },
+  "teleporters": {
+    "20384": {
+      "x": 29.0,
+      "y": 1.0,
+      "z": 2.0,
+      "id": 20384,
+      "map_id": 713,
+      "destinations": [
+        {
+          "x": 47,
+          "y": -38,
+          "z": -78,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 7,
+          "destination_id": 1407,
+          "item_reference": 0,
+          "arrival_heights": [
+            -78
+          ],
+          "display_reference": 121,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1286,
+      "native_parameters": "1286",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1646.lua": "3b2efd73ac3c6035a77bfee5cc531fdd168d12e48bbe4c41e2a839763efd1e56",
+    "native-physical-artifact": "70c49ee780daf0d058cd9b6767d9b64af6e95ca4eed46616d44c543c18801d63",
+    "native-binary-table39": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+  },
+  "interaction_approaches": {
+    "20403": [
+      [
+        10,
+        4,
+        0
+      ],
+      [
+        9,
+        5,
+        0
+      ],
+      [
+        10,
+        5,
+        0
+      ]
+    ],
+    "20404": [
+      [
+        21,
+        -5,
+        0
+      ],
+      [
+        20,
+        -4,
+        0
+      ],
+      [
+        21,
+        -4,
+        0
+      ]
+    ],
+    "20405": [
+      [
+        7,
+        -4,
+        0
+      ],
+      [
+        9,
+        -4,
+        0
+      ],
+      [
+        7,
+        -3,
+        0
+      ],
+      [
+        8,
+        -3,
+        0
+      ],
+      [
+        9,
+        -3,
+        0
+      ]
+    ]
+  }
+}

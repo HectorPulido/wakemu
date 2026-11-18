@@ -1,0 +1,430 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 534,
+  "scenario_id": 1547,
+  "lua_sha256": "35ab04060675d200e0a9f84d41d053ef5165d9997b7fcccc18f12db307c84e1e",
+  "objects": [
+    {
+      "x": -8.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 18262,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_0",
+      "map_id": 534,
+      "payload_hex": "02000000000b010000000d0000010216fffffff800000000000000010101030004000000043130323300000000000000"
+    }
+  ],
+  "scenario_events": [],
+  "scenes": {},
+  "event_signatures": {},
+  "programs": {},
+  "loot_tables": {},
+  "native_scripts": {},
+  "scene_actors": [
+    {
+      "slot": 1,
+      "role": "frigost-villager-2420",
+      "reference": 2420,
+      "level": 100,
+      "position": [
+        -7,
+        -2,
+        0
+      ],
+      "direction": 3,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "0946e773fa71ed8cc326547d754392be81d06076d4d0c93f54c97d234536e6ce"
+    },
+    {
+      "slot": 2,
+      "role": "frigost-villager-2418",
+      "reference": 2418,
+      "level": 100,
+      "position": [
+        -5,
+        -2,
+        0
+      ],
+      "direction": 3,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "513047da4d25acfa78701a1b6d54e40eb867a56b1112d3fc898d2ab1eda6d2b2"
+    },
+    {
+      "slot": 3,
+      "role": "frigost-villager-2415",
+      "reference": 2415,
+      "level": 100,
+      "position": [
+        -3,
+        -2,
+        0
+      ],
+      "direction": 3,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "75f0e463b207fddae4fb6a8ae9e33c98dcf90a0d1ddb911862529ebb1d94c1be"
+    },
+    {
+      "slot": 4,
+      "role": "frigost-villager-2414",
+      "reference": 2414,
+      "level": 100,
+      "position": [
+        -1,
+        -2,
+        0
+      ],
+      "direction": 3,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "e706438c4d989d53a8508bb78c91593a0b0def837cfcdcaac9c462d108c92506"
+    },
+    {
+      "slot": 5,
+      "role": "frigost-villager-2416",
+      "reference": 2416,
+      "level": 100,
+      "position": [
+        1,
+        -2,
+        0
+      ],
+      "direction": 3,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "3bb06e32ccbc2ca5cbe4fc8cc0701b1e921980b7494a977d7af0dd64dda40667"
+    },
+    {
+      "slot": 6,
+      "role": "frigost-villager-2412",
+      "reference": 2412,
+      "level": 100,
+      "position": [
+        -7,
+        2,
+        0
+      ],
+      "direction": 5,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "676741b2988e606ffa4640dfb727136ea9e3701de85abd55ce264e1767df0a2a"
+    },
+    {
+      "slot": 7,
+      "role": "frigost-villager-2413",
+      "reference": 2413,
+      "level": 100,
+      "position": [
+        -5,
+        2,
+        0
+      ],
+      "direction": 5,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "e17cf9d43cb1e107dd3f599588394b1539a917b5214977c546e9c385cc971d51"
+    },
+    {
+      "slot": 8,
+      "role": "frigost-villager-2419",
+      "reference": 2419,
+      "level": 100,
+      "position": [
+        -3,
+        2,
+        0
+      ],
+      "direction": 5,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "b7d960b5afdf394ff0cb89d17bf99bd4a0c11c63ac1e3016ee86d0a1611a47a2"
+    },
+    {
+      "slot": 9,
+      "role": "frigost-villager-2417",
+      "reference": 2417,
+      "level": 100,
+      "position": [
+        -1,
+        2,
+        0
+      ],
+      "direction": 5,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "d73475efc4bf84c53a9260aec09f4ca70122c49d2195d735c69a1c1cb599a73f"
+    },
+    {
+      "slot": 10,
+      "role": "frigost-villager-2411",
+      "reference": 2411,
+      "level": 100,
+      "position": [
+        1,
+        2,
+        0
+      ],
+      "direction": 5,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "until": [],
+      "native_prototype_sha256": "2230d27bec2766ce111d45e7482d2072433d713b3f7a56bca70e6b04f65100ba"
+    }
+  ],
+  "actor_operations": [
+    {
+      "role": "frigost-villager-2420",
+      "action_id": 309,
+      "consumer": "healing",
+      "native_action": {
+        "d": 309,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "GetInstanceId()!= 536",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2240,
+        "step_reference": 309
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2418",
+      "action_id": 317,
+      "consumer": "healing",
+      "native_action": {
+        "d": 317,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "GetInstanceId()!= 536",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2241,
+        "step_reference": 317
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2415",
+      "action_id": 310,
+      "consumer": "healing",
+      "native_action": {
+        "d": 310,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2242,
+        "step_reference": 310
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2414",
+      "action_id": 311,
+      "consumer": "healing",
+      "native_action": {
+        "d": 311,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2243,
+        "step_reference": 311
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2416",
+      "action_id": 312,
+      "consumer": "healing",
+      "native_action": {
+        "d": 312,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2244,
+        "step_reference": 312
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2412",
+      "action_id": 313,
+      "consumer": "healing",
+      "native_action": {
+        "d": 313,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2245,
+        "step_reference": 313
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2413",
+      "action_id": 314,
+      "consumer": "healing",
+      "native_action": {
+        "d": 314,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2246,
+        "step_reference": 314
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2419",
+      "action_id": 315,
+      "consumer": "healing",
+      "native_action": {
+        "d": 315,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2247,
+        "step_reference": 315
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2417",
+      "action_id": 316,
+      "consumer": "healing",
+      "native_action": {
+        "d": 316,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "GetInstanceId()!= 536",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2248,
+        "step_reference": 316
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "role": "frigost-villager-2411",
+      "action_id": 318,
+      "consumer": "healing",
+      "native_action": {
+        "d": 318,
+        "aGJ": 1,
+        "cbH": 0,
+        "clT": "",
+        "clx": 222,
+        "csI": false,
+        "csJ": true,
+        "csK": true,
+        "getDuration": 2000,
+        "native_class": "aMg"
+      },
+      "parameters": {
+        "quest_id": 1124,
+        "objective_id": 2249,
+        "step_reference": 318
+      },
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    }
+  ],
+  "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+}

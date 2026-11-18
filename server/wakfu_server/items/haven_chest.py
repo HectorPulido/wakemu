@@ -4,6 +4,7 @@ Inventory metadata is snapshotted before deleting its FK-owned rows, then
 restored verbatim on withdrawal. Only explicit supported metadata tables are
 used. This module does not start services or send packets.
 """
+
 from copy import deepcopy
 from datetime import timedelta
 import hashlib
@@ -107,9 +108,11 @@ def _move(source, destination, quantity, maximum, allocate):
     else:
         moved = _clone(
             source,
-            source["item"]["uid"]
-            if quantity == source["item"]["quantity"]
-            else allocate(),
+            (
+                source["item"]["uid"]
+                if quantity == source["item"]["quantity"]
+                else allocate()
+            ),
         )
         moved["item"]["quantity"] = quantity
     source["item"]["quantity"] -= quantity
@@ -469,9 +472,11 @@ def _snapshot(db, item, *, metadata=None):
 
     template = ITEMS.get(str(item["reference"]), {}).get("binding_template", {})
     binding = metadata.get("inventory_item_bindings", {})
-    if template.get("enum") == "BOUND_ON_PICKUP_TO_CHARACTER" or (
-        binding.get("bound") is True
-        and template.get("enum") != "BOUND_ON_PICKUP_TO_ACCOUNT"
+    from .item_binding import effective_template
+
+    scope = effective_template(item["reference"], binding)[0]
+    if scope == "BOUND_ON_PICKUP_TO_CHARACTER" or (
+        binding.get("bound") is True and scope != "BOUND_ON_PICKUP_TO_ACCOUNT"
     ):
         result["binding_owner_character_id"] = item["character_id"]
     return result

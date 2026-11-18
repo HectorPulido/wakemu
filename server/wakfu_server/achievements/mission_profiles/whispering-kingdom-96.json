@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "id": "whispering-kingdom-96",
+  "evidence": [
+    "Finite original level96 Whisper opening quest4871 only. Actual island1295 entry or selected character readiness plus original GetRealLevel>=96 eligibility admits4871. No automatic4872 assignment exists in this released profile.",
+    "The native consul2077/242/1902/4035 earns10041. Owned Crisper1302 uses original2447 twenty-second introduction, real native2142 Sergeant victory10058, actual32856/descriptor35 orders read10044 and original native Airwhisp20106 reward. No admin knowledge/item grant or fake fight completes the chapter."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "whisper-explicit-level96-island-intro",
+      "quest_id": 4871,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "maps": [
+        1295
+      ],
+      "instances": [
+        0
+      ],
+      "minimum_level": 96,
+      "admission_evidence": "Reviewed positive island main-story guide and original GetRealLevel>=96. Finite opt-in admission on original1295; no other visible quest inferred."
+    },
+    {
+      "id": "whisper-actual-island-arrival-intro",
+      "quest_id": 4871,
+      "event": {
+        "kind": "map_enter",
+        "reference": 1295
+      },
+      "maps": [
+        1295
+      ],
+      "instances": [
+        0
+      ]
+    }
+  ]
+}

@@ -1,14 +1,12 @@
 """Source-bound entry shovel custody in the native paid-entry transaction."""
+
 from wakfu_server import dungeon_excavation, native_catalog
 
 
 def grant_entry(store, db, session, config, rule):
-    if (
-        store is None
-        or rule.get("enabled") is not True
-        or native_catalog.release() != rule["qualified_native_release"]
-    ):
+    if store is None or rule.get("enabled") is not True:
         raise ValueError("Excavation entry tool source is not enabled")
+    dungeon_excavation.require_source(rule)
     binding = rule["entry_binding"]
     for field in ("entry_map_id", "entry_object_id", "entry_destination_id"):
         if session[field] != binding[field]:

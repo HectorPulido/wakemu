@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "frigost-hunters-528",
+  "version": 1,
+  "map_id": 528,
+  "entry": {
+    "map_id": 504,
+    "object_id": 18176,
+    "destination_id": 1122
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    {
+      "source_id": 18177,
+      "destination_id": 1123
+    }
+  ],
+  "controller_file": "frigost-hunters-528.json",
+  "encounters_file": "frigost-hunters-528.encounters.json",
+  "exploration_file": "frigost-hunters-528.exploration.json",
+  "provenance": "Reviewed repeatable native Guild of Hunters park528 encounter. Original public18176/1122 entry and18177/1123 return are free. Four original native Brrrbli references2402/2403/2404/2405 and their real levels/stats/books/states/native item16070 loot are retained. One each is reviewed private formation; no original private roster capture claim. A victory never completes2196 or2212: physical native fur acquisition and genuine NPC turn-in own those objectives. Leave/reenter creates another ordinary owned run; no fake HP, loot, counter or quest award."
+}

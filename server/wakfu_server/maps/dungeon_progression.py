@@ -190,6 +190,14 @@ def settle_encounter(db, fight):
     result = progression_result(
         run["current_room"], len(run["rooms"]), encounter["player_team"], fight.winner
     )
+    if result["victory"] and not _qualified_story_victory(db, fight, run, encounter):
+        result.update(
+            victory=False,
+            native_victory=True,
+            qualified=False,
+            completed=False,
+            current_room=run["current_room"],
+        )
     revision = run["revision"] + 1
     db.execute(
         "UPDATE dungeon_room_runs SET current_room=%s,status=%s,revision=%s WHERE instance_id=%s",
@@ -207,6 +215,8 @@ def settle_encounter(db, fight):
         revision=revision,
         victory=result["victory"],
     )
+    if result.get("qualified") is False:
+        receipt.update(native_victory=True, qualified=False)
     db.execute(
         "UPDATE dungeon_room_encounters SET status=%s,result_revision=%s,result=%s::jsonb WHERE fight_id=%s",
         (expected_status, revision, json.dumps(receipt), fight.id),
@@ -242,3 +252,62 @@ def settle_encounter(db, fight):
                     (json.dumps(receipt), fight.id),
                 )
     return dict(receipt, replay=False)
+
+
+def _qualified_story_victory(db, fight, run, encounter):
+    """Keep a failed native mechanic retryable without rewriting its fight win."""
+    authority = db.execute(
+        "SELECT i.created_by_character_id,q.configuration->'topology'->'owned_story_controller' AS controller "
+        "FROM dungeon_instances i JOIN dungeon_runtime_configurations q "
+        "ON q.route_key=i.context_route_key AND q.policy_version=i.context_policy_version "
+        "WHERE i.instance_id=%s",
+        (run["instance_id"],),
+    ).fetchone()
+    selected = None if authority is None else authority["controller"]
+    if selected is None or not selected.get("victory_qualification"):
+        return True
+    from wakfu_server import owned_story_victory_qualification
+    from wakfu_server.achievements.owned_quest_encounters import qualified_roster
+
+    rules = owned_story_victory_qualification.policy(selected)
+    if not any(rule["room_order"] == encounter["room_order"] for rule in rules):
+        return True
+    source = db.execute(
+        "SELECT s.asset_map_id,s.group_id,g.members,g.status,g.fight_id "
+        "FROM dungeon_room_spawn_receipts s JOIN combat_groups g "
+        "ON g.map_id=s.asset_map_id AND g.instance_id=s.instance_id AND g.group_id=s.group_id "
+        "WHERE s.instance_id=%s AND s.room_order=%s FOR UPDATE OF g",
+        (run["instance_id"], encounter["room_order"]),
+    ).fetchone()
+    roster = {
+        "roster": [
+            dict(reference=m["ref_id"], count=m["count"])
+            for m in run["rooms"][encounter["room_order"] - 1]["monsters"]
+        ]
+    }
+    if (
+        source is None
+        or source["status"] != "defeated"
+        or source["fight_id"] is not None
+        or not qualified_roster(fight, source["members"], roster)
+    ):
+        raise ValueError("Native trial retry lacks its settled original formation")
+    if owned_story_victory_qualification.qualified(
+        selected,
+        fight,
+        authority["created_by_character_id"],
+        source["members"],
+        encounter["room_order"],
+    ):
+        return True
+    # finish_world_group already cleared the claim in this same transaction.
+    # Retain the original constructor receipt, identities and actual win history.
+    rearmed = db.execute(
+        "UPDATE combat_groups SET status='available',generation=NULL,fight_id=NULL,"
+        "defeated_at=NULL,revision=revision+1 WHERE map_id=%s AND instance_id=%s "
+        "AND group_id=%s AND status='defeated' AND fight_id IS NULL RETURNING group_id",
+        (source["asset_map_id"], run["instance_id"], source["group_id"]),
+    ).fetchone()
+    if rearmed is None:
+        raise ValueError("Native trial retry lost its settled group")
+    return False

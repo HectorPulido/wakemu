@@ -494,6 +494,81 @@ class FightExitHealthTests(PostgresCase):
                 (reopened["max_hp"], reopened["hp"], reopened["hp_damage"]), (60, 55, 5)
             )
 
+    def test_native_order_resource_hp_is_translated_without_persisting_temporary_maximum(
+        self,
+    ):
+        store, account, character, generation, fight = self.state("unused")
+        from wakfu_server.equipment_stats import effective_character
+
+        maximum = effective_character(character)["max_hp"]
+        character = health_store.sync(
+            store,
+            account,
+            generation,
+            character["id"],
+            character["hp"],
+            maximum - 10,
+            coefficient=0,
+        )
+        actor = fight.actors[character["id"]]
+        actor.max_hp = 1
+        actor.hp = 1
+        fight.native_order_resource_constructor = {
+            "fixture": "validated at projection boundary"
+        }
+        projection = {"owner_id": character["id"], "initial_wound": 0}
+        with patch(
+            "wakfu_server.native_order_trial_resources.validate_projection",
+            return_value=projection,
+        ):
+            result = persist_aborted_fight(store, account, generation, character, fight)
+        self.assertTrue(result["applied"])
+        self.assertEqual(
+            (
+                result["character"]["max_hp"],
+                result["character"]["hp"],
+                result["character"]["hp_damage"],
+            ),
+            (maximum, maximum - 10, 10),
+        )
+        reopened = self.reopen().character(account, character["id"])
+        self.assertEqual(
+            (reopened["max_hp"], reopened["hp"], reopened["hp_damage"]),
+            (maximum, maximum - 10, 10),
+        )
+
+        dead_fight = copy.deepcopy(fight)
+        dead_fight.id = 8
+        dead_actor = dead_fight.actors[character["id"]]
+        dead_actor.hp = 0
+        dead_actor.max_hp = 1
+        with patch(
+            "wakfu_server.native_order_trial_resources.validate_projection",
+            return_value=projection,
+        ):
+            dead = persist_aborted_fight(
+                store, account, generation, result["character"], dead_fight
+            )
+            replay = persist_aborted_fight(
+                store, account, generation, result["character"], dead_fight
+            )
+        self.assertTrue(dead["applied"])
+        self.assertEqual(
+            (
+                dead["character"]["max_hp"],
+                dead["character"]["hp"],
+                dead["character"]["hp_damage"],
+                dead["character"]["health_dead"],
+            ),
+            (maximum, 0, 11, True),
+        )
+        self.assertFalse(replay["applied"])
+        final = self.reopen().character(account, character["id"])
+        self.assertEqual(
+            (final["max_hp"], final["hp"], final["hp_damage"], final["health_dead"]),
+            (maximum, 0, 11, True),
+        )
+
     def test_finished_health_receipt_emits_consumable_counters_once(self):
         store, account, character, generation, fight = self.state("unused")
         with store.connection() as db:

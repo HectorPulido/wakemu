@@ -1,0 +1,23 @@
+{
+  "schema": "owned-physical-offers-v1",
+  "version": 1,
+  "appearance": {
+    "reference_id": 3275,
+    "action_id": 596,
+    "speaker_sha256": "2eaf97aa3dedbe814ede8cb8824f7ad2e50d578afe1ca7fa36c62fedc785ac3a",
+    "action_sha256": "3f95a81b2341ef0c8cd619cdac6d23dd6539ca982a8e94e5b4eab6d7b9cfe637"
+  },
+  "offers": [
+    {
+      "route_key": "quest-map-951-25127-2210",
+      "policy_version": 1,
+      "configuration_sha256": "4345a7713a3ae3879e51382165c945fc37ea790f3822f3e20f537e2b8b3643e7",
+      "source_map_id": 949,
+      "source_id": 25127,
+      "destination_id": 2210,
+      "native_source_sha256": "2a2933156e18214ecc50faf13655abe5c440c78d5815c72f50e719e34672f7e9",
+      "label": "Enter dungeon",
+      "evidence": "Reviewed physical-visit attendant beside original949/source25127/destination2210; preserve nativeActive2544 criterion as source provenance while offering the declared ownedphysicalvisit withoutmission/completedmission. Actualnativeapproach(-3,-4,0), freeentry, sameownedroute and ordinaryexit; no unassigned/completed storycredit."
+    }
+  ]
+}

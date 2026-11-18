@@ -1,0 +1,82 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-sufokia-715",
+  "version": 1,
+  "map_id": 715,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": -28.0,
+      "y": -105.0,
+      "z": -80.0,
+      "id": 20448,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-6",
+      "map_id": 711,
+      "payload_hex": "02000000000b010000000d00000102c7ffffffe4ffffff97ffb0000101010100080000000332323500000000000101",
+      "native_parameters": "225",
+      "descriptor_id": 225
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 225,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 250,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 250,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 475,
+                  "effect_type": 3,
+                  "criterion": "IsAchievementComplete(1677)",
+                  "parameters": [
+                    "{0,-1,0}",
+                    "715",
+                    "7"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 475,
+    "approaches": [
+      [
+        -28,
+        -104,
+        -79
+      ]
+    ],
+    "evidence": "Reviewed reconstruction of native1678 discovery: original711/source20448 generic475 enters Sufokian storehouse715 at(0,-1,0), with original Complete1677 criterion and no payment; original715/20538/1419 returns to711(-28,-104,-79). Native player Sm6 floor and all source bytes are pinned. The guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ explicitly identifies entering this storehouse as Garbage Day discovery. Objective3110 requires authenticated owned World-ready after that exact committed entrance; public map visits, teleports and NPC opening cannot grant it. This finite slice does not start/credit1679, fabricate an Excarnate victory or replace Bworkball."
+  },
+  "native_entry_criterion": "IsAchievementComplete(1677)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20538
+  ],
+  "controller_file": "wild-estate-sufokia-715.json",
+  "exploration_file": "wild-estate-sufokia-715.exploration.json",
+  "provenance": "Reviewed reconstruction of native1678 discovery: original711/source20448 generic475 enters Sufokian storehouse715 at(0,-1,0), with original Complete1677 criterion and no payment; original715/20538/1419 returns to711(-28,-104,-79). Native player Sm6 floor and all source bytes are pinned. The guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ explicitly identifies entering this storehouse as Garbage Day discovery. Objective3110 requires authenticated owned World-ready after that exact committed entrance; public map visits, teleports and NPC opening cannot grant it. This finite slice does not start/credit1679, fabricate an Excarnate victory or replace Bworkball."
+}

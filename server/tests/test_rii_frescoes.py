@@ -22,6 +22,10 @@ class RiiFrescoTests(unittest.TestCase):
             [(26731, 10628), (26732, 10629), (26733, 10630)],
             [(r["object_id"], r["objective_id"]) for r in records],
         )
+        self.assertEqual(
+            [[-20, 2, 0], [-20, 0, 0], [-20, -2, 0]],
+            [r["approach_cells"] for r in records],
+        )
         definition = {
             "d": 5163,
             "native_class": "aJM",

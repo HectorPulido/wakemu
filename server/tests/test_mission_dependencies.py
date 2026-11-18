@@ -88,23 +88,70 @@ class MissionDependenciesTest(unittest.TestCase):
         state = snapshot(running=(10,), completed=(20,))
         for links in (
             ((10, 999, 20),),
-            ((10, 100, 20), (10, 100, 30)),
+            ((10, 100, 20), (10, 100, 20)),
             ((10, 100, 10),),
             ((10, 100, 99),),
         ):
             with self.subTest(links=links), self.assertRaises(ValueError):
                 self.apply(state, links)
 
+    def test_alternative_children_complete_shared_objective_once_without_starting_parent(
+        self,
+    ):
+        links = ((10, 100, 20), (10, 100, 30))
+        for completed_children in ((20,), (30,), (20, 30)):
+            with self.subTest(completed_children=completed_children):
+                current = snapshot(
+                    running=(10,), completed=completed_children, objectives=(101,)
+                )
+                result, intents, objectives, completed = self.apply(current, links)
+                self.assertEqual(objectives, [100])
+                self.assertEqual(completed, [10])
+                self.assertEqual(result["running"], [])
+                self.assertEqual(result["completed"], sorted((10, *completed_children)))
+                self.assertEqual(len(objectives), 1)
+
+        # Child completion alone never activates an absent parent.
+        absent = snapshot(running=(), completed=(20, 30), objectives=(101,))
+        self.assertEqual(self.apply(absent, links), (absent, [], [], []))
+
+        # Both candidate child completions precede the one shared objective
+        # and its parent completion in the emitted causal facts.
+        packets = [
+            (13832, struct.pack(">qi", 7, 100)),
+            (13422, struct.pack(">qiii", 7, 10, 0, 0)),
+            (13422, struct.pack(">qiii", 7, 20, 0, 0)),
+            (13422, struct.pack(">qiii", 7, 30, 0, 0)),
+        ]
+        ordered = _dependency_packet_order(packets, self.definitions, links)
+        facts = [
+            (opcode, struct.unpack_from(">i", body, 8)[0])
+            for opcode, body in ordered
+            if opcode in (13832, 13422)
+        ]
+        self.assertEqual(
+            facts,
+            [(13422, 20), (13422, 30), (13832, 100), (13422, 10)],
+        )
+
     def test_atomic_settlement_includes_producer_and_cascaded_changes(self):
         before = snapshot(running=(10, 20, 30), objectives=(101,))
         before["variables"] = {}
         planned = snapshot(running=(10, 30), completed=(20,), objectives=(101, 200))
         planned["variables"] = {}
-        with patch("wakfu_server.achievements.service._owner") as owner, patch(
+        db = object()
+        with patch(
+            "wakfu_server.achievements.mission_toolkit.settle_completions",
+            return_value=[],
+        ) as hook, patch("wakfu_server.achievements.service._owner") as owner, patch(
             "wakfu_server.achievements.service.drain_rewards", return_value=[]
-        ) as drain, patch("wakfu_server.achievements.storage.store") as persist:
+        ) as drain, patch(
+            "wakfu_server.achievements.storage.store"
+        ) as persist, patch(
+            "wakfu_server.achievements.storage.load_locked", return_value=planned
+        ):
             outcome = settle(
-                object(),
+                db,
                 None,
                 self.character,
                 before,
@@ -116,8 +163,9 @@ class MissionDependenciesTest(unittest.TestCase):
         owner.assert_called_once()
         drain.assert_called_once()
         persist.assert_called_once()
-        self.assertEqual(outcome["new_objectives"], [200, 100, 300])
-        self.assertEqual(outcome["completed"], [20, 10, 30])
+        hook.assert_called_once_with(db, None, self.character, [20, 10, 30])
+        self.assertEqual(outcome["new_objectives"], [100, 200, 300])
+        self.assertEqual(outcome["completed"], [10, 20, 30])
         self.assertEqual([opcode for opcode, _ in outcome["packets"]].count(13832), 3)
         self.assertEqual([opcode for opcode, _ in outcome["packets"]].count(13422), 3)
         facts = [
@@ -149,15 +197,21 @@ class MissionDependenciesTest(unittest.TestCase):
         )
         planned_state["variables"] = {}
         planned = (planned_state, [(5143, child["cjK"][0])], [10611], [5143])
-        with patch("wakfu_server.achievements.service._owner"), patch(
+        db = object()
+        with patch(
+            "wakfu_server.achievements.mission_toolkit.settle_completions",
+            return_value=[],
+        ) as hook, patch("wakfu_server.achievements.service._owner"), patch(
             "wakfu_server.achievements.service.drain_rewards", return_value=[]
         ) as drain, patch(
             "wakfu_server.achievements.storage.claim_reward", return_value=True
         ) as claim, patch(
             "wakfu_server.achievements.storage.store"
-        ) as persist:
+        ) as persist, patch(
+            "wakfu_server.achievements.storage.load_locked", return_value=planned_state
+        ):
             outcome = settle(
-                object(),
+                db,
                 None,
                 self.character,
                 before,
@@ -177,6 +231,7 @@ class MissionDependenciesTest(unittest.TestCase):
             facts, [(13832, 10611), (13422, 5143), (13832, 10616), (13422, 5160)]
         )
         self.assertEqual([call.args[2] for call in claim.call_args_list], [5143, 5160])
+        hook.assert_called_once_with(db, None, self.character, [5143, 5160])
         persist.assert_called_once()
         drain.assert_called_once()
 

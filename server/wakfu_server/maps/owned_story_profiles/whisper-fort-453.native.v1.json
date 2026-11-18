@@ -1,0 +1,70 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 453,
+  "scenario_id": 1456,
+  "lua_sha256": "c29fb69639940c5fef0a53321af735da11fae0f530d832fe1e26fbccafc738d2",
+  "objects": [],
+  "scenario_events": [
+    11167,
+    11173,
+    11168,
+    11171
+  ],
+  "event_signatures": {
+    "11167": {
+      "argument_count": 0
+    },
+    "11173": {
+      "argument_count": 0
+    },
+    "11168": {
+      "argument_count": 1
+    },
+    "11171": {
+      "argument_count": 1
+    }
+  },
+  "scenes": {},
+  "native_scripts": {},
+  "programs": {},
+  "loot_tables": {},
+  "evidence": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed.",
+  "scene_actors": [
+    {
+      "slot": 900,
+      "role": "infantry",
+      "reference": 2074,
+      "level": 104,
+      "position": [
+        -3,
+        -8,
+        0
+      ],
+      "direction": 3,
+      "requires": [],
+      "until": [],
+      "native_prototype_sha256": "853c7a9471f9ff2cbbe97857061849a35830cbfc168039a2e5cd5868b9fc7f19"
+    },
+    {
+      "slot": 901,
+      "role": "crossbowman",
+      "reference": 2101,
+      "level": 0,
+      "position": [
+        4,
+        -27,
+        0
+      ],
+      "direction": 3,
+      "requires": [],
+      "until": [],
+      "native_prototype_sha256": "e4170efb34bf59254cdfc32696f8883e0992b6848c488edd5465dff54d11d3b0"
+    }
+  ],
+  "presentation_quests": {
+    "11167": 4872,
+    "11173": 4872,
+    "11168": 4872,
+    "11171": 4872
+  }
+}

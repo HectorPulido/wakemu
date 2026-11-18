@@ -1,0 +1,352 @@
+{
+  "schema": "school130-labyrinth-native-sources-v1",
+  "status": "disabled_source_only_not_registered",
+  "map_id": 1027,
+  "entry": {
+    "map_id": 1019,
+    "id": 25725,
+    "x": 48.0,
+    "y": -38.0,
+    "z": 0.0,
+    "native_parameters": "2105",
+    "definition_id": 2105,
+    "destinations": [
+      {
+        "destination_id": 2333,
+        "map_id": 1027,
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "direction": 5,
+        "criterion": "IsAchievementActive(2788) or IsAchievementActive(2789)",
+        "display_reference": 0,
+        "cyZ": -1,
+        "item_reference": 0,
+        "cof": false,
+        "cvd": true,
+        "cyY": true,
+        "cyW": 0,
+        "cyX": 0,
+        "arrival_heights": [
+          0
+        ],
+        "native_altitude_walkable": true
+      }
+    ],
+    "approach_mask": 0,
+    "approach_orientation": 1,
+    "approach_blocks_center": false,
+    "approach_positions": []
+  },
+  "sources": [
+    {
+      "chunk": "-1_-1",
+      "id": 26158,
+      "payload_hex": "02000000000b010000000d0000010403ffffffeffffffff00000000101010100000011fffffffdfffffff80000fffffff5000000000000ffffffe0fffffff70000ffffffe1fffffff50000ffffffe9fffffff20000fffffff3fffffff40000ffffffe5ffffffe70000ffffffe0ffffffe60000ffffffecffffffe40000fffffff1ffffffea0000fffffff5ffffffee0000fffffffaffffffec0000fffffff1ffffffe20000fffffff5ffffffe20000fffffffeffffffe10000fffffffffffffffe0000ffffffe4000000000000000000000000000000",
+      "x": -17.0,
+      "y": -16.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "StoppingPositionTrigger"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 26188,
+      "payload_hex": "02000000000b010000000d0000010403fffffff9ffffffff0000000101000300030000000000000000000101",
+      "x": -7.0,
+      "y": -1.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 26169,
+      "payload_hex": "02000000000b010000000d0000010403ffffffffffffffee0000000101010300010000000339383000000066320101",
+      "x": -1.0,
+      "y": -18.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 26166,
+      "payload_hex": "02000000000b010000000d0000010403fffffff9fffffff60000000101010300080000000339383000000066320101",
+      "x": -7.0,
+      "y": -10.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 26163,
+      "payload_hex": "02000000000b010000000d0000010403fffffffeffffffff0000000101010300110000000339383000000066320101",
+      "x": -2.0,
+      "y": -1.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_-2",
+      "id": 26167,
+      "payload_hex": "02000000000b010000000d0000010403fffffff3ffffffe20000000101010300010000000339383000000066320101",
+      "x": -13.0,
+      "y": -30.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_-2",
+      "id": 26213,
+      "payload_hex": "02000000000b010000000d0000010403fffffffdffffffe40000000101010100020000000338363800000000000101",
+      "x": -3.0,
+      "y": -28.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-1_0",
+      "id": 26171,
+      "payload_hex": "02000000000b010000000d0000010403fffffffe000000000000000101010100010000000338363800000000000101",
+      "x": -2.0,
+      "y": 0.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26186,
+      "payload_hex": "02000000000b010000000d0000010403ffffffdffffffff80000000101010100000001ffffffdffffffff80000000000000000000000",
+      "x": -33.0,
+      "y": -8.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "StoppingPositionTrigger"
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26189,
+      "payload_hex": "02000000000b010000000d0000010403ffffffdcfffffff80000000101010100000001ffffffdcfffffff800000004323133370000003baf0001",
+      "x": -36.0,
+      "y": -8.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26164,
+      "payload_hex": "02000000000b010000000d0000010403ffffffebfffffffc0000000101010300080000000339383000000066320101",
+      "x": -21.0,
+      "y": -4.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-2_-1",
+      "id": 26165,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe0fffffffc0000000101010100010000000339383000000066320101",
+      "x": -32.0,
+      "y": -4.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-2_-2",
+      "id": 26214,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe1ffffffe90000000101000300030000000000000000000101",
+      "x": -31.0,
+      "y": -23.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door"
+    },
+    {
+      "chunk": "-2_-2",
+      "id": 26168,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe7ffffffe20000000101010100040000000339383000000066320101",
+      "x": -25.0,
+      "y": -30.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "-2_0",
+      "id": 26187,
+      "payload_hex": "02000000000b010000000d0000010403ffffffe0000000000000000101010100010000000338363800000000000101",
+      "x": -32.0,
+      "y": 0.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_0",
+      "id": 26170,
+      "payload_hex": "02000000000b010000000d000001040300000001000000000000000101010100000001000000010000000000000004323132310000003baf0001",
+      "x": 1.0,
+      "y": 0.0,
+      "map_id": 1027,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    }
+  ],
+  "scenario": {
+    "id": 2075,
+    "archive": "client/contents/scripts/scripts.jar",
+    "entry": "scenario/2075.lua",
+    "sha256": "0a366ffaca15c2e3174c3c7ea953902c4ad0b54ecea4f4df0a981dcb550ef6d3",
+    "callbacks": {
+      "initialize": 16499,
+      "start_with_base_time": 16495,
+      "lamp_with_extra_time": 16492,
+      "exit_success": 16515,
+      "trap_fall": 16496,
+      "timer_expiry": 16497,
+      "door_one": 16516,
+      "door_two": 16556
+    }
+  },
+  "lamp_source_ids": [
+    26163,
+    26164,
+    26165,
+    26166,
+    26167,
+    26168,
+    26169
+  ],
+  "switch_source_ids": [
+    26171,
+    26187,
+    26213
+  ],
+  "door_source_ids": [
+    26188,
+    26214
+  ],
+  "native_trap_cells": [
+    [
+      -3,
+      -8,
+      0
+    ],
+    [
+      -11,
+      0,
+      0
+    ],
+    [
+      -32,
+      -9,
+      0
+    ],
+    [
+      -31,
+      -11,
+      0
+    ],
+    [
+      -23,
+      -14,
+      0
+    ],
+    [
+      -13,
+      -12,
+      0
+    ],
+    [
+      -27,
+      -25,
+      0
+    ],
+    [
+      -32,
+      -26,
+      0
+    ],
+    [
+      -20,
+      -28,
+      0
+    ],
+    [
+      -15,
+      -22,
+      0
+    ],
+    [
+      -11,
+      -18,
+      0
+    ],
+    [
+      -6,
+      -20,
+      0
+    ],
+    [
+      -15,
+      -30,
+      0
+    ],
+    [
+      -11,
+      -30,
+      0
+    ],
+    [
+      -2,
+      -31,
+      0
+    ],
+    [
+      -1,
+      -2,
+      0
+    ],
+    [
+      -28,
+      0,
+      0
+    ]
+  ],
+  "exit_trigger_id": 26186,
+  "exit_transport_id": 26189,
+  "mechanics": "Start real timer with lever; collect each lamp once for extra time/light; open the actual doors through levers; traps return to start; expiry fails; enough light plus reaching exit earns success. No ordinary fight or dialogue substitutes.",
+  "unrecovered_operands": [
+    "baseTime",
+    "extraTime per lamp",
+    "minimum collected light",
+    "exact lever-door join",
+    "runtime authenticated timer/poll adapter"
+  ],
+  "evidence_url": "https://methodwakfu.com/quetes/principales/ecole-dhuppermagie/",
+  "publication_policy": "Do not register until unrecovered operands have explicit reviewed reconstruction and caller owns real elapsed-time events, exact native action approaches, gate state, failure relocation, transitions and mission settlement."
+}

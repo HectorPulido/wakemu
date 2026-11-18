@@ -1,0 +1,39 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "frigost-pirates-529-encounters",
+  "map_id": 529,
+  "provenance": "Reviewed repeatable native pirate lair529. Original public18178/1124 entry consumes exactly one physical native16158 key; original18179/1125 exit remains free. Native family520 pirates2398/2400/2401 retain original levels95/98/100, stats, books, states and genuine complex loot16072. One each is reviewed private formation, not an original server roster claim. Arrival alone may qualify native1110 find-lair objective2228; no victory qualifies ten cargo or a hand-in. Real physical loot and source-bound Bill key recovery permit repeated normal runs; no fake key, free-entry bypass or cargo fabrication.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "bounds": [
+        -3,
+        -28,
+        23,
+        10
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        0,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 2398,
+          "count": 1
+        },
+        {
+          "reference": 2400,
+          "count": 1
+        },
+        {
+          "reference": 2401,
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

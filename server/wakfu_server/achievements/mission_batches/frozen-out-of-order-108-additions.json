@@ -1,0 +1,28 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "frozen-out-of-order-108-additions-20261117",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/wild-estate-sufokia-715.configuration.v2.json",
+      "sha256": "45915bd98ca3f13192f03f550a199f57d963b2bb703cbb10c4aad25f53b7b9a8"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/wild-estate-sufokia-help.json",
+      "sha256": "a918f71c0091203128dc41c2fb0d46899aaec34985e5b72fdc287d23a05f1d4c"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-cave-952.configuration.json",
+      "sha256": "b699260835fccede4fff4303460071b4c7da7de7217686567ede9c1c4271aed5"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-chapter2-cave.json",
+      "sha256": "b08afc4c16ca5e49852e5cc7edece3d8e809fd53d93c7ba0cd8a636df2d16bd2"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "1721": {
+    "d": 1721,
+    "aHe": "IsAchievementActive(1721)\r\nand GetBooleanSystemConfiguration(\"companions.enabled\")",
+    "aeV": 3,
+    "aqb": false,
+    "bwX": 1364,
+    "cjG": 184,
+    "cjH": true,
+    "cjI": "",
+    "cjJ": [
+      {
+        "d": 3292,
+        "ckb": true,
+        "ckc": "",
+        "ckd": [],
+        "cke": "",
+        "ckf": [],
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "d": 3007,
+        "aeV": 5,
+        "ckk": false,
+        "ckl": [
+          18009,
+          1
+        ],
+        "native_class": "aJP"
+      },
+      {
+        "d": 3672,
+        "aeV": 6,
+        "ckk": false,
+        "ckl": [
+          3500
+        ],
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": false,
+    "cjP": 11,
+    "cjQ": 1,
+    "cjR": true,
+    "cjS": 0,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": false,
+    "cjW": false,
+    "cjX": 0,
+    "cjY": 0,
+    "cjZ": 7,
+    "cka": "ach.184",
+    "isVisible": true,
+    "getDuration": 0,
+    "native_class": "aJM"
+  },
+  "1726": {
+    "d": 1726,
+    "aHe": "IsAchievementActive(1726)\r\nand GetBooleanSystemConfiguration(\"companions.enabled\")",
+    "aeV": 3,
+    "aqb": false,
+    "bwX": 1364,
+    "cjG": 184,
+    "cjH": true,
+    "cjI": "",
+    "cjJ": [
+      {
+        "d": 3299,
+        "ckb": true,
+        "ckc": "",
+        "ckd": [],
+        "cke": "",
+        "ckf": [],
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "d": 3008,
+        "aeV": 5,
+        "ckk": false,
+        "ckl": [
+          18009,
+          1
+        ],
+        "native_class": "aJP"
+      },
+      {
+        "d": 4583,
+        "aeV": 6,
+        "ckk": false,
+        "ckl": [
+          3500
+        ],
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": false,
+    "cjP": 11,
+    "cjQ": 1,
+    "cjR": true,
+    "cjS": 1,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": false,
+    "cjW": false,
+    "cjX": 0,
+    "cjY": 0,
+    "cjZ": 8,
+    "cka": "ach.184",
+    "isVisible": true,
+    "getDuration": 0,
+    "native_class": "aJM"
+  }
+}

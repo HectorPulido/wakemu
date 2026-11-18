@@ -30,6 +30,29 @@ class NativeObjectiveFactsTest(unittest.TestCase):
             evaluate("not IsAchievementObjectiveComplete(10606)", {}, {10606: 0})
         )
 
+    def test_active_requires_owned_snapshot_and_rejects_foreign_load(self):
+        from wakfu_server.maps import npc_objective_facts, dungeon_achievement_authority
+
+        criterion = "IsAchievementActive(1109) && !IsAchievementComplete(1109)"
+        authority = dungeon_achievement_authority.queries_from_snapshot(
+            {"running": [1109], "completed": [], "objectives": []}
+        )
+        facts = npc_objective_facts.ObjectiveFacts(achievement_queries=authority)
+        self.assertTrue(evaluate(criterion, {}, facts))
+        self.assertFalse(evaluate("!IsAchievementActive(1109)", {}, {}))
+
+        class ForeignConnection:
+            def execute(self, sql, args):
+                assert "account_id=%s AND id=%s" in sql
+                assert args == (1, 2)
+                return self
+
+            def fetchone(self):
+                return None
+
+        with self.assertRaisesRegex(ValueError, "owned character"):
+            npc_objective_facts.load(ForeignConnection(), 1, 2)
+
     def test_world_identity_is_not_private_instance(self):
         criterion = (
             "GetInstanceId() == 1385\r\nand not IsAchievementObjectiveComplete(10595)"

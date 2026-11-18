@@ -1,0 +1,304 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "kelba-convoy-947",
+  "map_id": 947,
+  "maximum_members": 1,
+  "provenance": "Reviewed reconstruction of native1962 SPECIAL convoy, not original private server graph: six Riktus and three birds are literal Lua actor counts; exact native-family mixtures and escape glyph902 seed cells are explicitly reviewed server data on real Sm6 components. Original Box Carrier3589/3711 initial3478 and spells4849/4850 stay intact; real authenticated escape4850 loses, native1041 last-ally retirement does not. Two real battles only; final Black Crow3586/box3712 are noncombat native render-only actors with actual script arguments. No fabricated third fight, HP/MP override, combat win or native seed-coordinate claim.",
+  "admission": {
+    "quest_id": 2537,
+    "objective_id": null,
+    "continuation_quest_id": 2538
+  },
+  "native_sources": {
+    "path": "kelba-convoy-947.native.v1.json",
+    "sha256": "20da75c34438f0c59ddf7814d4c9df969cfe645cdc6f0091adffe12a096f37e2"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "convoy-riktus-intro",
+      "kind": "world_ready",
+      "reference": 947,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15725,
+          "arguments": [
+            "owner",
+            0,
+            0,
+            0,
+            0,
+            0,
+            "room_actor:1:6",
+            "room_actor:1:0",
+            "room_actor:1:1",
+            "room_actor:1:2",
+            "room_actor:1:3",
+            "room_actor:1:4",
+            "room_actor:1:5",
+            0
+          ]
+        }
+      ],
+      "evidence": "Native1962/15725 actual six Riktus and carrier UID; literal first positions and 26second completion. No fight or quest objective is awarded."
+    },
+    {
+      "id": "convoy-riktus-ready",
+      "kind": "scenario_complete",
+      "reference": 15660,
+      "requires": [
+        "convoy-riktus-intro"
+      ],
+      "effects": [],
+      "evidence": "Reviewed deadline after actual native first intro; this permits authenticated battle admission and does not launch or win a fight."
+    },
+    {
+      "id": "convoy-riktus-admission",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [
+        "convoy-riktus-ready"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15660
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15666
+        }
+      ],
+      "evidence": "Actual owned seven-member first group starts native SPECIAL battle; preserve source original carrier program and failure rule."
+    },
+    {
+      "id": "convoy-riktus-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "convoy-riktus-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15696
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15663
+        }
+      ],
+      "evidence": "Only committed genuine original first formation victory; native cargo escape is a defeat, never a synthetic win."
+    },
+    {
+      "id": "convoy-birds-handoff",
+      "kind": "world_ready",
+      "reference": 947,
+      "requires": [
+        "convoy-riktus-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15675
+        },
+        {
+          "kind": "stage_position",
+          "event": 15675,
+          "position": [
+            282,
+            0,
+            0
+          ]
+        }
+      ],
+      "evidence": "Native15675 names transfer to bird stage. The exact player anchor is reviewed real component2 terrain, applied after normal combat return."
+    },
+    {
+      "id": "convoy-birds-intro",
+      "kind": "world_ready",
+      "reference": 947,
+      "requires": [
+        "convoy-birds-handoff"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15726,
+          "arguments": [
+            "owner",
+            0,
+            0,
+            0,
+            0,
+            0,
+            "room_actor:2:3",
+            "room_actor:2:0",
+            "room_actor:2:1",
+            "room_actor:2:2"
+          ]
+        }
+      ],
+      "evidence": "Native second intro with real three bird actor UIDs and original cargo prototype3711; native scene lasts11seconds."
+    },
+    {
+      "id": "convoy-birds-ready",
+      "kind": "scenario_complete",
+      "reference": 15661,
+      "requires": [
+        "convoy-birds-intro"
+      ],
+      "effects": [],
+      "evidence": "Native second presentation has ended; only then permit real bird encounter admission."
+    },
+    {
+      "id": "convoy-birds-admission",
+      "kind": "room_admission",
+      "reference": 2,
+      "requires": [
+        "convoy-birds-ready"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15661
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15667
+        }
+      ],
+      "evidence": "Authenticate original second group; its native carrier keeps original3478/3532 and Advance/GameOver."
+    },
+    {
+      "id": "convoy-birds-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "convoy-birds-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15697
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15664
+        }
+      ],
+      "evidence": "Actual committed second formation victory, with escape loss fenced separately."
+    },
+    {
+      "id": "convoy-final-handoff",
+      "kind": "world_ready",
+      "reference": 947,
+      "requires": [
+        "convoy-birds-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15676
+        },
+        {
+          "kind": "scene_position",
+          "scenario": 1962,
+          "event": 15665,
+          "position": [
+            578,
+            2,
+            0
+          ]
+        }
+      ],
+      "evidence": "Only after normal combat return, relocate to original15665 playerOne coordinate; no third battle is created."
+    },
+    {
+      "id": "convoy-final-intro",
+      "kind": "world_ready",
+      "reference": 947,
+      "requires": [
+        "convoy-final-handoff"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15665,
+          "arguments": [
+            "scene_actor:black-crow",
+            "owner",
+            0,
+            0,
+            0,
+            0,
+            0,
+            "scene_actor:box"
+          ]
+        }
+      ],
+      "evidence": "Actual original Black Crow/box render-only UIDs, original skins and62second native narrative; once-per-character with authenticated context."
+    },
+    {
+      "id": "convoy-final-finished",
+      "kind": "scenario_complete",
+      "reference": 15703,
+      "requires": [
+        "convoy-final-intro"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1962,
+          "event": 15703
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2537,
+          "objective_id": 5036
+        }
+      ],
+      "evidence": "Original15703 restores cinematic UI. Only real preceding battles and final deadline qualify5036 while2537 is actually running; normal native rewards/followups remain shared."
+    }
+  ],
+  "terminal_returns": {
+    "schema": "owned-story-step-return-v1",
+    "after_steps": [
+      "convoy-final-finished"
+    ],
+    "source_map_id": 943,
+    "source_id": 25104,
+    "source_sha256": "f2c6b83781fa5c717cfae21de34160d9831aafa60d5fe98f9636d6b902a5cbac",
+    "destination_id": 2170,
+    "defeat_room_orders": [
+      1,
+      2
+    ],
+    "loss_events": {
+      "1": {
+        "scenario": 1962,
+        "event": 15873
+      },
+      "2": {
+        "scenario": 1962,
+        "event": 15874
+      }
+    },
+    "evidence": "Literal original free public fallback25104/2170 returns943(-6,0,-80);947 has no serialized interior exit object. Source-bound normal instance cleanup is shared after real final stage or native combat loss."
+  }
+}

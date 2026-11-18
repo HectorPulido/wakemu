@@ -1,0 +1,204 @@
+[
+  {
+    "map_id": 527,
+    "id": 19411,
+    "x": 53.0,
+    "y": 85.0,
+    "z": 0.0,
+    "native_parameters": "1128",
+    "definition_id": 1128,
+    "destinations": [
+      {
+        "destination_id": 1249,
+        "map_id": 889,
+        "x": 0,
+        "y": 14,
+        "z": 0,
+        "direction": 7,
+        "criterion": "IsAchievementActive(2160) and not IsAchievementComplete(2161)",
+        "display_reference": 131,
+        "cyZ": -1,
+        "item_reference": 0,
+        "cof": false,
+        "cvd": true,
+        "cyY": true,
+        "cyW": 0,
+        "cyX": 0,
+        "arrival_heights": [
+          0
+        ],
+        "native_altitude_walkable": true
+      }
+    ],
+    "approach_mask": 11,
+    "approach_orientation": 1,
+    "approach_blocks_center": false,
+    "approach_positions": [
+      {
+        "x": 54,
+        "y": 85,
+        "z": 0
+      },
+      {
+        "x": 52,
+        "y": 85,
+        "z": 0
+      },
+      {
+        "x": 53,
+        "y": 86,
+        "z": 0
+      }
+    ]
+  },
+  {
+    "map_id": 889,
+    "id": 23618,
+    "x": 0.0,
+    "y": 15.0,
+    "z": 0.0,
+    "native_parameters": "1129",
+    "definition_id": 1129,
+    "destinations": [
+      {
+        "destination_id": 1250,
+        "map_id": 527,
+        "x": 53,
+        "y": 86,
+        "z": 0,
+        "direction": 3,
+        "criterion": "",
+        "display_reference": 0,
+        "cyZ": -1,
+        "item_reference": 0,
+        "cof": true,
+        "cvd": true,
+        "cyY": true,
+        "cyW": 0,
+        "cyX": 0,
+        "arrival_heights": [
+          0
+        ],
+        "native_altitude_walkable": true
+      }
+    ],
+    "approach_mask": 0,
+    "approach_orientation": 1,
+    "approach_blocks_center": false,
+    "approach_positions": []
+  },
+  {
+    "map_id": 546,
+    "id": 20653,
+    "x": -14.0,
+    "y": -32.0,
+    "z": 0.0,
+    "native_parameters": "1312",
+    "definition_id": 1312,
+    "destinations": [
+      {
+        "destination_id": 1441,
+        "map_id": 728,
+        "x": 0,
+        "y": 51,
+        "z": 0,
+        "direction": 7,
+        "criterion": "IsAchievementActive(2162)",
+        "display_reference": 194,
+        "cyZ": -1,
+        "item_reference": 0,
+        "cof": false,
+        "cvd": true,
+        "cyY": true,
+        "cyW": 0,
+        "cyX": 0,
+        "arrival_heights": [
+          0
+        ],
+        "native_altitude_walkable": true
+      }
+    ],
+    "approach_mask": 8,
+    "approach_orientation": 1,
+    "approach_blocks_center": false,
+    "approach_positions": [
+      {
+        "x": -14,
+        "y": -31,
+        "z": 0
+      }
+    ]
+  },
+  {
+    "map_id": 728,
+    "id": 20652,
+    "x": 0.0,
+    "y": 52.0,
+    "z": 0.0,
+    "native_parameters": "1313",
+    "definition_id": 1313,
+    "destinations": [
+      {
+        "destination_id": 1442,
+        "map_id": 546,
+        "x": -14,
+        "y": -31,
+        "z": 0,
+        "direction": 3,
+        "criterion": "",
+        "display_reference": 194,
+        "cyZ": -1,
+        "item_reference": 0,
+        "cof": false,
+        "cvd": true,
+        "cyY": true,
+        "cyW": 0,
+        "cyX": 0,
+        "arrival_heights": [
+          0
+        ],
+        "native_altitude_walkable": true
+      }
+    ],
+    "approach_mask": 0,
+    "approach_orientation": 1,
+    "approach_blocks_center": false,
+    "approach_positions": []
+  },
+  {
+    "map_id": 728,
+    "id": 26431,
+    "x": -1.0,
+    "y": -16.0,
+    "z": 0.0,
+    "native_parameters": "1313",
+    "definition_id": 1313,
+    "destinations": [
+      {
+        "destination_id": 1442,
+        "map_id": 546,
+        "x": -14,
+        "y": -31,
+        "z": 0,
+        "direction": 3,
+        "criterion": "",
+        "display_reference": 194,
+        "cyZ": -1,
+        "item_reference": 0,
+        "cof": false,
+        "cvd": true,
+        "cyY": true,
+        "cyW": 0,
+        "cyX": 0,
+        "arrival_heights": [
+          0
+        ],
+        "native_altitude_walkable": true
+      }
+    ],
+    "approach_mask": 0,
+    "approach_orientation": 1,
+    "approach_blocks_center": false,
+    "approach_positions": []
+  }
+]

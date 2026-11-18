@@ -4,7 +4,15 @@ from . import seasonal_access, transport_criteria
 
 
 def evaluate(
-    expression, character, destination_map_id, *, now_ms, achievement_complete=None
+    expression,
+    character,
+    destination_map_id,
+    *,
+    now_ms,
+    achievement_complete=None,
+    achievement_active=None,
+    achievement_running=None,
+    objective_complete=None
 ):
     expression = seasonal_access.open_event_calendar(
         expression, destination_map_id=destination_map_id
@@ -14,6 +22,9 @@ def evaluate(
         character,
         now_ms=now_ms,
         achievement_complete=achievement_complete,
+        achievement_active=achievement_active,
+        achievement_running=achievement_running,
+        objective_complete=objective_complete,
     )
 
 
@@ -41,7 +52,7 @@ def transition(store, account_id, generation, character, route):
         current = store.character(account_id, character["id"], db)
         authority = None
 
-        def achievement_complete(identity):
+        def owned_query(name, identity):
             nonlocal authority
             if authority is None:
                 from .dungeon_achievement_authority import queries_from_snapshot
@@ -54,7 +65,7 @@ def transition(store, account_id, generation, character, route):
                 authority = queries_from_snapshot(
                     None if row is None else row["snapshot"]
                 )
-            return authority["IsAchievementComplete"](identity)
+            return authority[name](identity)
 
         if (
             evaluate(
@@ -62,7 +73,18 @@ def transition(store, account_id, generation, character, route):
                 current,
                 route["destination"]["map_id"],
                 now_ms=int(store.clock() * 1000),
-                achievement_complete=achievement_complete,
+                achievement_complete=lambda identity: owned_query(
+                    "IsAchievementComplete", identity
+                ),
+                achievement_active=lambda identity: owned_query(
+                    "IsAchievementActive", identity
+                ),
+                achievement_running=lambda identity: owned_query(
+                    "IsAchievementRunning", identity
+                ),
+                objective_complete=lambda identity: owned_query(
+                    "IsAchievementObjectiveComplete", identity
+                ),
             )
             is not True
         ):

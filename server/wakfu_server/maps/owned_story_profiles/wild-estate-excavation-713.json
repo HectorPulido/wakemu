@@ -1,0 +1,272 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-estate-excavation-713",
+  "map_id": 713,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1618,
+    "objective_id": null,
+    "continuation_quest_id": 1618
+  },
+  "provenance": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed.",
+  "initial_elements": [],
+  "native_sources": {
+    "path": "wild-estate-excavation-713.native.v1.json",
+    "sha256": "d2694e4ab60d48e8397a9e4ff833bd8716db1a837df19c529a15b954b25c8741"
+  },
+  "item_gates": [
+    {
+      "reference": 17797,
+      "quantity": 1,
+      "consume": false,
+      "table_id": 2348,
+      "evidence": "Native corpse20405 loot2348 awards excavation equipment17797; retained equipment qualifies the reviewed rubble stage."
+    },
+    {
+      "reference": 17799,
+      "quantity": 1,
+      "consume": false,
+      "table_id": 2350,
+      "evidence": "Native corpse20404 loot2350 awards complete bomb17799 before the final stage."
+    },
+    {
+      "reference": 17799,
+      "quantity": 1,
+      "consume": true,
+      "table_id": 2350,
+      "evidence": "Reviewed physical source bridge: actual native bomb17799 payment opens the authenticated terminal passage only after three owned victories. Original solid-rock runtime identity was not recovered."
+    }
+  ],
+  "steps": [
+    {
+      "id": "excavation-equipment",
+      "kind": "interactive",
+      "reference": 20405,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "native_loot",
+          "table_id": 2348,
+          "source_id": 20405,
+          "effect_reference": 464
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-first-admitted",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [
+        "excavation-equipment"
+      ],
+      "effects": [
+        {
+          "kind": "native_item_gate",
+          "reference": 17797,
+          "quantity": 1,
+          "consume": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1646,
+          "event": 13226
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-first-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "excavation-first-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1618,
+          "objective_id": 3018
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-rubble-admitted",
+      "kind": "room_admission",
+      "reference": 2,
+      "requires": [
+        "excavation-first-victory"
+      ],
+      "effects": [
+        {
+          "kind": "native_item_gate",
+          "reference": 17797,
+          "quantity": 1,
+          "consume": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1646,
+          "event": 13093
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-rubble-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "excavation-rubble-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1631,
+          "objective_id": 3041
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-equipment-recovery",
+      "kind": "interactive",
+      "reference": 20403,
+      "requires": [
+        "excavation-rubble-victory"
+      ],
+      "effects": [
+        {
+          "kind": "native_loot",
+          "table_id": 2348,
+          "source_id": 20403,
+          "effect_reference": 465
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-bomb",
+      "kind": "interactive",
+      "reference": 20404,
+      "requires": [
+        "excavation-rubble-victory"
+      ],
+      "effects": [
+        {
+          "kind": "native_loot",
+          "table_id": 2350,
+          "source_id": 20404,
+          "effect_reference": 466
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-final-admitted",
+      "kind": "room_admission",
+      "reference": 3,
+      "requires": [
+        "excavation-bomb"
+      ],
+      "effects": [
+        {
+          "kind": "native_item_gate",
+          "reference": 17799,
+          "quantity": 1,
+          "consume": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1646,
+          "event": 13087
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-final-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "excavation-final-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1646,
+          "event": 13088
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    },
+    {
+      "id": "excavation-authenticated-bomb-exit",
+      "kind": "native_travel",
+      "reference": 1407,
+      "requires": [
+        "excavation-final-victory",
+        "excavation-bomb"
+      ],
+      "effects": [
+        {
+          "kind": "native_item_gate",
+          "reference": 17799,
+          "quantity": 1,
+          "consume": true
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1646,
+          "event": 13089
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 1632,
+          "objective_id": 3042
+        }
+      ],
+      "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+    }
+  ],
+  "native_links": [
+    {
+      "source_id": 20384,
+      "destination_id": 1407,
+      "requires": []
+    }
+  ],
+  "interaction_approach_policy": "pinned_native_qv",
+  "recoverable_native_loot": [
+    20405,
+    20403,
+    20404
+  ],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v2",
+    "rooms": [
+      {
+        "room_order": 1,
+        "requires": [
+          "excavation-equipment"
+        ],
+        "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+      },
+      {
+        "room_order": 2,
+        "requires": [
+          "excavation-first-victory"
+        ],
+        "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+      },
+      {
+        "room_order": 3,
+        "requires": [
+          "excavation-bomb"
+        ],
+        "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+      }
+    ]
+  }
+}

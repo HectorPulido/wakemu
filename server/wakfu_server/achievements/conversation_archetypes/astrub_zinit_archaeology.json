@@ -1,0 +1,1249 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed coherent Mount Zinit and archaeology story dialogue reconstruction. Every inherited native node/choice guard is rechecked at terminal acknowledgement, and original predecessor gates remain authoritative. Exact question/answer edges and specified native variants/placements are reviewed reconstruction, not captured original server transitions. Publication belongs to the same atomic batch as voyage, reef, cave, Ullu, trials and transport producers.",
+  "speakers": [
+    {
+      "actor_id": -2251799934992165,
+      "action_id": 46,
+      "quest_ids": [
+        2675,
+        2690
+      ],
+      "available_quests_on_open": [
+        2675,
+        2690
+      ],
+      "objectives": [
+        {
+          "quest_id": 2675,
+          "objective_id": 5319,
+          "node_id": 3203,
+          "choice_id": 7949,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              3199,
+              7944,
+              3200
+            ],
+            [
+              3200,
+              7946,
+              3201
+            ],
+            [
+              3201,
+              7947,
+              3202
+            ],
+            [
+              3202,
+              7948,
+              3203
+            ],
+            [
+              3203,
+              7949,
+              0
+            ]
+          ],
+          "single_objective": true
+        },
+        {
+          "quest_id": 2690,
+          "objective_id": 5310,
+          "node_id": 3217,
+          "choice_id": 7994,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              2767,
+              7993,
+              3217
+            ],
+            [
+              3217,
+              7994,
+              0
+            ]
+          ],
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          3199,
+          7944,
+          3200
+        ],
+        [
+          3200,
+          7946,
+          3201
+        ],
+        [
+          3201,
+          7947,
+          3202
+        ],
+        [
+          3202,
+          7948,
+          3203
+        ],
+        [
+          3203,
+          7949,
+          0
+        ],
+        [
+          2767,
+          7993,
+          3217
+        ],
+        [
+          3217,
+          7994,
+          0
+        ]
+      ],
+      "running_roots": {
+        "2675": 3199,
+        "2690": 2767
+      }
+    },
+    {
+      "actor_id": -2251799934992048,
+      "action_id": 436,
+      "quest_ids": [
+        2691
+      ],
+      "available_quests_on_open": [
+        2691
+      ],
+      "objectives": [
+        {
+          "quest_id": 2691,
+          "objective_id": 5311,
+          "node_id": 2791,
+          "choice_id": 6753,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              2315,
+              6743,
+              2786
+            ],
+            [
+              2786,
+              6744,
+              2787
+            ],
+            [
+              2787,
+              6749,
+              2788
+            ],
+            [
+              2788,
+              6750,
+              2789
+            ],
+            [
+              2789,
+              6751,
+              2790
+            ],
+            [
+              2790,
+              6752,
+              2791
+            ],
+            [
+              2791,
+              6753,
+              0
+            ]
+          ],
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          2315,
+          6743,
+          2786
+        ],
+        [
+          2786,
+          6744,
+          2787
+        ],
+        [
+          2787,
+          6749,
+          2788
+        ],
+        [
+          2788,
+          6750,
+          2789
+        ],
+        [
+          2789,
+          6751,
+          2790
+        ],
+        [
+          2790,
+          6752,
+          2791
+        ],
+        [
+          2791,
+          6753,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799927089062,
+      "action_id": 698,
+      "quest_ids": [
+        2692,
+        2699
+      ],
+      "available_quests_on_open": [
+        2692,
+        2699
+      ],
+      "objectives": [
+        {
+          "quest_id": 2692,
+          "objective_id": 5313,
+          "node_id": 3230,
+          "choice_id": 8017,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              3219,
+              8010,
+              3226
+            ],
+            [
+              3226,
+              8011,
+              3228
+            ],
+            [
+              3228,
+              8015,
+              3229
+            ],
+            [
+              3229,
+              8016,
+              3230
+            ],
+            [
+              3230,
+              8017,
+              0
+            ]
+          ],
+          "remaining_objective": true,
+          "required_objectives": [
+            5312
+          ]
+        },
+        {
+          "quest_id": 2699,
+          "objective_id": 5333,
+          "node_id": 3254,
+          "choice_id": 8053,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              3219,
+              8013,
+              3252
+            ],
+            [
+              3252,
+              8051,
+              3254
+            ],
+            [
+              3254,
+              8053,
+              0
+            ]
+          ],
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          3219,
+          8010,
+          3226
+        ],
+        [
+          3226,
+          8011,
+          3228
+        ],
+        [
+          3228,
+          8015,
+          3229
+        ],
+        [
+          3229,
+          8016,
+          3230
+        ],
+        [
+          3230,
+          8017,
+          0
+        ],
+        [
+          3219,
+          8013,
+          3252
+        ],
+        [
+          3252,
+          8051,
+          3254
+        ],
+        [
+          3254,
+          8053,
+          0
+        ],
+        [
+          3219,
+          8106,
+          3287
+        ],
+        [
+          3287,
+          8107,
+          0
+        ],
+        [
+          3287,
+          8109,
+          0
+        ]
+      ],
+      "placement": {
+        "row": {
+          "actor_id": -2251799927089062,
+          "reference_id": 3814,
+          "map_id": 1134,
+          "instance_id": 0,
+          "x": -22,
+          "y": 77,
+          "z": -11,
+          "direction": 3,
+          "dialogue_root": 3219,
+          "action_ids": [
+            698
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: Tower native quest marker and dialogue reconstruction; original server position/edges not recovered"
+        },
+        "interaction_anchor": {
+          "x": -23,
+          "y": 77,
+          "z": -11
+        },
+        "interaction_anchor_evidence": "Reviewed actual native1134 connected floor-23,77,-11 adjacent to the existing unchanged Laura waypoint-22,77,-11; native edges in archaeology-native-npc-floor.json. Not a claim of captured original placement."
+      },
+      "choice_approach_arrivals": [
+        {
+          "node_id": 3287,
+          "choice_id": 8107,
+          "source_map_id": 1135,
+          "source_object_id": 25523,
+          "approach": {
+            "x": -41,
+            "y": 84,
+            "z": -60
+          },
+          "direction": 3,
+          "evidence": "Reviewed native site-travel acknowledgement reaches the actual exported public Sufokia entrance approach. Player must then activate the real25523/2263portal; this script arrival emits no transport_entered event and grants no objective5334.",
+          "native_guard_path": [
+            [
+              3219,
+              8106,
+              3287
+            ],
+            [
+              3287,
+              8107,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "actor_id": -1724034232352753,
+      "action_id": 703,
+      "quest_ids": [
+        2705
+      ],
+      "available_quests_on_open": [
+        2705
+      ],
+      "native_marker": {
+        "quest_id": 2705,
+        "objective_id": 5339
+      },
+      "placement": {
+        "quest_id": 2705,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -1724034232352753,
+          "reference_id": 3819,
+          "map_id": 1134,
+          "instance_id": 0,
+          "x": 16,
+          "y": 8,
+          "z": 0,
+          "direction": 1,
+          "dialogue_root": 3225,
+          "action_ids": [
+            703
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reviewed story overlay of the same existing accredited native Magnum3819 actor/action703 at original1134(16,8,0), actor identity and native appearance retained; dialogue graph is explicit narrative reconstruction, not captured original server transitions."
+        },
+        "graph": [],
+        "interaction_anchor": {
+          "x": 16,
+          "y": 7,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Reviewed actual native1134 floor16,7,0 adjacent to the unchanged native quest2705 waypoint16,8,0, with native connected edges recorded in archaeology-native-npc-floor.json. This is a waypoint-derived reconstruction, not a captured spawn.",
+        "existing_native_actor": {
+          "source_sha256": "0410af8f82ee3c8a209efca093d0ebbdaf477be9f35801b1a63d4559f4e381cb",
+          "quest_ids": [
+            2705
+          ],
+          "evidence": "Reuse the accredited existing physical actor identity and exact native source pin; running story branch takes precedence, otherwise the existing weekly provider remains authoritative. No duplicate Magnum spawn."
+        }
+      },
+      "objectives": [
+        {
+          "quest_id": 2705,
+          "objective_id": 5339,
+          "node_id": 3277,
+          "choice_id": 8078,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              3225,
+              8008,
+              3275
+            ],
+            [
+              3275,
+              8074,
+              3276
+            ],
+            [
+              3276,
+              8075,
+              3277
+            ],
+            [
+              3277,
+              8078,
+              0
+            ]
+          ],
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          3225,
+          8008,
+          3275
+        ],
+        [
+          3275,
+          8074,
+          3276
+        ],
+        [
+          3276,
+          8075,
+          3277
+        ],
+        [
+          3277,
+          8078,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992702,
+      "action_id": 705,
+      "quest_ids": [
+        2702
+      ],
+      "available_quests_on_open": [
+        2702
+      ],
+      "running_roots": {
+        "2702": 3267
+      },
+      "reviewed_site_placement": {
+        "source_id": 25603,
+        "geometry_sha256": "da0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d",
+        "evidence": "Literal source25603 requiresRunning2701 in native1003; exact native dialogue node guards and question/answer sequence establish following scientist conversations. Locations and variant selection are explicit reviewed reconstruction on validated original terrain."
+      },
+      "placement": {
+        "quest_id": 2702,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992702,
+          "reference_id": 3828,
+          "map_id": 1003,
+          "instance_id": 0,
+          "x": -9,
+          "y": -5,
+          "z": -15,
+          "direction": 3,
+          "dialogue_root": 3266,
+          "action_ids": [
+            705
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION: chosen native scientist variant and connected original1003 floor near literal temple-examination source25603; narrative guide/text supports presence, not an original captured spawn or navigation marker."
+        },
+        "interaction_anchor": {
+          "x": -9,
+          "y": -4,
+          "z": -15
+        },
+        "interaction_anchor_evidence": "Explicit reviewed native1003 floor and bidirectional approach edges; original geometryda0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d. Native speaker variant chosen as reconstruction, not claimed to be a recovered spawn.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2702,
+          "objective_id": 5336,
+          "node_id": 3274,
+          "choice_id": 8073,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              3267,
+              8066,
+              3274
+            ],
+            [
+              3274,
+              8073,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3267,
+          8066,
+          3274
+        ],
+        [
+          3274,
+          8073,
+          0
+        ],
+        [
+          3266,
+          8065,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992703,
+      "action_id": 706,
+      "quest_ids": [
+        2703
+      ],
+      "available_quests_on_open": [
+        2703
+      ],
+      "running_roots": {
+        "2703": 3269
+      },
+      "reviewed_site_placement": {
+        "source_id": 25603,
+        "geometry_sha256": "da0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d",
+        "evidence": "Literal source25603 requiresRunning2701 in native1003; exact native dialogue node guards and question/answer sequence establish following scientist conversations. Locations and variant selection are explicit reviewed reconstruction on validated original terrain."
+      },
+      "placement": {
+        "quest_id": 2703,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992703,
+          "reference_id": 3829,
+          "map_id": 1003,
+          "instance_id": 0,
+          "x": -7,
+          "y": -3,
+          "z": -15,
+          "direction": 3,
+          "dialogue_root": 3268,
+          "action_ids": [
+            706
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION: chosen native scientist variant and connected original1003 floor near literal temple-examination source25603; narrative guide/text supports presence, not an original captured spawn or navigation marker."
+        },
+        "interaction_anchor": {
+          "x": -8,
+          "y": -3,
+          "z": -15
+        },
+        "interaction_anchor_evidence": "Explicit reviewed native1003 floor and bidirectional approach edges; original geometryda0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d. Native speaker variant chosen as reconstruction, not claimed to be a recovered spawn.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2703,
+          "objective_id": 5337,
+          "node_id": 3293,
+          "choice_id": 8119,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              3269,
+              8068,
+              3293
+            ],
+            [
+              3293,
+              8119,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3269,
+          8068,
+          3293
+        ],
+        [
+          3293,
+          8119,
+          0
+        ],
+        [
+          3268,
+          8067,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992704,
+      "action_id": 704,
+      "quest_ids": [
+        2704
+      ],
+      "available_quests_on_open": [
+        2704
+      ],
+      "running_roots": {
+        "2704": 3227
+      },
+      "reviewed_site_placement": {
+        "source_id": 25603,
+        "geometry_sha256": "da0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d",
+        "evidence": "Literal source25603 requiresRunning2701 in native1003; exact native dialogue node guards and question/answer sequence establish following scientist conversations. Locations and variant selection are explicit reviewed reconstruction on validated original terrain."
+      },
+      "placement": {
+        "quest_id": 2704,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992704,
+          "reference_id": 3827,
+          "map_id": 1003,
+          "instance_id": 0,
+          "x": -9,
+          "y": 0,
+          "z": -15,
+          "direction": 3,
+          "dialogue_root": 3265,
+          "action_ids": [
+            704
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION: chosen native scientist variant and connected original1003 floor near literal temple-examination source25603; narrative guide/text supports presence, not an original captured spawn or navigation marker."
+        },
+        "interaction_anchor": {
+          "x": -9,
+          "y": -1,
+          "z": -15
+        },
+        "interaction_anchor_evidence": "Explicit reviewed native1003 floor and bidirectional approach edges; original geometryda0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d. Native speaker variant chosen as reconstruction, not claimed to be a recovered spawn.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2704,
+          "objective_id": 5338,
+          "node_id": 3273,
+          "choice_id": 8072,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              3227,
+              8014,
+              3272
+            ],
+            [
+              3272,
+              8071,
+              3273
+            ],
+            [
+              3273,
+              8072,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3227,
+          8014,
+          3272
+        ],
+        [
+          3272,
+          8071,
+          3273
+        ],
+        [
+          3273,
+          8072,
+          0
+        ],
+        [
+          3265,
+          8064,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934981709,
+      "action_id": 149,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [
+        2676
+      ],
+      "native_marker": {
+        "quest_id": 2676,
+        "objective_id": 8330
+      },
+      "placement": {
+        "quest_id": 2676,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934981709,
+          "reference_id": 1709,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 86,
+          "y": 5,
+          "z": 10,
+          "direction": 3,
+          "dialogue_root": 2437,
+          "action_ids": [
+            149
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native2676 navigation marker, chosen named native speaker/action and reviewed greeting acknowledgement. Not captured server transitions or an original actor-position proof."
+        },
+        "interaction_anchor": {
+          "x": 86,
+          "y": 4,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Reviewed adjacent actual native527 ground and connectededges in zinit-preparation-npc-floors.json. Preserve originalmarkerheight evenwhereactorpinisraised; actualflooranchorcontrolsinteraction.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8330,
+          "node_id": 2437,
+          "choice_id": 10322,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2437,
+          10322,
+          0
+        ],
+        [
+          2437,
+          5911,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934981740,
+      "action_id": 158,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [
+        2676
+      ],
+      "native_marker": {
+        "quest_id": 2676,
+        "objective_id": 8335
+      },
+      "placement": {
+        "quest_id": 2676,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934981740,
+          "reference_id": 1740,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 109,
+          "y": -20,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 1729,
+          "action_ids": [
+            158
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native2676 navigation marker, chosen named native speaker/action and reviewed greeting acknowledgement. Not captured server transitions or an original actor-position proof."
+        },
+        "interaction_anchor": {
+          "x": 108,
+          "y": -20,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Reviewed adjacent actual native527 ground and connectededges in zinit-preparation-npc-floors.json. Preserve originalmarkerheight evenwhereactorpinisraised; actualflooranchorcontrolsinteraction.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8335,
+          "node_id": 1729,
+          "choice_id": 7990,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            8330,
+            8331,
+            8332,
+            8333,
+            8334,
+            8336
+          ]
+        }
+      ],
+      "graph": [
+        [
+          1729,
+          7990,
+          3206
+        ],
+        [
+          1729,
+          7992,
+          0
+        ],
+        [
+          1729,
+          10323,
+          4134
+        ],
+        [
+          4134,
+          10324,
+          0
+        ],
+        [
+          1729,
+          7991,
+          3206
+        ],
+        [
+          3206,
+          7954,
+          0
+        ],
+        [
+          3206,
+          7955,
+          0
+        ]
+      ],
+      "choice_routes": [
+        {
+          "node_id": 3206,
+          "choice_id": 7954,
+          "route": "quest-npc-980-1740-158-3206-7954",
+          "evidence": "Actual offered and accepted native Hullcatz boarding acknowledgement. Same owner transaction requalifies original actor/action/position and pinned native NPC route, using normal party owned-instance creation and durable transition delivery; no remote synthetic teleporter input."
+        }
+      ]
+    },
+    {
+      "actor_id": -2251799934978331,
+      "action_id": 596,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [],
+      "native_marker": {
+        "quest_id": 2676,
+        "objective_id": 8331
+      },
+      "placement": {
+        "quest_id": 2676,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934978331,
+          "reference_id": 3275,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 12,
+          "y": 48,
+          "z": 8,
+          "direction": 3,
+          "dialogue_root": 2805,
+          "action_ids": [
+            596
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native2676 named-post waypoint. Native employee variant and appropriate native post greeting are explicit reviewed reconstruction, not a recovered original actor spawn or server graph."
+        },
+        "interaction_anchor": {
+          "x": 11,
+          "y": 48,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Actual connected native ground in zinit-preparation-errand-floor-survey.jsonl; originalraisedwaypoint retained whileownedinteractionusesreviewedflooranchor.",
+        "graph": []
+      },
+      "objectives": [],
+      "spoken_objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8331,
+          "action_ids": [
+            596
+          ],
+          "evidence": "Explicit reviewed actual NPC-open receipt for native speak-to-post objective. Actor/action/map must match this qualified source, with real2676running and native8330 prerequisite; no invented dialogue-choice predicate or coordinate-only progress."
+        }
+      ],
+      "graph": [
+        [
+          2805,
+          6772,
+          2807
+        ],
+        [
+          2805,
+          6773,
+          2808
+        ],
+        [
+          2805,
+          6774,
+          0
+        ],
+        [
+          2807,
+          6779,
+          2805
+        ],
+        [
+          2807,
+          6780,
+          0
+        ],
+        [
+          2808,
+          6781,
+          2805
+        ],
+        [
+          2808,
+          6782,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934978333,
+      "action_id": 598,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [],
+      "native_marker": {
+        "quest_id": 2676,
+        "objective_id": 8333
+      },
+      "placement": {
+        "quest_id": 2676,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934978333,
+          "reference_id": 3293,
+          "map_id": 546,
+          "instance_id": 0,
+          "x": -26,
+          "y": 15,
+          "z": 8,
+          "direction": 3,
+          "dialogue_root": 2825,
+          "action_ids": [
+            598
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native2676 named-post waypoint. Native employee variant and appropriate native post greeting are explicit reviewed reconstruction, not a recovered original actor spawn or server graph."
+        },
+        "interaction_anchor": {
+          "x": -28,
+          "y": 15,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Actual connected native ground in zinit-preparation-errand-floor-survey.jsonl; originalraisedwaypoint retained whileownedinteractionusesreviewedflooranchor.",
+        "graph": []
+      },
+      "objectives": [],
+      "spoken_objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8333,
+          "action_ids": [
+            598
+          ],
+          "evidence": "Explicit reviewed actual NPC-open receipt for native speak-to-post objective. Actor/action/map must match this qualified source, with real2676running and native8330 prerequisite; no invented dialogue-choice predicate or coordinate-only progress."
+        }
+      ],
+      "graph": [
+        [
+          2825,
+          6872,
+          2828
+        ],
+        [
+          2825,
+          6873,
+          2829
+        ],
+        [
+          2825,
+          6874,
+          0
+        ],
+        [
+          2828,
+          6881,
+          2825
+        ],
+        [
+          2828,
+          6882,
+          0
+        ],
+        [
+          2829,
+          6883,
+          2825
+        ],
+        [
+          2829,
+          6884,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934978332,
+      "action_id": 703,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [],
+      "native_marker": {
+        "quest_id": 2676,
+        "objective_id": 8332
+      },
+      "placement": {
+        "quest_id": 2676,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934978332,
+          "reference_id": 3819,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": -90,
+          "y": -43,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 3561,
+          "action_ids": [
+            703
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native2676 named-post waypoint. Native employee variant and appropriate native post greeting are explicit reviewed reconstruction, not a recovered original actor spawn or server graph."
+        },
+        "interaction_anchor": {
+          "x": -90,
+          "y": -43,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Actual connected native ground in zinit-preparation-errand-floor-survey.jsonl; originalraisedwaypoint retained whileownedinteractionusesreviewedflooranchor.",
+        "graph": []
+      },
+      "objectives": [],
+      "spoken_objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8332,
+          "action_ids": [
+            703
+          ],
+          "evidence": "Explicit reviewed actual NPC-open receipt for native speak-to-post objective. Actor/action/map must match this qualified source, with real2676running and native8330 prerequisite; no invented dialogue-choice predicate or coordinate-only progress."
+        }
+      ],
+      "graph": [
+        [
+          3561,
+          8960,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934978336,
+      "action_id": 703,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [],
+      "native_marker": {
+        "quest_id": 2676,
+        "objective_id": 8336
+      },
+      "placement": {
+        "quest_id": 2676,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934978336,
+          "reference_id": 3819,
+          "map_id": 546,
+          "instance_id": 0,
+          "x": -8,
+          "y": 14,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 3561,
+          "action_ids": [
+            703
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native2676 named-post waypoint. Native employee variant and appropriate native post greeting are explicit reviewed reconstruction, not a recovered original actor spawn or server graph."
+        },
+        "interaction_anchor": {
+          "x": -8,
+          "y": 13,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Actual connected native ground in zinit-preparation-errand-floor-survey.jsonl; originalraisedwaypoint retained whileownedinteractionusesreviewedflooranchor.",
+        "graph": []
+      },
+      "objectives": [],
+      "spoken_objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8336,
+          "action_ids": [
+            703
+          ],
+          "evidence": "Explicit reviewed actual NPC-open receipt for native speak-to-post objective. Actor/action/map must match this qualified source, with real2676running and native8330 prerequisite; no invented dialogue-choice predicate or coordinate-only progress."
+        }
+      ],
+      "graph": [
+        [
+          3561,
+          8960,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934991695,
+      "action_id": 466,
+      "quest_ids": [
+        2676
+      ],
+      "available_quests_on_open": [],
+      "objectives": [],
+      "spoken_objectives": [
+        {
+          "quest_id": 2676,
+          "objective_id": 8334,
+          "action_ids": [
+            466,
+            467,
+            468,
+            469,
+            470,
+            471
+          ],
+          "evidence": "Explicit reviewed actual NPC-open receipt for native speak-to-post objective. Actor/action/map must match this qualified source, with real2676running and native8330 prerequisite; no invented dialogue-choice predicate or coordinate-only progress."
+        }
+      ],
+      "graph": []
+    }
+  ]
+}

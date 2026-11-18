@@ -1,0 +1,300 @@
+{
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2707)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2,
+      "cjG": 354,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(2706)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 16,
+              "ckh": 8,
+              "cki": 0,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5342,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            8000
+          ],
+          "d": 4288,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            500
+          ],
+          "d": 7228,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 20,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 10,
+      "cka": "ach.354",
+      "d": 2707,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2708)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2,
+      "cjG": 354,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(2707)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 136,
+              "ckh": 90,
+              "cki": 0,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5343,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            3000
+          ],
+          "d": 4289,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 20,
+      "cjQ": 3,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 11,
+      "cka": "ach.354",
+      "d": 2708,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2709)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2,
+      "cjG": 354,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(2708)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 16,
+              "ckh": 8,
+              "cki": 0,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5344,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            3000
+          ],
+          "d": 4290,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 20,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 12,
+      "cka": "ach.354",
+      "d": 2709,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "monsters": {
+    "3835": {
+      "ref": 3835,
+      "name": "Arakna espectral debilitada",
+      "family_id": 793,
+      "min_level": 23,
+      "max_level": 23,
+      "statistics": {
+        "AP": {
+          "base": 6,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 43,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 101,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [
+          28
+        ],
+        "csc": [
+          7
+        ]
+      },
+      "sprite_id": 103600720,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 3225
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 3226
+        }
+      ],
+      "loot_definitions": []
+    },
+    "3813": {
+      "ref": 3813,
+      "name": "Larva loca",
+      "family_id": 793,
+      "min_level": 16,
+      "max_level": 16,
+      "statistics": {
+        "AP": {
+          "base": 5,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 3,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 4,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 39,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 50,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [
+          28,
+          78
+        ],
+        "csc": [
+          53,
+          7
+        ]
+      },
+      "sprite_id": 1014002819,
+      "illustration_id": -1,
+      "native_abilities": [
+        {
+          "level_parameter": -1,
+          "spell_id": 4626
+        },
+        {
+          "level_parameter": -1,
+          "spell_id": 4627
+        },
+        {
+          "level_parameter": 15,
+          "spell_id": 5489
+        }
+      ],
+      "loot_definitions": []
+    }
+  }
+}

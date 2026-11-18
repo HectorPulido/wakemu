@@ -5,6 +5,7 @@ unit while voting is open. A frozen winner never spends another unit. Original
 server repetition and cleanup rules are unavailable; this is an explicit
 reconstruction, not a claimed recovered server program.
 """
+
 from copy import deepcopy
 from functools import lru_cache
 import hashlib
@@ -42,12 +43,26 @@ def rule_for(config):
         or rule["map_id"] != config["topology"]["asset_map_id"]
         or binding.get("rule_sha256") != digest(rule)
         or binding.get("plan_sha256") != config["compiled_plan"]["document_sha256"]
-        or rule["native_revision"] != native_catalog.release()
         or not rule["urn_approaches"]
         or rule["urn_approach_status"] != "PROVED_ORIGINAL_bEG_dST_VA_NATIVE_HEIGHT"
     ):
         raise ValueError("Optional vote native evidence or pinned contract changed")
+    require_source(rule)
     return rule
+
+
+def require_source(rule):
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        rule["native_revision"],
+        (
+            "native-map-objects.json",
+            "native-interactive-states.json",
+            "native-generic-teleporters.json",
+            f'combat-maps/{rule["map_id"]}.json',
+        ),
+    )
 
 
 def context(db, instance_id):
@@ -510,7 +525,7 @@ def cast_vote(
     body,
     *,
     positions=None,
-    in_fight=False
+    in_fight=False,
 ):
     from contextlib import ExitStack
     from wakfu_server.inventory_owner import lock_inventory_character

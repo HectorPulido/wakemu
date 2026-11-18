@@ -12,6 +12,16 @@ def adopt_fight(destination, candidate):
     pointer_binding = prepare_pointer_commit(candidate)
     if destination is candidate:
         return
+    order_trial_sequence = (
+        destination.sequence
+        if getattr(candidate, "native_order_trial", None) is not None
+        else None
+    )
+    dj_dance_sequence = (
+        destination.sequence
+        if getattr(candidate, "native_dj_dance", None) is not None
+        else None
+    )
     if pointer_binding is not None:
         pointer_binding.stage(destination)
     # Main and serializers retain this Fight reference. Preserve existing actor
@@ -26,6 +36,17 @@ def adopt_fight(destination, candidate):
         actors[uid] = actor
     destination.__dict__.clear()
     destination.__dict__.update(candidate.__dict__)
+    if order_trial_sequence is not None:
+        from .native_order_trial_events import adopt_witnesses
+
+        adopt_witnesses(destination, candidate, previous_sequence=order_trial_sequence)
+        from .native_order_trial_selection import adopt_witnesses as adopt_selections
+
+        adopt_selections(destination, candidate, previous_sequence=order_trial_sequence)
+    if dj_dance_sequence is not None:
+        from .combat_native_dj_dance import adopt_witnesses
+
+        adopt_witnesses(destination, candidate, previous_sequence=dj_dance_sequence)
     from .combat_retained_collections import replace_collection
 
     replace_collection(destination, "actors", actors)

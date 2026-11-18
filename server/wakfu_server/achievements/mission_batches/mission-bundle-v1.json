@@ -1,0 +1,618 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "coherent-active-through-line8-ereboria-native-ending-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "combat",
+      "path": "wakfu_server/achievements/combat_mission_profiles/one-shot-native-targets.json",
+      "sha256": "9a7ffed51f73ef0aaab3af3e933a446f74955e7ac0b313ab1c5fa8ff82a2ee96"
+    },
+    {
+      "kind": "combat",
+      "path": "wakfu_server/achievements/combat_mission_profiles/otomai-hunter-iv-x.json",
+      "sha256": "30ef7614dc6d5f9d66877111b5f10eb39a23000b370184cbf6042480532f5102"
+    },
+    {
+      "kind": "recurring",
+      "path": "wakfu_server/achievements/mission_batches/recurring-hunts-v1.json",
+      "sha256": "c2c0e4ca7e11b16a1635f63b6f025fcab53e9a7427e685aa5837f9a006d9e9c1"
+    },
+    {
+      "kind": "recurring",
+      "path": "wakfu_server/achievements/mission_batches/recurring-native-aliases-v1.json",
+      "sha256": "4c5a90e2a94ba229e679d70573cbf10a7795e66e17a6714a683d90ca87a21676"
+    },
+    {
+      "kind": "conversation",
+      "path": "wakfu_server/maps/native_quest_conversation_contracts.json",
+      "sha256": "214146018906f10394823086619cdda6d1845e7307bd6b34ad5ba41648f8f12a"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/rii.json",
+      "sha256": "a3bbf972511c9096a5f2515817a6093381784f14678ce691cc19766fac841c5d"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-arrival.json",
+      "sha256": "5217d1e02a163b244225cf18b282fa166fe2d6ca208af30331d1aab041f3aad7"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-forge.json",
+      "sha256": "390b69c5718ecbd7d9627c60db2608232d36a0771f7062777698c885d8e13954"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-mount-books.json",
+      "sha256": "671258f4c2550cf05e83bc4ad4425c36365dcb6d69ca1b9df43ff11170d8ef0c"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/rii_frescoes.json",
+      "sha256": "3d42b695e2cecb7d0d1c7ce780d7be7449abb468b1298f7d33f7ec5e9a401e8d"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/quest_encounter_profiles/astrub-sawmill.configuration.json",
+      "sha256": "81ef05443b82c5a6183373f5f1df82ed8f4debacde8a4e85d8d62226ed51e679"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-reserve-admission.json",
+      "sha256": "85b14185a8df841f5d8d21251ddc4582a6e6c0a457b0236ff969fbe4cd35217b"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-forest-followups.json",
+      "sha256": "6826badb9793d834057483ea1028f0ccc5ff333f118cc1b0e18bd4d6bf88d81d"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/astrub-reserve.json",
+      "sha256": "7cfe09000c9cd96147433939518e8f8e214f6c92cac4a8ffbde561bb0a5bdc3a"
+    },
+    {
+      "kind": "mercenary_board",
+      "path": "wakfu_server/maps/native_mercenary_board_contracts.json",
+      "sha256": "3b0996ec67146f9555b8bd97ea0066c5e3b69ec06595b16328684247b0641016"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-main-story-followups.json",
+      "sha256": "3448ee0f17327a13ff83f482a16e7a71eb3235536392f4ca13addd3e73a32ae1"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-mercenary-cats.json",
+      "sha256": "0326dc29a5e77fb204ea2431d9eb676ad4c04dfd656cb7b2af512d4a10066fdd"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/quest_encounter_profiles/astrub-grambo-camp.configuration.json",
+      "sha256": "286a0dc779e58e567e6abe371c7c734c468159133936cbd54a6da835fb0f8d2e"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-temple-887.configuration.json",
+      "sha256": "ffd9a2a2a69ae4f5950c397a08898d303a11d8f47f07fd077365a7cada77ec79"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/astrub-mercenary-inspections.json",
+      "sha256": "71fa83e033ab24d56118e3cae4a6d832a6ce0f51a5dd8e0a75337c1754f6b9b7"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-crypt-889.configuration.json",
+      "sha256": "94ea9ece11dab0b83bd3db1719e7ed0e5385b8eccc5b6a1062cbad12e1ae957a"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-nest-728.configuration.json",
+      "sha256": "2ce337b9e9d5e83c6afd10b0f1f5023d2ad87ffddcc888fad1896ba06d614167"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-crypt-followup.json",
+      "sha256": "eb0c6f91b0132eab6702812d8b9735174aec6085b668f11edac333d3bb1e4c47"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/astrub-fields-ambushes.json",
+      "sha256": "8401309c8c7d5898564a74fb26fb3eb2d76f5919b45b09cf703d9e5cefd53b6f"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/astrub-sewer-gate-repairs.json",
+      "sha256": "d90859273b66a8df364ecbe84533920e2c699089e74eba7db0c2d9b630abfd9e"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/quest_encounter_profiles/astrub-grambo-camp.configuration.v2.json",
+      "sha256": "399c0fbd2cc786ce4cbfc06e78a395f9523f357edb82f07703718d4327cecb53"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-temple-887.configuration.v2.json",
+      "sha256": "d7d861c4c671925bf74fefd496a451394ea89242cfb5654b10d911d24129c385"
+    },
+    {
+      "kind": "combat",
+      "path": "wakfu_server/achievements/combat_mission_profiles/native-story-level-victories.json",
+      "sha256": "26775015693dc40e87c28cf9131dc512ff58ee9e19e96b5ae3d54f1355eb1353"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/zinit-reef-980.configuration.json",
+      "sha256": "8cac91e234781c6c1d4571f3b97b6e8e729c21489a18c23943dee52045e0734a"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/zinit-cult-cave-987.configuration.json",
+      "sha256": "a26ba26fd8c6d8ea4e0eda9a6e14b989903573ac414d5e6ffd269801e6eca7f7"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/archaeology-2698.configuration.json",
+      "sha256": "78b4e88f7429114a7fa7fb490dad16e622fc5bf88c366195adc0cdb7a5745af2"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-zinit-archaeology-followups.json",
+      "sha256": "9416cf384c83b3901571c5f7aef48bd6d77689becd3266ea8b88363bcb820353"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/archaeology-site-arrival.json",
+      "sha256": "5987cec5a396f9954f6e7811501f2baebd070118da99ff7c913b440b661b31ed"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/archaeology-temple-examination.json",
+      "sha256": "3d292dc8814e0bb0da90846e03544b4d19992eb0fcf5b8fc80d57aa3a1479c9c"
+    },
+    {
+      "kind": "native_generic",
+      "path": "wakfu_server/maps/native_generic_profiles/huppermage-registration-pickups.json",
+      "sha256": "586f9a4115e4b9fbedd76136f5b838254a54be508c20b4b1ea92ad2c4ca7dfec"
+    },
+    {
+      "kind": "native_generic",
+      "path": "wakfu_server/maps/native_generic_profiles/wild-estate-clue-feedback.json",
+      "sha256": "3913b2fc6a8eae6f0309b56f0c9e3342afc9418ae2a36713d1ce5b82625ecb26"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/wild-estate-initial.json",
+      "sha256": "0dd9fbd2f67e724d5f4811503727a10f74301520d189a98d4b08f0a1ac7d1667"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/wild-estate-initial.json",
+      "sha256": "7be2bb87e30f732c513faf744fcb37a9c726d6db0f4fd122d87f57766c6f29f8"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/ereboria-harbor-pirates-intro.json",
+      "sha256": "5aaec5f23f0b45fc0b76b10a07b98b7254d0b3011bcb834a1d3ac2c419cdf5e8"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_source_profiles/ereboria-camp-entry.json",
+      "sha256": "a2b235013269eef9e5619261046e612421441fed479cee4b23f3391b262a8cf7"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-market-investigation.json",
+      "sha256": "1bf79a6f3f3e2f8ba556b22193d1df06e52569cd5715a7f99c064b29665b24bc"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-platform-1030.configuration.json",
+      "sha256": "5256524457d351eade692d69488dbcf59ab4e44ffb300b42dce4c3ccd89b8727"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/huppermage-school-initial.json",
+      "sha256": "ac2ccb90636ed70a27f471aed56aeffb52c3179620873c424bf0d386b825dbf9"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/ereboria-pirate-investigation-followups.json",
+      "sha256": "bae85d233e03334224db17695c6e1654e43435587a03d90243ece6b8e6897099"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/ereboria-pirate-continuation.json",
+      "sha256": "50521e69a1870492bb67ad513724c5bb95c3c1ccb9780d024e6d7627fc849fa2"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/ereboria-pirate-ambush.v1.json",
+      "sha256": "be736288759660ee21a0686608ed4ca4c30356ba594aea6ba4aea663173fb5d6"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/wild-estate-excavation-followups.json",
+      "sha256": "091f2c92a65a2a17d7ebc4bc1b292d72c49f357a0ea3368352655e47c192736e"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/wild-estate-excavation-713.configuration.json",
+      "sha256": "86e3acb45acd27ea0e156f95aa2b01de8a14554dfa0ce993f6d492a9881decdf"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-convoy-followups.json",
+      "sha256": "fb34274740793b409346c11d25a4f4cb7702daaadf2d83432d098b3debdf0bbc"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-port-946.configuration.json",
+      "sha256": "79e0c20f410302bae78807feeeb596abadfee836474763d6fce7998a2b2f9d96"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-convoy-947.configuration.json",
+      "sha256": "0cbb5b01295253f9a339ac614a8b44c4958e9cc2738688f31fb2d91c7ef6228f"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-night-1020.configuration.json",
+      "sha256": "01d9b4fec3d38489ef6272e68974830284cadd287e0959557f946d90f6d4fb78"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-seed-1018.configuration.json",
+      "sha256": "f0e110c88cb9b30587bd255d31d2dcbe65322736a2ab05f686191965bacb9647"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/huppermage-school-first-year.json",
+      "sha256": "52284e1690bc36f89e55d8b276c1d55e362c4ac0102abd1225e88b51839a7039"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-shop-945-late.configuration.json",
+      "sha256": "e2ee7bb29e4d1ba80b980333c3dccd722982a94b6a736759b0bc63ca8c3fde24"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-hideout-948.configuration.json",
+      "sha256": "bdc8140e7d6e5f562f9f881f3d64f5ae6715d333d554f4f683ca88875c33deb1"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/wild-estate-brak-714.configuration.json",
+      "sha256": "13adb76b3b60199a028fa8e7f87dc9dc24b3e76bf1957b752901a43e334317dd"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/wild-estate-brak-723.configuration.json",
+      "sha256": "be88b71a812a939b70a0c7a494b9bc1aca49a1d408abccb4263bc9edd51ddf65"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-sokoban-discovery-1019.configuration.json",
+      "sha256": "e4a7e8a750e179437eec28baaba5a72aa9b2c040fda66c4e151c2e7c1f112c13"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-sokoban-intermediate-1019.configuration.json",
+      "sha256": "d1b3af29e8d399325973c0cf029e3c7d555aad47163c186d1dd527157449e449"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-sokoban-expert-1019.configuration.json",
+      "sha256": "d3da5b7adbe21e7516b62e8a8aeeee0d3890ca6a2a1aede2bdd5a039538b5171"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/bilbyza-party-560.configuration.json",
+      "sha256": "9380f1fc795765c8fea7659befb8b94f4836e665e31a3142b44d126414c4573f"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/bilbyza-raft-557.configuration.json",
+      "sha256": "c14928154fc2df3340b2c35c198fe7cdd9fe35a0649620693e7fe27772e77817"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/whisper-crisper-1302.configuration.json",
+      "sha256": "3d41f416354db88ceedf1400e86dd364d2a2fc490bc58e97c4b98ae72533d4bf"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/frigost-hunters-528.configuration.json",
+      "sha256": "64a3e41e2f12636c41da57cd437dfafc90e188f8cd202553defbb6085b6145b9"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/frigost-pirates-529.configuration.json",
+      "sha256": "51d661b317fab28ddf3b93888275df1066d4618a8ef11d696c480fc5c13e15f6"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/ereboria-deathburn-introduction.json",
+      "sha256": "d729a54df1c283d5796da11cfbb266ab2d1a8a6975565f58de74cac5410f9da0"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-investigation-followups.json",
+      "sha256": "bd75d4363ae1ef6ed81290af3b6f213fb57e4628d1b7b24ec1e280500c3a0db2"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/kelba-attack-investigations.json",
+      "sha256": "6cff1dc32ddad46be659a465290ee07efd5d8cf702663add3e62c6948ea1e735"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/wild-estate-brak-journal-followups.json",
+      "sha256": "69d99b88ef80c497648f5c18b9a5a20a027b555c99f8bd588fb2417af548bd5c"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/wild-estate-brak-journal.json",
+      "sha256": "66196994e1fa3f4a83f49dca4409366f2e0d41c5886e1627a4d3294e50f414d3"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/huppermage-school-second-year.json",
+      "sha256": "edc08860be16cf722a076432865094ec686401e20dd383bfc1ecf7367944e8ba"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/bilbyza-85-introduction.json",
+      "sha256": "f0f605c36f68c795dc23afbc0c6ff13ee11a2c9e84ca0a7b13bb777e25d48d35"
+    },
+    {
+      "kind": "interactive",
+      "path": "wakfu_server/achievements/quest_interactions/bilbyza-kiosk.json",
+      "sha256": "9d04c39c22697b71e43976f2bb8a6a2ddccd248fcc3a91a0d8abe9c56e33772f"
+    },
+    {
+      "kind": "native_generic",
+      "path": "wakfu_server/maps/native_generic_profiles/bilbyza-kiosk.json",
+      "sha256": "8b045d93daf82250bcefde09d8de6661c03dbe107517a65510b320f3691242d3"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/whispering-kingdom-96.json",
+      "sha256": "2ae67d8ecc468c05641a45152d5524b60d1841ba03f16144912e550309a51aee"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-story-followups.json",
+      "sha256": "5ec1a0ab8d7e1b36f92e47093eb23eca87cea598e368d87b1e1f9ae9acbf48a0"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-initial-travel.json",
+      "sha256": "b48c4b96f63773df64efdd655c1c2dc5e9b8c244502977fed4d46e21b8354fda"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-initial-acquisitions.json",
+      "sha256": "130363b4d42dbadb7f89b75628565fa4ae897d43dd612fe474378fb052f4893d"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-core-acquisitions.json",
+      "sha256": "3650dc923659e9f3a92cccd7a10dd647189d1a450fb1db09974964c475b87ea2"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-cargo-chest-acquisitions.json",
+      "sha256": "54d276e757c0e71a5375f33f2bade8d359cb6455a2215f8b6200d05f0e594af4"
+    },
+    {
+      "kind": "quest_chest_supply",
+      "path": "wakfu_server/maps/quest_chest_supply_profiles/frigost-taroudium-cores.json",
+      "sha256": "427d5a0d0c0e466fb5e07335ba82f1b37e9ad7488494c5f43c46071be7506609"
+    },
+    {
+      "kind": "quest_chest_supply",
+      "path": "wakfu_server/maps/quest_chest_supply_profiles/frigost-stolen-cargo.json",
+      "sha256": "b6de29765068d2bab8e0119b977223b2903925179340676b2fb33b28e3817b41"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-pizzlarva-score.json",
+      "sha256": "7c90338688e15435a66a05ea57916336fa9483616e4a61f8027ea7122dd28ec6"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-pizzlarva-885.configuration.json",
+      "sha256": "8157178eb69bead9785c46b03a78eec2a8bb23abef8c3630818d0f536e94922d"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-tour.json",
+      "sha256": "aba44a4dbee3e93c63030fffaf64b893d8c48f809d85ac373a43b05b3e78c173"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-village-continuation.json",
+      "sha256": "6be96f8f5bb2aebfd2ab8eadd4c4e29edec0ac51bff6ea56d8f7ed562aec5fa7"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/whisper-fort-453.configuration.json",
+      "sha256": "adee3e489b8388a160172577c64870914bdd4c225c1cf4bf6720092bab02a9b2"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/whispering-lieutenant-4872.v1.json",
+      "sha256": "6c25ac21fb4fe9a55a940ee042fb45a0a2c848d230c7f42a91a5e3c39c65503a"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/whispering-kingdom-fort-candidate.json",
+      "sha256": "f8bea9e7a3993b545c1faa9c6d9ebe5be3ab81f8ce7ef0244d14fd2883427192"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-lair-951.configuration.json",
+      "sha256": "336e50e95b600a4530de439b967cffe02a29182bd5de6e36fcd7c48c1db5ea0e"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-black-crow-reveal.json",
+      "sha256": "80770f06a0f15a5f2f80a44e3e701c1de127c7a7bc385377a33178152ebf9d6b"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/ereboria-goomy-continuation.v1.json",
+      "sha256": "b349ccec2c1ddd71416b9d82c18fff49fe3db3cb46a6bdd447a714dd47c0b834"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-store-1024.configuration.json",
+      "sha256": "20d79932b0f9e400d6951d12d216c7d3c0ffa9932b998276bd329872abfd8c2e"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/frigost-past-534.configuration.json",
+      "sha256": "286c8cb48849ac9d05ee8a476ba7ec5b2f6dbdccad0a01388e08fcd8ac107eb4"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/huppermage-tiles-1025.configuration.json",
+      "sha256": "fee95fb98374f4e2d489c1a4455b4581f734477218321c14003e929ade285ffc"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/huppermage-flooded-1026.configuration.json",
+      "sha256": "fed86ff40477d43d378e7822bf06a10a97268d270c2f82de70a692f191d3e193"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/huppermage-school-second-year-followups.json",
+      "sha256": "cb80cc80aa48dccc8f49c1a0dcd8d200c219ba85cda1115689e593855a236888"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/frigost-clinic-library-travel.json",
+      "sha256": "6e42688785cd99ce32ab4c45ca7a0779e318c341de4284d2baed015528c02569"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/whisper-prison-1299.configuration.json",
+      "sha256": "144499dfd6e637d47545b4e643c5e1093e2c6df8ad516c15ad1c115db0876954"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/whispering-kingdom-prison-candidate.json",
+      "sha256": "b8316ecc81ee87d981e35fd53b16bc9931e2643fde9905126ca2083ae2d1f939"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/whispering-kingdom-final-candidate.json",
+      "sha256": "ae58a071e4c268eea9b9039b25ac6a8057162d567defd89571d46bd6a7f3ee87"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/wild-estate-brak-723.configuration.v2.json",
+      "sha256": "f18f0e959a43111975a7d03d346fdd685dbeeb1c020f169936fd3bc7d1b1e21a"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/wild-estate-staff-followup.json",
+      "sha256": "b68785c9e8f0a207341a73f8a4d3d6ed3aa1e4b1849af7566a6c2dc7aede7afa"
+    },
+    {
+      "kind": "encounter_roles",
+      "path": "wakfu_server/maps/owned_story_profiles/bovis-lair-1002.roles.json",
+      "sha256": "c7bd6f1d8336a5e14284434227ceb041c7fe382db07ee8f5c64a52c095adb0e3"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/astrub-magnum-well.v1.json",
+      "sha256": "12661d2d192a32e4e1bf70d29647e7fd7c0bc9e1f5cfd0861ea9a9493e08053c"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/amakna-urgent-1005.configuration.json",
+      "sha256": "5be9c4787f8c0922dcde397468a12bfacb340d39674956ef486ee2d3d7378aa4"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-night-1004.configuration.json",
+      "sha256": "41904c5e5633cb2e5f7d504ac4dd759350f5ca8fd071dbc0f914a93e5c064d09"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/bovis-lair-1002.configuration.json",
+      "sha256": "88401320e6aaa8d80aae6c79cc81a9bd9b9d6eb0199edbe7fb3722913005fe63"
+    },
+    {
+      "kind": "combat",
+      "path": "wakfu_server/achievements/combat_mission_profiles/bovis-level-victory.json",
+      "sha256": "57c5b94a36d8508a737a6e520b28d63e9f77f539428f0e0793ea41e16010d35a"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/amakna-urgent-followups.json",
+      "sha256": "b37defd3a15ad04af47de3f2bda3fe8ea92a89e33a37388a178143806dbf7579"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-magnum-wet-night-followups.json",
+      "sha256": "881bb70b119f812b81ae554139b5fcece996700ed14b873102fe6627e5eec175"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/bovis-lair-story.json",
+      "sha256": "347e64151108cae2be5a0be4853d7187cb89c0b26d1211b785dd516c289ff8ff"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/line4-final-handoffs.json",
+      "sha256": "48e0213295f5f4af746ea177f5f118277d7e91f2cfafbc694d2f8f74af93a46f"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/zinit-reef-980.configuration.v2.json",
+      "sha256": "cd0d73fca7ddd7d83d7b964f2936f615ca4d92c898dae545111e1c34fd37f658"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/huppermage-labyrinth-1027.configuration.json",
+      "sha256": "7757ab64063822cd06c2968129c472d60c023061b8cc08171e4876270d24b818"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/huppermage-infiltration-1028.configuration.json",
+      "sha256": "b2e2fd99aea8ac2a0fed8f008dabacd3675490e97efc0cc70ee6ae6df986d516"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-occullege-1029.configuration.json",
+      "sha256": "4da9597f7bd66d198c033dba63f38b1c3df16b1a0aac3f20e6ef151b0f172d83"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/huppermage-school-third-year.json",
+      "sha256": "5e56bdca19d6d97dafa3f14e4880e7237f0c0698b219e272a1d24d9ac7f18527"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-mount-training-879.configuration.json",
+      "sha256": "155b1bcfa007b6e8e27666bdbf62b5cbd4ec9395143859100c0be477d1ac39db"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-mount-training.json",
+      "sha256": "a365c49b616e4596aee8b9889830ab15eb5af29ffcbdac64d90dab4a98a8521f"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/ereboria-cire-1366.configuration.json",
+      "sha256": "8ead3c1b41ef2691d5184da19f8b252b6b04a82a486d69572e24c25630c43f2b"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "frigost-initial-acquisitions",
+  "evidence": [
+    "Native1226 objective2196 uses counter268 nbFrigostPeauGlagla>=10; four original family521 breeds have guaranteed16070 quantity-one rows. Reviewed owned528 fights retain exact original statistics/decks.",
+    "Native1110 objective2227 uses counter259 nbCargaisonTaroudium>=10; three original family520 pirates have guaranteed16072 quantity-one rows. Reviewed owned529 fights preserve the native Maritime Map16158 entry cost.",
+    "Counter events come only from actual received fight_drop_delivery_receipts, after the normal inventory writer. Kills, pending awards, overflow and unreceived drops never substitute for acquisition.",
+    "Native acquisition objectives have no map criterion. Proven encounter/loot producers retain their own map authority; the acquisition counter does not require remaining inside the original map when receiving a deferred physical award."
+  ],
+  "bindings": [
+    {
+      "id": "received-untreated-brrrbli-fur",
+      "quest_id": 1226,
+      "objective_id": 2196,
+      "variable_id": 268,
+      "event": {
+        "kind": "combat_loot",
+        "reference": 16070
+      },
+      "count": "quantity"
+    },
+    {
+      "id": "received-stolen-cargo",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "event": {
+        "kind": "combat_loot",
+        "reference": 16072
+      },
+      "count": "quantity"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

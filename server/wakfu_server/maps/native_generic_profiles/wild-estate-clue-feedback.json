@@ -1,0 +1,653 @@
+{
+  "schema": "native-generic-reward-batch-v1",
+  "entries": [
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 208,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 233,
+            "clx": 203,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 233,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 452,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": 15.0,
+        "y": 12.0,
+        "z": -80.0,
+        "id": 20401,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "0_0",
+        "map_id": 711,
+        "payload_hex": "02000000000b010000000d00000102c70000000f0000000cffb00001010101000f0000000332303800000000000101",
+        "native_parameters": "208",
+        "descriptor_id": 208
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "d88e71e23239d0daddc51f8ad949c4346fa5a784b1372c59743f421db6a66682",
+      "approaches": [
+        [
+          16,
+          11,
+          -80
+        ],
+        [
+          16,
+          12,
+          -80
+        ],
+        [
+          16,
+          13,
+          -80
+        ],
+        [
+          15,
+          13,
+          -80
+        ],
+        [
+          14,
+          13,
+          -80
+        ],
+        [
+          14,
+          12,
+          -80
+        ],
+        [
+          14,
+          11,
+          -80
+        ],
+        [
+          15,
+          11,
+          -80
+        ]
+      ],
+      "state": {
+        "id": 20401,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 711,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 native script-only clue feedback; exact original Sm6 surfaces and directed walking reachability from native boat arrival711(3,22,-74); bounded source topology f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+      "loot_tables": {},
+      "script_sources": {
+        "452": "4239dbe59822ac44bbc0b20021c2424717e2b762319342c898a33ac8717d85cb"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 209,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 234,
+            "clx": 203,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 234,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 453,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": 12.0,
+        "y": 15.0,
+        "z": -80.0,
+        "id": 20400,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "0_0",
+        "map_id": 711,
+        "payload_hex": "02000000000b010000000d00000102c70000000c0000000fffb00001010101000f0000000332303900000000000101",
+        "native_parameters": "209",
+        "descriptor_id": 209
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "d88e71e23239d0daddc51f8ad949c4346fa5a784b1372c59743f421db6a66682",
+      "approaches": [
+        [
+          13,
+          14,
+          -80
+        ],
+        [
+          13,
+          15,
+          -80
+        ],
+        [
+          13,
+          16,
+          -80
+        ],
+        [
+          12,
+          16,
+          -80
+        ],
+        [
+          11,
+          16,
+          -80
+        ],
+        [
+          11,
+          15,
+          -80
+        ],
+        [
+          11,
+          14,
+          -80
+        ],
+        [
+          12,
+          14,
+          -80
+        ]
+      ],
+      "state": {
+        "id": 20400,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 711,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 native script-only clue feedback; exact original Sm6 surfaces and directed walking reachability from native boat arrival711(3,22,-74); bounded source topology f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+      "loot_tables": {},
+      "script_sources": {
+        "453": "a6feaa56542f02e17dac1f52b4205799c111f11e8df87e34562eb4225245c4ea"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 210,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 235,
+            "clx": 203,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 235,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 454,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": 1.0,
+        "y": 5.0,
+        "z": -80.0,
+        "id": 20402,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "0_0",
+        "map_id": 711,
+        "payload_hex": "02000000000b010000000d00000102c70000000100000005ffb00001010101000f0000000332313000000000000101",
+        "native_parameters": "210",
+        "descriptor_id": 210
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "d88e71e23239d0daddc51f8ad949c4346fa5a784b1372c59743f421db6a66682",
+      "approaches": [
+        [
+          2,
+          4,
+          -80
+        ],
+        [
+          2,
+          5,
+          -80
+        ],
+        [
+          2,
+          6,
+          -80
+        ],
+        [
+          1,
+          6,
+          -80
+        ],
+        [
+          0,
+          6,
+          -80
+        ],
+        [
+          0,
+          5,
+          -80
+        ],
+        [
+          0,
+          4,
+          -80
+        ],
+        [
+          1,
+          4,
+          -80
+        ]
+      ],
+      "state": {
+        "id": 20402,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 711,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 native script-only clue feedback; exact original Sm6 surfaces and directed walking reachability from native boat arrival711(3,22,-74); bounded source topology f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+      "loot_tables": {},
+      "script_sources": {
+        "454": "07e2535c00d516993e45b9caf39b24bbc8b77851ac1b356a965cdea9ac9ad09c"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 214,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 239,
+            "clx": 203,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 239,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 458,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": -4.0,
+        "y": -30.0,
+        "z": -80.0,
+        "id": 20392,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-1_-2",
+        "map_id": 711,
+        "payload_hex": "02000000000b010000000d00000102c7fffffffcffffffe2ffb0000101010100ff000000033231340000004fa70000",
+        "native_parameters": "214",
+        "descriptor_id": 214
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "d88e71e23239d0daddc51f8ad949c4346fa5a784b1372c59743f421db6a66682",
+      "approaches": [
+        [
+          -3,
+          -31,
+          -78
+        ],
+        [
+          -3,
+          -30,
+          -80
+        ],
+        [
+          -3,
+          -29,
+          -80
+        ],
+        [
+          -4,
+          -29,
+          -80
+        ],
+        [
+          -5,
+          -29,
+          -80
+        ],
+        [
+          -5,
+          -30,
+          -80
+        ],
+        [
+          -5,
+          -31,
+          -77
+        ],
+        [
+          -4,
+          -31,
+          -78
+        ]
+      ],
+      "state": {
+        "id": 20392,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 711,
+        "payload_hex": "01020000000602000101010000000000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 native script-only clue feedback; exact original Sm6 surfaces and directed walking reachability from native boat arrival711(3,22,-74); bounded source topology f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+      "loot_tables": {},
+      "script_sources": {
+        "458": "d03379ce024263ba07d916ce16a25a7156b740035fd8a534c394e04765d635b4"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 215,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 240,
+            "clx": 203,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 240,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 459,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": 20.0,
+        "y": -35.0,
+        "z": -78.0,
+        "id": 20396,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "1_-2",
+        "map_id": 711,
+        "payload_hex": "02000000000b010000000d00000102c700000014ffffffddffb2000101010100ff000000033231350000004fa70000",
+        "native_parameters": "215",
+        "descriptor_id": 215
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "d88e71e23239d0daddc51f8ad949c4346fa5a784b1372c59743f421db6a66682",
+      "approaches": [
+        [
+          21,
+          -36,
+          -78
+        ],
+        [
+          21,
+          -35,
+          -78
+        ],
+        [
+          21,
+          -34,
+          -78
+        ],
+        [
+          20,
+          -34,
+          -78
+        ],
+        [
+          19,
+          -34,
+          -78
+        ],
+        [
+          19,
+          -35,
+          -78
+        ],
+        [
+          19,
+          -36,
+          -78
+        ],
+        [
+          20,
+          -36,
+          -78
+        ]
+      ],
+      "state": {
+        "id": 20396,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 711,
+        "payload_hex": "01020000000602000101010000000000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 native script-only clue feedback; exact original Sm6 surfaces and directed walking reachability from native boat arrival711(3,22,-74); bounded source topology f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+      "loot_tables": {},
+      "script_sources": {
+        "459": "b82197e1ce65b055be55038658754edbc03291cfd72d561c5de1c5e3272a6e4b"
+      }
+    },
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 216,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 241,
+            "clx": 203,
+            "cod": 0,
+            "coe": 0,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 241,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 460,
+                    "effect_type": 1,
+                    "criterion": "",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": 7.0,
+        "y": -35.0,
+        "z": -80.0,
+        "id": 20399,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "0_-2",
+        "map_id": 711,
+        "payload_hex": "02000000000b010000000d00000102c700000007ffffffddffb0000101010100ff000000033231360000004fa70000",
+        "native_parameters": "216",
+        "descriptor_id": 216
+      },
+      "catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "d88e71e23239d0daddc51f8ad949c4346fa5a784b1372c59743f421db6a66682",
+      "approaches": [
+        [
+          8,
+          -36,
+          -80
+        ],
+        [
+          8,
+          -35,
+          -80
+        ],
+        [
+          8,
+          -34,
+          -80
+        ],
+        [
+          7,
+          -34,
+          -80
+        ],
+        [
+          6,
+          -34,
+          -78
+        ],
+        [
+          6,
+          -35,
+          -78
+        ],
+        [
+          6,
+          -36,
+          -78
+        ],
+        [
+          7,
+          -36,
+          -80
+        ]
+      ],
+      "state": {
+        "id": 20399,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 711,
+        "payload_hex": "01020000000602000101010000000000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original table31 native script-only clue feedback; exact original Sm6 surfaces and directed walking reachability from native boat arrival711(3,22,-74); bounded source topology f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+      "loot_tables": {},
+      "script_sources": {
+        "460": "4c3ed058862ffebf65d9c9844c0f230a24c1a90b9ee270b746f0592cc1f85e03"
+      }
+    }
+  ]
+}

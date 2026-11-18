@@ -1,0 +1,35 @@
+{
+  "id": "wild-estate-temple-followup",
+  "version": 1,
+  "evidence": [
+    "Original native1684 requires real level50 and completed1666. Genuine completed1666 and earned character-ready recovery admit the unchanged terminal definition. Only the source-pinned wild-temple-718 controller supplies3164 after the real four-gem passage,3165 after the actual physical17885 pickup, and3166 after sealed native Corridor of Death escape. No generic movement, NPC opening, ordinary/admin victory or activation grants these objectives. Original native rewards335000XP and18384x1 remain in metadata and use shared once-only settlement."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-temple-earned-after-excavation",
+      "quest_id": 1684,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1666
+      },
+      "requires_completed": [
+        1666
+      ]
+    },
+    {
+      "id": "wild-temple-earned-recovery",
+      "quest_id": 1684,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1666
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Original native1684 requires real level50 and completed1666. Genuine completed1666 and earned character-ready recovery admit the unchanged terminal definition. Only the source-pinned wild-temple-718 controller supplies3164 after the real four-gem passage,3165 after the actual physical17885 pickup, and3166 after sealed native Corridor of Death escape. No generic movement, NPC opening, ordinary/admin victory or activation grants these objectives. Original native rewards335000XP and18384x1 remain in metadata and use shared once-only settlement."
+    }
+  ]
+}

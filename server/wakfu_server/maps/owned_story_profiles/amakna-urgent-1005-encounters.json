@@ -1,0 +1,37 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "amakna-urgent-1005",
+  "map_id": 1005,
+  "provenance": "Reviewed urgent2708 reconstruction: original public1134 source25481/descriptor959/action0/effect2410 has literal3000ms occupation and original coordinate entry1005(-7,-9,0),direction7. Actual1005 Sm6 floor and25543/3984 native free exit retained. MethodWakfu Chapter2 section12 identifies CrazyLarva3813(50HP) plus two weakened spectral3835(101HP). Two native3813 plus exactly two3835 is explicit reviewed formation because original server count/placement was not recovered; original grades,stats,states,abilities and summon/death programs remain untouched. A genuine owned terminal victory alone earns5343; entry,movement,retreat and unrelated kills do not. Original2044 event bodies are empty and their direct map association was not recovered, so no callback/movie authority is fabricated.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "urgent-ready"
+      ],
+      "arena_seed": [
+        -4,
+        -6,
+        0
+      ],
+      "bounds": [
+        -8,
+        -14,
+        6,
+        1
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 3813,
+          "count": 2
+        },
+        {
+          "reference": 3835,
+          "count": 2
+        }
+      ]
+    }
+  ]
+}

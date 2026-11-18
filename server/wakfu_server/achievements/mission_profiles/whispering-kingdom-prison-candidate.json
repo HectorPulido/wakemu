@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "whispering-kingdom-prison-candidate",
+  "evidence": [
+    "LOCAL SOURCE CANDIDATE4873. Real completed4872 admits4873; native exterior16254 reaches1299, actual frozen native2144 General victory earns10053, reviewed existing native14553 key bridge opens original door16328 nonconsuming, four distinct original type1 action252 actors earn10055 with original1450/11215 once presentation. No click or ordinary species kill supplies General victory.",
+    "Native2099 action252 retains its IsAchievementActive(4872) criterion; nonperiodic completion retains Active independently from Running. Captive model/roles/positions and key award binding are explicit server reconstruction; native action/criterion/item/prototype unchanged."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "whisper-earned-4872-to-4873",
+      "quest_id": 4873,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 4872
+      },
+      "requires_completed": [
+        4872
+      ]
+    },
+    {
+      "id": "whisper-earned-prison-recovery",
+      "quest_id": 4873,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        4872
+      ],
+      "minimum_level": 96,
+      "admission_evidence": "Real completed4872, original native level96. Complete1299 physical General/key/four-target source block required before local publication."
+    }
+  ]
+}

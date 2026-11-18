@@ -7,14 +7,14 @@ from wakfu_server.position_buffer import PositionOwnerBusy
 
 
 class PositionActionContentionTests(unittest.TestCase):
-    def dispatcher(self, flush):
+    def dispatcher(self, flush, requests=(13220, 13220)):
         source = Path(__file__).resolve().parents[1] / "local_game_server.py"
         tree = ast.parse(source.read_text())
         gate = next(
             node
             for node in ast.walk(tree)
             if isinstance(node, ast.If)
-            and ast.unparse(node.test) == "character is not None and opcode != 13331"
+            and "character is not None" in ast.unparse(node.test)
             and any(
                 isinstance(child, ast.ExceptHandler)
                 and isinstance(child.type, ast.Name)
@@ -49,7 +49,7 @@ class PositionActionContentionTests(unittest.TestCase):
             generation="lease",
             connection=object(),
             service="world",
-            requests=[13220, 13220],
+            requests=list(requests),
             mutations=[],
             notifications=[],
             records=[],
@@ -84,3 +84,126 @@ class PositionActionContentionTests(unittest.TestCase):
             exec(code, namespace)
         self.assertEqual(namespace["mutations"], [])
         self.assertEqual(namespace["notifications"], [])
+
+
+class CombatReturnAckPositionTests(unittest.TestCase):
+    dispatcher = PositionActionContentionTests.dispatcher
+
+    def test_return_ack_skips_generic_flush_but_attack_keeps_position_fence(self):
+        calls = []
+
+        def busy_flush(**scope):
+            calls.append(scope)
+            raise PositionOwnerBusy("return owner is busy")
+
+        code, namespace = self.dispatcher(busy_flush, requests=(12925, 13130))
+        exec(code, namespace)
+        self.assertEqual(namespace["mutations"], [12925])
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(namespace["records"][0]["opcode"], 13130)
+
+    def test_actual_return_fence_queues_busy_ack_then_idle_completes_once(self):
+        from copy import deepcopy
+        from wakfu_server.combat_return_command import PendingEmergencyCommand
+
+        source = Path(__file__).resolve().parents[1] / "local_game_server.py"
+        tree = ast.parse(source.read_text())
+        body = next(
+            node.body
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Try)
+            and any(
+                isinstance(child, ast.ImportFrom)
+                and child.module == "wakfu_server.position_lifecycle"
+                for child in node.body
+            )
+        )
+        start = next(
+            i
+            for i, node in enumerate(body)
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "wakfu_server.position_lifecycle"
+        )
+        return_fence = ast.FunctionDef(
+            name="return_fence",
+            args=ast.arguments(
+                posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]
+            ),
+            body=[
+                ast.Global(
+                    names=[
+                        "pending_combat_return",
+                        "position_scope",
+                        "pending_started",
+                        "finish_return",
+                    ]
+                ),
+                *deepcopy(body[start:]),
+            ],
+            decorator_list=[],
+        )
+        idle = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "idle"
+        )
+        branch = next(
+            node
+            for node in ast.walk(idle)
+            if isinstance(node, ast.If)
+            and ast.unparse(node.test) == "pending_combat_return is not None"
+        )
+        retry = ast.FunctionDef(
+            name="retry_return",
+            args=ast.arguments(
+                posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]
+            ),
+            body=[ast.Global(names=["pending_combat_return"]), deepcopy(branch)],
+            decorator_list=[],
+        )
+        module = ast.fix_missing_locations(
+            ast.Module(body=[return_fence, retry], type_ignores=[])
+        )
+        calls = []
+        now = [0.0]
+        scope = dict(account_id=1, generation="lease", character_id=19)
+
+        def flush(**actual):
+            self.assertEqual(actual, scope)
+            calls.append("flush")
+            if calls.count("flush") == 1:
+                raise PositionOwnerBusy("first fence is busy")
+
+        def complete(**kwargs):
+            self.assertEqual(calls[-1], "flush")
+            calls.append("complete")
+
+        state = dict(
+            account_id=1,
+            generation="lease",
+            character=dict(id=19),
+            fight=SimpleNamespace(id=665),
+            abandoned=False,
+            shared_return=True,
+            shared_state=object(),
+            pending_combat_return=None,
+            pending_return_command=PendingEmergencyCommand(),
+            time=SimpleNamespace(monotonic=lambda: now[0]),
+            flush_positions=flush,
+            finish_combat_return_after_position_flush=complete,
+            release_completed_combat_return_aliases=lambda: calls.append("release"),
+            record=lambda **kwargs: None,
+            redact=str,
+            STORE=SimpleNamespace(current_character_session=lambda *args: True),
+        )
+        exec(compile(module, str(source), "exec"), state)
+        state["return_fence"]()
+        self.assertEqual(calls, ["flush"])
+        self.assertIsNotNone(state["pending_combat_return"])
+        state["retry_return"]()
+        self.assertEqual(calls, ["flush"])
+        now[0] = 1.0
+        state["retry_return"]()
+        state["retry_return"]()
+        self.assertIsNone(state["pending_combat_return"])
+        self.assertEqual(calls, ["flush", "flush", "complete", "release"])

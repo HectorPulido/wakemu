@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "frigost-core-acquisitions",
+  "evidence": [
+    "Only actual held-tool/source-bound chest opening grants native625quest item16071, then emits chest_loot16071 quantity1. Native1227objective2197/counter258threshold10. No kills, opening attempts, overflow or forged items substitute for the normal inventory grant."
+  ],
+  "bindings": [
+    {
+      "id": "received-pure-taroudium-core",
+      "quest_id": 1227,
+      "objective_id": 2197,
+      "variable_id": 258,
+      "event": {
+        "kind": "chest_loot",
+        "reference": 16071
+      },
+      "maps": [
+        504
+      ],
+      "count": "quantity"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "id": "astrub-tour",
+  "evidence": [
+    "Native5569 objectives11516/11517/11518 name Knight rescue, HunterI1695 and HunterII1708. Explicit reviewed links join those real completions; legacy1721 and modern1726 are alternative Knight variants, never completions of each other.",
+    "Native4149/15237 and7142/15246 require Running5569 and completed11516/11517/11518 before final11519. Navigation15237 does not complete the objective.",
+    "Reviewed natural continuation after actual5568 completion. Empty native5569 cjI has no real-level gate; displaycjP35 is retained, not treated as eligibility. Existing completed owners recover on authenticated character_ready, never from fabricated victories."
+  ],
+  "bindings": [
+    {
+      "id": "goultard-tour-final-debriefing",
+      "quest_id": 5569,
+      "objective_id": 11519,
+      "event": {
+        "kind": "dialogue",
+        "reference": 15246
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [
+    {
+      "parent_quest_id": 5569,
+      "objective_id": 11516,
+      "child_quest_id": 1721
+    },
+    {
+      "parent_quest_id": 5569,
+      "objective_id": 11516,
+      "child_quest_id": 1726
+    },
+    {
+      "parent_quest_id": 5569,
+      "objective_id": 11517,
+      "child_quest_id": 1695
+    },
+    {
+      "parent_quest_id": 5569,
+      "objective_id": 11518,
+      "child_quest_id": 1708
+    }
+  ],
+  "activations": [
+    {
+      "id": "astrub-tour-earned-after-fateful-encounter",
+      "quest_id": 5569,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 5568
+      },
+      "requires_completed": [
+        5568
+      ]
+    },
+    {
+      "id": "astrub-tour-earned-owner-recovery",
+      "quest_id": 5569,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        5568
+      ],
+      "minimum_level": 1,
+      "admission_evidence": "Finite reviewed continuation from actual completed5568; no display-level35 gate in native5569."
+    }
+  ]
+}

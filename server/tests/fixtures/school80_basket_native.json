@@ -1,0 +1,142 @@
+{
+  "schema": "school80-native-basket-fixture-v1",
+  "definition": {
+    "d": 2785,
+    "aHe": "IsAchievementActive(2785)",
+    "aeV": 2,
+    "aqb": false,
+    "bwX": 2775,
+    "cjG": 377,
+    "cjH": true,
+    "cjI": "IsAchievementComplete(2783)",
+    "cjJ": [
+      {
+        "d": 5621,
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 60,
+            "ckh": -2,
+            "cki": 0,
+            "ckj": 1019,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "native_class": "aJN"
+      },
+      {
+        "d": 5623,
+        "ckb": true,
+        "ckc": "IsAchievementObjectiveComplete(5621)",
+        "ckd": [
+          {
+            "ckg": 69,
+            "ckh": -93,
+            "cki": -44,
+            "ckj": 1017,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "native_class": "aJN"
+      },
+      {
+        "d": 5622,
+        "ckb": true,
+        "ckc": "IsAchievementObjectiveComplete(5623)",
+        "ckd": [],
+        "cke": "",
+        "ckf": [],
+        "native_class": "aJN"
+      },
+      {
+        "d": 5624,
+        "ckb": true,
+        "ckc": "IsAchievementObjectiveComplete(5622)",
+        "ckd": [
+          {
+            "ckg": 69,
+            "ckh": -93,
+            "cki": -44,
+            "ckj": 1017,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "d": 4361,
+        "aeV": 6,
+        "ckk": false,
+        "ckl": [
+          1260000
+        ],
+        "native_class": "aJP"
+      },
+      {
+        "d": 4364,
+        "aeV": 5,
+        "ckk": false,
+        "ckl": [
+          2869,
+          1
+        ],
+        "native_class": "aJP"
+      },
+      {
+        "d": 7299,
+        "aeV": 11,
+        "ckk": false,
+        "ckl": [
+          10000
+        ],
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": false,
+    "cjP": 80,
+    "cjQ": 1,
+    "cjR": true,
+    "cjS": 5,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": true,
+    "cjW": false,
+    "cjX": 0,
+    "cjY": 0,
+    "cjZ": 11,
+    "cka": "ach.377",
+    "isVisible": true,
+    "getDuration": 0,
+    "native_class": "aJM"
+  },
+  "payment": {
+    "quest_id": 2785,
+    "node_id": 3324,
+    "choice_id": 8229,
+    "native_choice_type": 7,
+    "criterion": "IsAchievementObjectiveComplete(5621) and not IsAchievementObjectiveComplete(5623) and IsAchievementRunning(2785) and GetItemQuantity(21054) >= 5 and GetItemQuantity(13180) >= 30",
+    "items": [
+      {
+        "reference": 21054,
+        "quantity": 5
+      },
+      {
+        "reference": 13180,
+        "quantity": 30
+      }
+    ],
+    "native_consumption_operands_recovered": false
+  }
+}

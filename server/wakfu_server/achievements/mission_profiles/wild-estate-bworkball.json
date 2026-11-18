@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "id": "wild-estate-bworkball",
+  "evidence": [
+    "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-bworkball-earned",
+      "quest_id": 1638,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1637
+      },
+      "requires_completed": [
+        1637
+      ]
+    },
+    {
+      "id": "wild-bworkball-earned-recovery",
+      "quest_id": 1638,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1637
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    }
+  ]
+}

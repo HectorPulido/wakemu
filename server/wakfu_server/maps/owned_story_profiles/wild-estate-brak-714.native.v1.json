@@ -1,0 +1,254 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 714,
+  "objects": [
+    {
+      "x": -2.0,
+      "y": -40.0,
+      "z": 0.0,
+      "id": 20426,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_-3",
+      "map_id": 714,
+      "payload_hex": "02000000000b010000000d00000102cafffffffeffffffd80000000101010100000001fffffffeffffffd8000000043132383900000000000000"
+    },
+    {
+      "x": 9.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20427,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 714,
+      "payload_hex": "02000000000b010000000d00000102ca00000009fffffffc0000000101010100080000000332323300000000000101"
+    },
+    {
+      "x": 10.0,
+      "y": -8.0,
+      "z": 0.0,
+      "id": 20539,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 714,
+      "payload_hex": "02000000000b010000000d00000102ca0000000afffffff80000000101010100080000000332343200000000000101"
+    },
+    {
+      "x": 12.0,
+      "y": -8.0,
+      "z": 0.0,
+      "id": 20805,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 714,
+      "payload_hex": "02000000000b010000000d00000102ca0000000cfffffff80000000101010100080000000332343100000000000101"
+    },
+    {
+      "x": 3.0,
+      "y": -18.0,
+      "z": 1.0,
+      "id": 20810,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 714,
+      "payload_hex": "02000000000b010000000d00000102ca00000003ffffffee000100020100010000000000043135323100000000000101"
+    }
+  ],
+  "scenario_id": 1649,
+  "scenario_events": [],
+  "scenes": {},
+  "event_signatures": {},
+  "programs": {
+    "20427": {
+      "native_class": "aLl",
+      "descriptor_id": 223,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 248,
+          "clx": 83,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 248,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 473,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{9,-3,-0}",
+                    "723",
+                    "3"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20539": {
+      "native_class": "aLl",
+      "descriptor_id": 242,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 269,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 269,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 490,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20805": {
+      "native_class": "aLl",
+      "descriptor_id": 241,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 268,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 268,
+              "criterion": "IsAchievementObjectiveComplete(3105) and IsAchievementObjectiveComplete(3106)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 489,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "20810": {
+      "native_class": "aLl",
+      "descriptor_id": 1521,
+      "groups": []
+    }
+  },
+  "native_scripts": {
+    "490": {
+      "present": true,
+      "sha256": "21309159ddfd7f4e6f99c287a6d0ed5ce24fd6c8c371e8377cd6124374789a9d"
+    },
+    "489": {
+      "present": true,
+      "sha256": "190a55f8f1efb122b6a70f27a69175ac33a35d6fc3a8b9f519ad6f4907efb461"
+    }
+  },
+  "teleporters": {
+    "20426": {
+      "x": -2.0,
+      "y": -40.0,
+      "z": 0.0,
+      "id": 20426,
+      "map_id": 714,
+      "destinations": [
+        {
+          "x": 31,
+          "y": -123,
+          "z": -80,
+          "cof": true,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 711,
+          "criterion": "",
+          "direction": 7,
+          "destination_id": 1412,
+          "item_reference": 0,
+          "arrival_heights": [
+            -80
+          ],
+          "display_reference": 121,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 1289,
+      "native_parameters": "1289",
+      "approach_positions": [],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {
+    "20427": [
+      [
+        9,
+        -3,
+        0
+      ]
+    ],
+    "20539": [
+      [
+        10,
+        -7,
+        0
+      ]
+    ],
+    "20805": [
+      [
+        12,
+        -7,
+        0
+      ]
+    ]
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/1649.lua": "12616193c05138f8506c306cee37ccf82e169c22efdbb89ee0794131113e2a63"
+  }
+}

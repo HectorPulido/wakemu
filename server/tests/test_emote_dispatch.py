@@ -2,11 +2,12 @@
 
 import ast
 import copy
+from contextlib import nullcontext
 from source_view import WorldSourcePath as Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
-from wakfu_server.characters import emotes
+from wakfu_server import emotes
 
 
 def branch(namespace):
@@ -43,6 +44,9 @@ class EmoteDispatchTests(unittest.TestCase):
             fight=None,
             combat_session=None,
             WORLD=Mock(),
+            POSITIONS=SimpleNamespace(account_barrier=lambda _account: nullcontext()),
+            flush_positions=Mock(),
+            publish_settled_quest_packets=Mock(),
             COMBAT_SESSIONS=Mock(),
             HARVESTS=SimpleNamespace(pending={}),
             PLANTINGS=SimpleNamespace(pending={}),

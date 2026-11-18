@@ -115,6 +115,14 @@ def install(db, profile, *, activate=False):
     revision = _revision(db)
     native = definitions(db, profile, revision)
     profile = contract.validate(profile, native)
+    if any("count_threshold" in row for row in profile["bindings"]):
+        migrated = db.execute(
+            "SELECT 1 FROM schema_migrations WHERE version=%s", (376,)
+        ).fetchone()
+        if migrated is None:
+            raise ValueError(
+                "Apply server objective count migration 376 before publication"
+            )
     digest = sha256(_canonical(profile).encode()).hexdigest()
     identity = profile["id"]
     db.execute(
@@ -199,6 +207,12 @@ def _activate_profile(db, profile_id, version):
                 same_variable = "variable_id" in left and left.get(
                     "variable_id"
                 ) == right.get("variable_id")
+                if same_objective and left.get("count_threshold", 1) != right.get(
+                    "count_threshold", 1
+                ):
+                    raise ValueError(
+                        "Active mission profiles disagree on a server objective threshold"
+                    )
                 if (same_objective or same_variable) and _overlap(left, right):
                     raise ValueError(
                         "Active mission profiles contain overlapping event counters/objectives"
@@ -292,7 +306,9 @@ def _project(loaded, event, character):
     while pending:
         identity = pending.pop()
         for link in loaded["children"].get(identity, ()):
-            links[(link["parent_quest_id"], link["objective_id"])] = link
+            links[
+                (link["parent_quest_id"], link["objective_id"], link["child_quest_id"])
+            ] = link
             parent = link["parent_quest_id"]
             if parent not in touched:
                 touched.add(parent)
@@ -300,7 +316,9 @@ def _project(loaded, event, character):
         # An objective on this parent can unlock a child already completed
         # earlier. Include siblings for reconciliation without traversing them.
         for link in loaded["parents"].get(identity, ()):
-            links[(link["parent_quest_id"], link["objective_id"])] = link
+            links[
+                (link["parent_quest_id"], link["objective_id"], link["child_quest_id"])
+            ] = link
         completion = dict(kind="quest_completed", reference=identity, quantity=1)
         for row in _selected(loaded["activations"], completion, character):
             activations[row["id"]] = row
@@ -367,6 +385,25 @@ def effective_character(db, store, character):
     return current
 
 
+def _event_profiles(db, event, character, excluded):
+    """Read active declarations through the producer index, including follow-ups."""
+    rows = db.execute(
+        "SELECT DISTINCT p.* FROM mission_toolkit_event_index i "
+        "JOIN mission_toolkit_active a USING(profile_id,version) "
+        "JOIN mission_toolkit_profiles p USING(profile_id,version) "
+        "WHERE i.kind=%s AND (i.reference=%s OR i.reference IS NULL) "
+        "AND p.native_revision=(SELECT revision FROM native_quest_metadata_releases ORDER BY imported_at DESC LIMIT 1) "
+        "ORDER BY p.profile_id",
+        (event["kind"], event.get("reference")),
+    ).fetchall()
+    return [
+        projected
+        for row in rows
+        if row["profile_id"] not in excluded
+        and (projected := _project(_load(db, row), event, character)) is not None
+    ]
+
+
 def _settle(
     db,
     store,
@@ -377,7 +414,7 @@ def _settle(
     quantity=1,
     *,
     excluded=(),
-    applied=None
+    applied=None,
 ):
     """Settle a trusted committed gameplay operation in its producer transaction.
 
@@ -392,21 +429,7 @@ def _settle(
     if reference is not None:
         event["reference"] = reference
     contract.validate_event(event)
-    rows = db.execute(
-        "SELECT DISTINCT p.* FROM mission_toolkit_event_index i "
-        "JOIN mission_toolkit_active a USING(profile_id,version) "
-        "JOIN mission_toolkit_profiles p USING(profile_id,version) "
-        "WHERE i.kind=%s AND (i.reference=%s OR i.reference IS NULL) "
-        "AND p.native_revision=(SELECT revision FROM native_quest_metadata_releases ORDER BY imported_at DESC LIMIT 1) "
-        "ORDER BY p.profile_id",
-        (kind, reference),
-    ).fetchall()
-    loaded = [_project(_load(db, row), event, character) for row in rows]
-    loaded = [
-        profile
-        for profile in loaded
-        if profile is not None and profile[0]["id"] not in excluded
-    ]
+    loaded = _event_profiles(db, event, character, excluded)
     if not loaded:
         return []
     before = storage.load_locked(db, character["id"])
@@ -439,20 +462,76 @@ def _settle(
     character = effective_character(db, store, character)
     now_ms = int(store.now().timestamp() * 1000)
     after = before
+    count_before, count_after = {}, {}
     intents, objectives, completed, native, links = [], [], [], {}, []
-    for profile, definitions_by_id in loaded:
-        prior_state = after
-        after, extra_intents, extra_objectives, extra_completed = planner.plan(
-            after,
-            definitions_by_id,
-            profile,
-            event,
-            character=character,
-            store=store,
-            now_ms=now_ms,
+    # A completion can unlock a parent or follow-up published in another
+    # profile. Process those native events in the same transaction and receipt;
+    # never replay the original quantity against a newly activated mission.
+    from collections import deque
+
+    pending = deque((profile, native, event) for profile, native in loaded)
+    delivered = set()
+    emitted = set()
+    while pending:
+        profile, definitions_by_id, selected_event = pending.popleft()
+        delivery = (
+            profile["id"],
+            selected_event["kind"],
+            selected_event.get("reference"),
         )
+        if delivery in delivered:
+            continue
+        delivered.add(delivery)
+        prior_state = after
+        threshold_ids = {
+            row["objective_id"]
+            for row in profile["bindings"]
+            if "count_threshold" in row
+        }
+        previous_counts = dict(count_after)
+        if threshold_ids:
+            from . import mission_objective_counts
+
+            missing = threshold_ids - set(count_after)
+            if missing:
+                loaded_counts = mission_objective_counts.load(
+                    db, character["id"], missing
+                )
+                count_before.update(loaded_counts)
+                count_after.update(loaded_counts)
+            previous_counts = dict(count_after)
+            (
+                after,
+                extra_intents,
+                extra_objectives,
+                extra_completed,
+                count_after,
+            ) = planner.plan_counted(
+                after,
+                definitions_by_id,
+                profile,
+                selected_event,
+                character=character,
+                store=store,
+                now_ms=now_ms,
+                objective_counts=count_after,
+            )
+        else:
+            after, extra_intents, extra_objectives, extra_completed = planner.plan(
+                after,
+                definitions_by_id,
+                profile,
+                selected_event,
+                character=character,
+                store=store,
+                now_ms=now_ms,
+            )
         if applied is not None and (
-            after != prior_state or extra_intents or extra_objectives or extra_completed
+            after != prior_state
+            or extra_intents
+            or extra_objectives
+            or extra_completed
+            or count_after != previous_counts
         ):
             applied.add(profile["id"])
         intents.extend(extra_intents)
@@ -463,12 +542,31 @@ def _settle(
             link = row["parent_quest_id"], row["objective_id"], row["child_quest_id"]
             if link not in links:
                 links.append(link)
-    if after == before and not intents and not objectives and not completed:
+        for identity in extra_completed:
+            if identity in emitted:
+                continue
+            emitted.add(identity)
+            completion = dict(kind="quest_completed", reference=identity, quantity=1)
+            for following, following_native in _event_profiles(
+                db, completion, character, excluded
+            ):
+                pending.append((following, following_native, completion))
+    if (
+        after == before
+        and not intents
+        and not objectives
+        and not completed
+        and count_after == count_before
+    ):
         return []
     for key, payload in expected.items():
         if not storage.record_event(db, character["id"], key, payload):
             return []
-    return mission_dependencies.settle(
+    if count_after != count_before:
+        from . import mission_objective_counts
+
+        mission_objective_counts.store(db, character["id"], count_before, count_after)
+    outcome = mission_dependencies.settle(
         db,
         store,
         character,
@@ -477,12 +575,58 @@ def _settle(
         native,
         links,
         now_ms=now_ms,
-    )["packets"]
+        publish_completions=False,
+    )
+    outcome["packets"].extend(
+        settle_completions(db, store, character, outcome["completed"])
+    )
+    return outcome["packets"]
 
 
 def settle(db, store, character, token, kind, reference, quantity=1):
     """Settle a trusted event; caller owns account-first authentication/locks."""
     return _settle(db, store, character, token, kind, reference, quantity)
+
+
+def settle_completions(db, store, character, completed):
+    """Observe freshly committed server completions from other quest adapters.
+
+    This is an internal producer hook, not a client progress command. The
+    caller owns the player lock and transaction; every identity must already
+    have a durable completion and date before any follow-up can be considered.
+    """
+    identities = list(completed)
+    if any(type(identity) is not int or identity <= 0 for identity in identities):
+        raise ValueError("Invalid committed mission completion")
+    if not identities:
+        return []
+    state = storage.load_locked(db, character["id"])
+    for identity in sorted(set(identities)):
+        date = state.get("completion_dates", {}).get(str(identity))
+        if identity not in state["completed"] or type(date) is not int or date < 0:
+            raise ValueError("Missing durable mission completion authority")
+    from . import completed_achievement_sets
+
+    packets = completed_achievement_sets.settle(
+        db, store, character, completed=identities
+    )
+    if packets:
+        after = storage.load_locked(db, character["id"])
+        identities.extend(set(after["completed"]) - set(state["completed"]))
+        state = after
+    for identity in sorted(set(identities)):
+        date = state.get("completion_dates", {}).get(str(identity))
+        packets.extend(
+            _settle(
+                db,
+                store,
+                character,
+                f"completion:{identity}:{date}",
+                "quest_completed",
+                identity,
+            )
+        )
+    return packets
 
 
 def settle_combat(db, store, character, *, fight_id, breeds):

@@ -1,0 +1,92 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "amakna-urgent-1005",
+  "version": 1,
+  "map_id": 1005,
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 136.0,
+      "y": 90.0,
+      "z": 0.0,
+      "id": 25481,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "7_5",
+      "map_id": 1134,
+      "payload_hex": "02000000000b010000000d000001046e000000880000005a00000001010101000b0000000339353900000000000101",
+      "native_parameters": "959",
+      "descriptor_id": 959
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 959,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1181,
+          "clx": 253,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 3000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1203,
+              "criterion": "IsAchievementRunning(2708) and !IsAchievementObjectiveComplete(5343)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2410,
+                  "effect_type": 3,
+                  "criterion": "IsAchievementRunning(2708) and !IsAchievementObjectiveComplete(5343)",
+                  "parameters": [
+                    "{-7,-9,0}",
+                    "1005",
+                    "7"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 2410,
+    "approaches": [
+      [
+        137,
+        90,
+        0
+      ],
+      [
+        135,
+        90,
+        0
+      ],
+      [
+        136,
+        91,
+        0
+      ]
+    ],
+    "evidence": "Reviewed urgent2708 reconstruction: original public1134 source25481/descriptor959/action0/effect2410 has literal3000ms occupation and original coordinate entry1005(-7,-9,0),direction7. Actual1005 Sm6 floor and25543/3984 native free exit retained. MethodWakfu Chapter2 section12 identifies CrazyLarva3813(50HP) plus two weakened spectral3835(101HP). Two native3813 plus exactly two3835 is explicit reviewed formation because original server count/placement was not recovered; original grades,stats,states,abilities and summon/death programs remain untouched. A genuine owned terminal victory alone earns5343; entry,movement,retreat and unrelated kills do not. Original2044 event bodies are empty and their direct map association was not recovered, so no callback/movie authority is fabricated."
+  },
+  "native_entry_criterion": "IsAchievementRunning(2708) and !IsAchievementObjectiveComplete(5343)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25543
+  ],
+  "controller_file": "amakna-urgent-1005.json",
+  "encounters_file": "amakna-urgent-1005-encounters.json",
+  "exploration_file": "amakna-urgent-1005.exploration.json",
+  "provenance": "Reviewed urgent2708 reconstruction: original public1134 source25481/descriptor959/action0/effect2410 has literal3000ms occupation and original coordinate entry1005(-7,-9,0),direction7. Actual1005 Sm6 floor and25543/3984 native free exit retained. MethodWakfu Chapter2 section12 identifies CrazyLarva3813(50HP) plus two weakened spectral3835(101HP). Two native3813 plus exactly two3835 is explicit reviewed formation because original server count/placement was not recovered; original grades,stats,states,abilities and summon/death programs remain untouched. A genuine owned terminal victory alone earns5343; entry,movement,retreat and unrelated kills do not. Original2044 event bodies are empty and their direct map association was not recovered, so no callback/movie authority is fabricated."
+}

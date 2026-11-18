@@ -10,11 +10,27 @@ def _template(reference):
 def hydrate(db, items):
     if not items:
         return items
-    from wakfu_server.combat_drop_delivery import _binding_rows
-
-    bindings = _binding_rows(db, items)
+    references = {item["uid"]: item["reference"] for item in items}
+    bindings, overrides = {}, {}
+    for row in db.execute(
+        "SELECT uid,bound,template_reference,binding_type FROM inventory_item_bindings WHERE uid=ANY(%s)",
+        (list(references),),
+    ):
+        if type(row["bound"]) is not bool or row[
+            "template_reference"
+        ] != references.get(row["uid"]):
+            raise ValueError("Invalid persisted item binding")
+        bindings[row["uid"]] = row["bound"]
+        if row.get("binding_type") is not None:
+            overrides[row["uid"]] = row["binding_type"]
     for item in items:
         enum, binding_type, default = _template(item["reference"])
+        if item["uid"] in overrides:
+            binding_type = overrides[item["uid"]]
+            validate_override(binding_type)
+            item["binding_type"] = binding_type
+            item["bound"] = bindings.get(item["uid"], False)
+            continue
         if enum != "NOT_BOUND":
             item["binding_type"] = binding_type
             item["bound"] = bindings.get(item["uid"], False) or default
@@ -23,6 +39,46 @@ def hydrate(db, items):
             item["binding_type"] = binding_type
             item["bound"] = True
     return items
+
+
+def validate_override(binding_type):
+    """foS IDs0–8 are recovered from the installed client's native enum."""
+    if type(binding_type) is not int or not 0 <= binding_type <= 8:
+        raise ValueError("Invalid native reward binding override")
+    return binding_type
+
+
+def save_override(db, uid, reference, binding_type):
+    binding_type = validate_override(binding_type)
+    bound = binding_type in (2, 4, 6, 8)
+    db.execute(
+        "INSERT INTO inventory_item_bindings(uid,bound,template_reference,binding_type) "
+        "VALUES(%s,%s,%s,%s) ON CONFLICT(uid) DO UPDATE SET "
+        "bound=EXCLUDED.bound,template_reference=EXCLUDED.template_reference,"
+        "binding_type=EXCLUDED.binding_type",
+        (uid, bound, reference, binding_type),
+    )
+    return binding_type, bound
+
+
+def effective_template(reference, persisted):
+    """Use a per-unit reward's scope before the ordinary template fallback."""
+    value = persisted.get("binding_type")
+    if value is None:
+        return _template(reference)
+    value = validate_override(value)
+    names = (
+        "NOT_BOUND",
+        "BOUND_ON_EQUIP_TO_CHARACTER",
+        "BOUND_ON_PICKUP_TO_CHARACTER",
+        "BOUND_ON_EQUIP_TO_ACCOUNT",
+        "BOUND_ON_PICKUP_TO_ACCOUNT",
+        "BOUND_ON_EQUIP_TO_CHARACTER",
+        "BOUND_ON_PICKUP_TO_CHARACTER",
+        "BOUND_ON_EQUIP_TO_ACCOUNT",
+        "BOUND_ON_PICKUP_TO_ACCOUNT",
+    )
+    return names[value], value, value in (2, 4, 6, 8)
 
 
 def state(item):
@@ -71,6 +127,9 @@ def from_custody(item, metadata):
     ):
         raise ValueError("Invalid stored item binding metadata")
     enum, binding_type, default = _template(item["reference"])
+    if row.get("binding_type") is not None:
+        binding_type = validate_override(row["binding_type"])
+        return dict(item, binding_type=binding_type, bound=row["bound"])
     if enum == "NOT_BOUND" and not row["bound"]:
         return item
     return dict(item, binding_type=binding_type, bound=row["bound"] or default)

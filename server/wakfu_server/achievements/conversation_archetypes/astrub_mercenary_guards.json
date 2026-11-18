@@ -1,0 +1,330 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed2143: four reviewed waypoint-derived native guard placements with literal local-map/nation-conditioned native greeting roots and actual running2143 acknowledgement predicates. No item quantity or payment is encoded; none is fabricated. Admission remains exclusively the native contract board. Exact native conditional opening roots select the greeting; no quest is activated by an NPC greeting.",
+  "speakers": [
+    {
+      "actor_id": -2251799934991322,
+      "action_id": 102,
+      "quest_ids": [
+        2143
+      ],
+      "native_marker": {
+        "quest_id": 2143,
+        "objective_id": 4242
+      },
+      "native_opening_roots": [
+        2154,
+        2155
+      ],
+      "placement": {
+        "quest_id": 2143,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934991322,
+          "reference_id": 1322,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 79,
+          "y": -1,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 2154,
+          "action_ids": [
+            102
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION nativeguard1322 from actual2143 objective4242 marker527(79, -1, 4); native named speaker/action; not a recovered official physical NPC placement"
+        },
+        "interaction_anchor": {
+          "x": 80,
+          "y": -1,
+          "z": 2
+        },
+        "interaction_anchor_evidence": "Reviewed native527 actualwalkable approach with bidirectional nearby terrain edges; actualwaypointactor cell andapproach independentlypresent. Native objective waypoint is not physical actor spawn proof.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2143,
+          "objective_id": 4242,
+          "node_id": 2154,
+          "choice_id": 6853,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2143,
+          "objective_id": 4242,
+          "node_id": 2155,
+          "choice_id": 6852,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2154,
+          6853,
+          0
+        ],
+        [
+          2154,
+          5184,
+          0
+        ],
+        [
+          2155,
+          6852,
+          0
+        ],
+        [
+          2155,
+          5187,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934991324,
+      "action_id": 100,
+      "quest_ids": [
+        2143
+      ],
+      "native_marker": {
+        "quest_id": 2143,
+        "objective_id": 4243
+      },
+      "native_opening_roots": [
+        2156,
+        2157
+      ],
+      "placement": {
+        "quest_id": 2143,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934991324,
+          "reference_id": 1324,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 88,
+          "y": -7,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 2156,
+          "action_ids": [
+            100
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION nativeguard1324 from actual2143 objective4243 marker527(88, -7, 4); native named speaker/action; not a recovered official physical NPC placement"
+        },
+        "interaction_anchor": {
+          "x": 88,
+          "y": -6,
+          "z": 2
+        },
+        "interaction_anchor_evidence": "Reviewed native527 actualwalkable approach with bidirectional nearby terrain edges; actualwaypointactor cell andapproach independentlypresent. Native objective waypoint is not physical actor spawn proof.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2143,
+          "objective_id": 4243,
+          "node_id": 2156,
+          "choice_id": 6858,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2143,
+          "objective_id": 4243,
+          "node_id": 2157,
+          "choice_id": 6857,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2156,
+          6858,
+          0
+        ],
+        [
+          2156,
+          5188,
+          0
+        ],
+        [
+          2157,
+          6857,
+          0
+        ],
+        [
+          2157,
+          5189,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934991437,
+      "action_id": 117,
+      "quest_ids": [
+        2143
+      ],
+      "native_marker": {
+        "quest_id": 2143,
+        "objective_id": 4244
+      },
+      "native_opening_roots": [
+        2158,
+        2159
+      ],
+      "placement": {
+        "quest_id": 2143,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934991437,
+          "reference_id": 1437,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 79,
+          "y": 18,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 2158,
+          "action_ids": [
+            117
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION nativeguard1437 from actual2143 objective4244 marker527(79, 18, 4); native named speaker/action; not a recovered official physical NPC placement"
+        },
+        "interaction_anchor": {
+          "x": 80,
+          "y": 18,
+          "z": 2
+        },
+        "interaction_anchor_evidence": "Reviewed native527 actualwalkable approach with bidirectional nearby terrain edges; actualwaypointactor cell andapproach independentlypresent. Native objective waypoint is not physical actor spawn proof.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2143,
+          "objective_id": 4244,
+          "node_id": 2158,
+          "choice_id": 6863,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2143,
+          "objective_id": 4244,
+          "node_id": 2159,
+          "choice_id": 6862,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2158,
+          6863,
+          0
+        ],
+        [
+          2158,
+          5190,
+          0
+        ],
+        [
+          2159,
+          6862,
+          0
+        ],
+        [
+          2159,
+          5191,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934991592,
+      "action_id": 129,
+      "quest_ids": [
+        2143
+      ],
+      "native_marker": {
+        "quest_id": 2143,
+        "objective_id": 4245
+      },
+      "native_opening_roots": [
+        2160,
+        2161
+      ],
+      "placement": {
+        "quest_id": 2143,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934991592,
+          "reference_id": 1592,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 73,
+          "y": 32,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 2160,
+          "action_ids": [
+            129
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION nativeguard1592 from actual2143 objective4245 marker527(73, 32, 4); native named speaker/action; not a recovered official physical NPC placement"
+        },
+        "interaction_anchor": {
+          "x": 73,
+          "y": 33,
+          "z": 2
+        },
+        "interaction_anchor_evidence": "Reviewed native527 actualwalkable approach with bidirectional nearby terrain edges; actualwaypointactor cell andapproach independentlypresent. Native objective waypoint is not physical actor spawn proof.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2143,
+          "objective_id": 4245,
+          "node_id": 2160,
+          "choice_id": 6866,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2143,
+          "objective_id": 4245,
+          "node_id": 2161,
+          "choice_id": 6864,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2160,
+          6866,
+          0
+        ],
+        [
+          2160,
+          5192,
+          0
+        ],
+        [
+          2161,
+          6864,
+          0
+        ],
+        [
+          2161,
+          5193,
+          0
+        ]
+      ]
+    }
+  ]
+}

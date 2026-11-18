@@ -1,0 +1,1628 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 887,
+  "objects": [
+    {
+      "id": 23593,
+      "payload_hex": "02000000000b010000000d0000010377fffffffcfffffffb0000000100000100010000000334393600000000000101",
+      "x": -4.0,
+      "y": -5.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1"
+    },
+    {
+      "id": 23399,
+      "payload_hex": "02000000000b010000000d0000010377fffffffcfffffff80000000100000100010000000331363400000000000101",
+      "x": -4.0,
+      "y": -8.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1"
+    },
+    {
+      "id": 23443,
+      "payload_hex": "02000000000b010000000d0000010377fffffff0ffffffe10000000101000100000000000339343600000000000101",
+      "x": -16.0,
+      "y": -31.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23444,
+      "payload_hex": "02000000000b010000000d0000010377fffffff0ffffffe40000000101000300000000000339343600000000000101",
+      "x": -16.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23445,
+      "payload_hex": "02000000000b010000000d0000010377fffffff1ffffffe40000000001000300000000000339343600000000000101",
+      "x": -15.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23446,
+      "payload_hex": "02000000000b010000000d0000010377fffffff2ffffffe40000000001000300000000000339343600000000000101",
+      "x": -14.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23447,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffe40000000001000300000000000339343600000000000101",
+      "x": -13.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23448,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffe50000000001000100000000000339343600000000000101",
+      "x": -13.0,
+      "y": -27.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23449,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffe60000000001000100000000000339343600000000000101",
+      "x": -13.0,
+      "y": -26.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23450,
+      "payload_hex": "02000000000b010000000d0000010377ffffffeeffffffe30000000101000100000000000000000000000101",
+      "x": -18.0,
+      "y": -29.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23451,
+      "payload_hex": "02000000000b010000000d0000010377ffffffeeffffffe300000001010103ffff0001ffffffeeffffffe30000000000000000000000",
+      "x": -18.0,
+      "y": -29.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23452,
+      "payload_hex": "02000000000b010000000d0000010377ffffffefffffffe30000000101000300000000000339343600000000000101",
+      "x": -17.0,
+      "y": -29.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23454,
+      "payload_hex": "02000000000b010000000d0000010377ffffffeeffffffe40000000101000300000000000339343600000000000101",
+      "x": -18.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23455,
+      "payload_hex": "02000000000b010000000d0000010377ffffffefffffffe40000000101000100000000000339343600000000000101",
+      "x": -17.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23456,
+      "payload_hex": "02000000000b010000000d0000010377ffffffeeffffffeb00000001010101000100000002343300000000000101",
+      "x": -18.0,
+      "y": -21.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23458,
+      "payload_hex": "02000000000b010000000d0000010377fffffff2ffffffec0000000101000100000000000339343600000000000101",
+      "x": -14.0,
+      "y": -20.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23460,
+      "payload_hex": "02000000000b010000000d0000010377fffffff8ffffffe60000000001000100000000000000000000000000",
+      "x": -8.0,
+      "y": -26.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23461,
+      "payload_hex": "02000000000b010000000d0000010377fffffff8ffffffe70000000001000100000000000000000000000000",
+      "x": -8.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23462,
+      "payload_hex": "02000000000b010000000d0000010377fffffff8ffffffe80000000101000100000000000339343600000000000101",
+      "x": -8.0,
+      "y": -24.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23590,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffeb0000000101000100010000000334393300000000000101",
+      "x": -13.0,
+      "y": -21.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23596,
+      "payload_hex": "02000000000b010000000d0000010377fffffff2ffffffeb0000000101000100020000000334393800000000000101",
+      "x": -14.0,
+      "y": -21.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 24492,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffec000000010100010000000000043135323100000000000101",
+      "x": -13.0,
+      "y": -20.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23404,
+      "payload_hex": "02000000000b010000000d0000010377fffffffaffffffe70000000100000100020000000334393400000000000101",
+      "x": -6.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 24494,
+      "payload_hex": "02000000000b010000000d0000010377fffffffbffffffe70000000100000100010000000336393600000000000101",
+      "x": -5.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23405,
+      "payload_hex": "02000000000b010000000d0000010377fffffff0ffffffe60000000101010300010000000334393100000000000101",
+      "x": -16.0,
+      "y": -26.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23403,
+      "payload_hex": "02000000000b010000000d0000010377fffffffbffffffe7000000010100010000000000043135323100000000000101",
+      "x": -5.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23424,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffe70000000101000100000000000000000000000101",
+      "x": -13.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23426,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffe80000000101000100000000000000000000000101",
+      "x": -13.0,
+      "y": -24.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23427,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffe90000000001000100000000000339343600000000000101",
+      "x": -13.0,
+      "y": -23.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23428,
+      "payload_hex": "02000000000b010000000d0000010377fffffff3ffffffea0000000001000300000000000339343600000000000101",
+      "x": -13.0,
+      "y": -22.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23429,
+      "payload_hex": "02000000000b010000000d0000010377fffffff2ffffffea0000000101000300000000000339343600000000000101",
+      "x": -14.0,
+      "y": -22.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23430,
+      "payload_hex": "02000000000b010000000d0000010377fffffff1ffffffea0000000101000300000000000339343600000000000101",
+      "x": -15.0,
+      "y": -22.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23431,
+      "payload_hex": "02000000000b010000000d0000010377fffffff0ffffffea0000000101000300000000000339343600000000000101",
+      "x": -16.0,
+      "y": -22.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23432,
+      "payload_hex": "02000000000b010000000d0000010377ffffffefffffffea0000000101000300000000000339343600000000000101",
+      "x": -17.0,
+      "y": -22.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23435,
+      "payload_hex": "02000000000b010000000d0000010377ffffffeeffffffea0000000101000300000000000339343600000000000101",
+      "x": -18.0,
+      "y": -22.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-2"
+    },
+    {
+      "id": 23439,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffe50000000001000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -27.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23440,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffe40000000101000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -28.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23441,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffe30000000101000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -29.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23442,
+      "payload_hex": "02000000000b010000000d0000010377ffffffecffffffe30000000101000300000000000339343600000000000101",
+      "x": -20.0,
+      "y": -29.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23453,
+      "payload_hex": "02000000000b010000000d0000010377ffffffebffffffe10000000101000100000000000339343600000000000101",
+      "x": -21.0,
+      "y": -31.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23437,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffe70000000001000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23595,
+      "payload_hex": "02000000000b010000000d0000010377ffffffecffffffe8000000010100030000000000043135323100000000000101",
+      "x": -20.0,
+      "y": -24.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23422,
+      "payload_hex": "02000000000b010000000d0000010377ffffffecffffffe100000001010101000100000002343300000000000101",
+      "x": -20.0,
+      "y": -31.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23433,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffeb0000000101000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -21.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23434,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffec0000000101000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -20.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23438,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffe60000000001000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -26.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23436,
+      "payload_hex": "02000000000b010000000d0000010377ffffffedffffffe80000000001000100000000000339343600000000000101",
+      "x": -19.0,
+      "y": -24.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2"
+    },
+    {
+      "id": 23400,
+      "payload_hex": "02000000000b010000000d000001037700000000fffffff30000000101000300010000000331363200000000000101",
+      "x": 0.0,
+      "y": -13.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1"
+    },
+    {
+      "id": 23597,
+      "payload_hex": "02000000000b010000000d00000103770000000bffffffe70000000101010100010000000334393900000000000101",
+      "x": 11.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2"
+    },
+    {
+      "id": 23401,
+      "payload_hex": "02000000000b010000000d000001037700000011ffffffe70000000100000100010000000331363500000000000101",
+      "x": 17.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2"
+    },
+    {
+      "id": 23402,
+      "payload_hex": "02000000000b010000000d00000103770000000affffffe70000000101010100020000000334393500000000000101",
+      "x": 10.0,
+      "y": -25.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2"
+    },
+    {
+      "id": 23406,
+      "payload_hex": "02000000000b010000000d000001037700000000ffffffda0000000101010300010000000335303000000000000101",
+      "x": 0.0,
+      "y": -38.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-3"
+    },
+    {
+      "id": 23540,
+      "payload_hex": "02000000000b010000000d000001037700000000ffffffc8000c0001010103ffff002200000000ffffffc8000cffffffffffffffc8000cfffffffeffffffc8000cfffffffeffffffc7000cfffffffeffffffc6000cfffffffeffffffc5000c00000001ffffffc8000c00000002ffffffc8000c00000002ffffffc7000c00000002ffffffc6000c00000002ffffffc5000c00000001ffffffc6000c00000001ffffffc7000c00000000ffffffc7000cffffffffffffffc7000cffffffffffffffc6000c00000000ffffffc6000cfffffffeffffffc9000cffffffffffffffc9000c00000000ffffffc9000c00000001ffffffc9000c00000002ffffffc9000c00000003ffffffc9000c00000003ffffffc8000c00000003ffffffc7000c00000003ffffffc6000c00000000ffffffc5000c00000000ffffffc4000cffffffffffffffca000c00000000ffffffca000c00000001ffffffca000c00000002ffffffca000cfffffffdffffffc7000cfffffffdffffffc8000c000000000000000000",
+      "x": 0.0,
+      "y": -56.0,
+      "map_id": 887,
+      "z": 12.0,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "0_-4"
+    },
+    {
+      "id": 23582,
+      "payload_hex": "02000000000b010000000d000001037700000000ffffffbb000c00010000010000000100000000ffffffbb000c0004313835340000003baf0001",
+      "x": 0.0,
+      "y": -69.0,
+      "map_id": 887,
+      "z": 12.0,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-4"
+    },
+    {
+      "id": 23583,
+      "payload_hex": "02000000000b010000000d000001037700000005ffffffc5000c000101010300010000000332343500000000000101",
+      "x": 5.0,
+      "y": -59.0,
+      "map_id": 887,
+      "z": 12.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-4"
+    },
+    {
+      "id": 23598,
+      "payload_hex": "02000000000b010000000d000001037700000006ffffffc5000c000100000300010000000334393700000000000101",
+      "x": 6.0,
+      "y": -59.0,
+      "map_id": 887,
+      "z": 12.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-4"
+    },
+    {
+      "id": 23614,
+      "payload_hex": "02000000000b010000000d000001037700000000000000010000000101010100000001000000000000000100000004313835350000003baf0001",
+      "x": 0.0,
+      "y": 1.0,
+      "map_id": 887,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0"
+    }
+  ],
+  "programs": {
+    "23593": {
+      "native_class": "aLl",
+      "descriptor_id": 496,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 535,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 550,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1431,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1432,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{6,-58,12}",
+                    "887",
+                    "3"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23399": {
+      "native_class": "aLl",
+      "descriptor_id": 164,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 184,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 184,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "23443": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23444": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23445": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23446": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23447": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23448": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23449": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23452": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23454": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23455": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23456": {
+      "native_class": "aLl",
+      "descriptor_id": 43,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 52,
+          "clx": 207,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 51,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 79,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23458": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23462": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23590": {
+      "native_class": "aLl",
+      "descriptor_id": 493,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 532,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 543,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1409,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1410,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{-15,-21,0}",
+                    "887",
+                    "5"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23596": {
+      "native_class": "aLl",
+      "descriptor_id": 498,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 537,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 555,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1441,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1442,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{-12,-21,0}",
+                    "887",
+                    "1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "24492": {
+      "native_class": "aLl",
+      "descriptor_id": 1521,
+      "groups": []
+    },
+    "23404": {
+      "native_class": "aLl",
+      "descriptor_id": 494,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 533,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 544,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1412,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1413,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{-4,-25,0}",
+                    "887",
+                    "1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "24494": {
+      "native_class": "aLl",
+      "descriptor_id": 696,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 820,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 840,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1869,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1870,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{-9,-25,0}",
+                    "887",
+                    "5"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23405": {
+      "native_class": "aLl",
+      "descriptor_id": 491,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 530,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 541,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1405,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementComplete(2170)",
+                  "parameters": [
+                    "false"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1406,
+                  "effect_type": 4,
+                  "criterion": "not IsAchievementComplete(2170)",
+                  "parameters": [
+                    "2437"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1407,
+                  "effect_type": 1,
+                  "criterion": "not IsAchievementComplete(2170)",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23403": {
+      "native_class": "aLl",
+      "descriptor_id": 1521,
+      "groups": []
+    },
+    "23427": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23428": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23429": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23430": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23431": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23432": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23435": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23439": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23440": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23441": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23442": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23453": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23437": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23595": {
+      "native_class": "aLl",
+      "descriptor_id": 1521,
+      "groups": []
+    },
+    "23422": {
+      "native_class": "aLl",
+      "descriptor_id": 43,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 52,
+          "clx": 207,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 51,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 79,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23433": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23434": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23438": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23436": {
+      "native_class": "aLl",
+      "descriptor_id": 946,
+      "groups": []
+    },
+    "23400": {
+      "native_class": "aLl",
+      "descriptor_id": 162,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 182,
+          "clx": 147,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 182,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "23597": {
+      "native_class": "aLl",
+      "descriptor_id": 499,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 538,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 558,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1447,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1448,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{9,-25,0}",
+                    "887",
+                    "5"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23401": {
+      "native_class": "aLl",
+      "descriptor_id": 165,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 185,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 185,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "23402": {
+      "native_class": "aLl",
+      "descriptor_id": 495,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 534,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 545,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1415,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1416,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{12,-25,0}",
+                    "887",
+                    "1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23406": {
+      "native_class": "aLl",
+      "descriptor_id": 500,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 539,
+          "clx": 244,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 559,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    },
+    "23583": {
+      "native_class": "aLl",
+      "descriptor_id": 245,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 271,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 271,
+              "criterion": "GetBooleanSystemConfiguration(\"companions.enabled\")",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 494,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementComplete(1721) or IsAchievementComplete(1726)",
+                  "parameters": [
+                    "false"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 493,
+                  "effect_type": 1,
+                  "criterion": "IsAchievementRunning(1721) or IsAchievementRunning(1726)",
+                  "parameters": [
+                    "false"
+                  ]
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 495,
+                  "effect_type": 1,
+                  "criterion": "(!IsAchievementComplete(1721) or !IsAchievementComplete(1726))and !IsAchievementComplete(2170)",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "23598": {
+      "native_class": "aLl",
+      "descriptor_id": 497,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 536,
+          "clx": 269,
+          "cod": 18722,
+          "coe": 1,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 554,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1439,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                },
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1440,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{-3,-5,0}",
+                    "887",
+                    "1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "loot_tables": {
+    "2437": {
+      "czg": 1,
+      "d": 2437,
+      "gBN": [
+        {
+          "aAi": 18722,
+          "bfh": 1,
+          "cmY": 1.0,
+          "cqA": false,
+          "cqy": 1,
+          "cqz": 1,
+          "csE": 1,
+          "czk": "not IsAchievementComplete(2170)",
+          "czl": 0,
+          "d": 3049,
+          "gBO": [],
+          "native_class": "fFe"
+        }
+      ],
+      "native_class": "fFc"
+    }
+  },
+  "native_scripts": {
+    "1431": {
+      "present": false,
+      "sha256": null
+    },
+    "1432": {
+      "present": false,
+      "sha256": null
+    },
+    "79": {
+      "present": false,
+      "sha256": null
+    },
+    "1409": {
+      "present": false,
+      "sha256": null
+    },
+    "1410": {
+      "present": false,
+      "sha256": null
+    },
+    "1441": {
+      "present": false,
+      "sha256": null
+    },
+    "1442": {
+      "present": false,
+      "sha256": null
+    },
+    "1412": {
+      "present": false,
+      "sha256": null
+    },
+    "1413": {
+      "present": false,
+      "sha256": null
+    },
+    "1869": {
+      "present": false,
+      "sha256": null
+    },
+    "1870": {
+      "present": false,
+      "sha256": null
+    },
+    "1405": {
+      "present": true,
+      "sha256": "92087e337f3e6148ad7aea1e677f954823be6e04203116c473942664f69fe981"
+    },
+    "1406": {
+      "present": false,
+      "sha256": null
+    },
+    "1407": {
+      "present": true,
+      "sha256": "62ebf67d4b86f7466d0aef85f39a932d21c4fcee385769bb7d1f0114e57be361"
+    },
+    "1447": {
+      "present": false,
+      "sha256": null
+    },
+    "1448": {
+      "present": false,
+      "sha256": null
+    },
+    "1415": {
+      "present": false,
+      "sha256": null
+    },
+    "1416": {
+      "present": false,
+      "sha256": null
+    },
+    "494": {
+      "present": true,
+      "sha256": "511cd244a697caef8b342654d2b69193af4c1aab6a0f1d9dda7d38570c764a3f"
+    },
+    "493": {
+      "present": true,
+      "sha256": "6dadc1a2194d29908a9c6303ae0bd33230c0588e542127d1fff83e4f38b00578"
+    },
+    "495": {
+      "present": true,
+      "sha256": "a293e9e5daab0fc8741f31eae2f64e66ff759fcfa723d452d0419d25b68aa31e"
+    },
+    "1439": {
+      "present": true,
+      "sha256": "a735be13c2fcaffa986586a8632a20a5aadfe723cd6661a87962a1b8e3087179"
+    },
+    "1440": {
+      "present": false,
+      "sha256": null
+    }
+  },
+  "scenes": {
+    "14254": {
+      "argument_count": 7,
+      "duration_ms": 9000,
+      "callback": 2
+    },
+    "14265": {
+      "argument_count": 8,
+      "duration_ms": 18000,
+      "callback": 2
+    },
+    "14289": {
+      "argument_count": 0,
+      "duration_ms": 10000,
+      "callback": 2
+    }
+  },
+  "native_source_sha256": {
+    "client/contents/bdata/31.jar": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+    "client/contents/bdata/39.jar": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2"
+  },
+  "scenario_events": [
+    14198,
+    14199,
+    14313,
+    14203,
+    14204,
+    14205,
+    14243,
+    14244,
+    14245,
+    14254,
+    14255,
+    14246,
+    14247,
+    14250,
+    14251,
+    14252,
+    14253,
+    14256,
+    14257,
+    14233,
+    14262,
+    14265,
+    14288,
+    14269,
+    14289,
+    14272,
+    14273,
+    14350
+  ],
+  "scene_positions": {
+    "14254": [
+      -15,
+      -25,
+      0
+    ],
+    "14265": [
+      0,
+      -56,
+      12
+    ]
+  },
+  "scenario_id": 1722,
+  "argument_sources": {
+    "14254": {
+      "source_object": 23405
+    },
+    "14265": {
+      "boss_trigger": 23540
+    }
+  },
+  "actor_sources": {
+    "boss_actor": {
+      "room_order": 4,
+      "reference": 3234
+    }
+  }
+}

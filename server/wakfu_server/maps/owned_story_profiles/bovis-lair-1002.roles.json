@@ -1,0 +1,58 @@
+{
+  "schema": "wakemu-encounter-role-publication-v1",
+  "id": "bovis-native-affiliations",
+  "roles": [
+    {
+      "schema": "wakemu-encounter-roles-v1",
+      "policy": "wakemu-bovis-room1-player1-npc0-v1",
+      "authority": "Reviewed native Bovis/pillar role reconstruction, not recovered original server publisher. Exact1002 scopedroster must use actualheroTeam1/enemyTeam0 so nativepillar986/987/988 roots171184/171190/171193 deal30baseelementdamage onTeam1 and171185/171191/171194 damage100 onTeam0; Bovis4045 native tracker likewise namesattackingTeam1 andexcludesstate4004pillar250damage171291 onTeam0. Originalcriteria/stats untouched. Map/formation role snapshots are immutable pernewrealbattle; unrelatedrosters/maps stayordinary0/1. Role scope includes actual initial3854helper for rooms3/4, after typedownedally admission; originalworldroster remains separate. No base-only3/4policy skips helper admission.",
+      "map_id": 1002,
+      "monster_references": [
+        3234,
+        3234,
+        3774,
+        3774
+      ],
+      "player_team": 1,
+      "npc_team": 0
+    },
+    {
+      "schema": "wakemu-encounter-roles-v1",
+      "policy": "wakemu-bovis-room2-player1-npc0-v1",
+      "authority": "Reviewed native Bovis/pillar role reconstruction, not recovered original server publisher. Exact1002 scopedroster must use actualheroTeam1/enemyTeam0 so nativepillar986/987/988 roots171184/171190/171193 deal30baseelementdamage onTeam1 and171185/171191/171194 damage100 onTeam0; Bovis4045 native tracker likewise namesattackingTeam1 andexcludesstate4004pillar250damage171291 onTeam0. Originalcriteria/stats untouched. Map/formation role snapshots are immutable pernewrealbattle; unrelatedrosters/maps stayordinary0/1. Role scope includes actual initial3854helper for rooms3/4, after typedownedally admission; originalworldroster remains separate. No base-only3/4policy skips helper admission.",
+      "map_id": 1002,
+      "monster_references": [
+        3234,
+        3774,
+        3774
+      ],
+      "player_team": 1,
+      "npc_team": 0
+    },
+    {
+      "schema": "wakemu-encounter-roles-v1",
+      "policy": "wakemu-bovis-room3-player1-npc0-v1",
+      "authority": "Reviewed native Bovis/pillar role reconstruction, not recovered original server publisher. Exact1002 scopedroster must use actualheroTeam1/enemyTeam0 so nativepillar986/987/988 roots171184/171190/171193 deal30baseelementdamage onTeam1 and171185/171191/171194 damage100 onTeam0; Bovis4045 native tracker likewise namesattackingTeam1 andexcludesstate4004pillar250damage171291 onTeam0. Originalcriteria/stats untouched. Map/formation role snapshots are immutable pernewrealbattle; unrelatedrosters/maps stayordinary0/1. Role scope includes actual initial3854helper for rooms3/4, after typedownedally admission; originalworldroster remains separate. No base-only3/4policy skips helper admission.",
+      "map_id": 1002,
+      "monster_references": [
+        3840,
+        3841,
+        3854
+      ],
+      "player_team": 1,
+      "npc_team": 0
+    },
+    {
+      "schema": "wakemu-encounter-roles-v1",
+      "policy": "wakemu-bovis-room4-player1-npc0-v1",
+      "authority": "Reviewed native Bovis/pillar role reconstruction, not recovered original server publisher. Exact1002 scopedroster must use actualheroTeam1/enemyTeam0 so nativepillar986/987/988 roots171184/171190/171193 deal30baseelementdamage onTeam1 and171185/171191/171194 damage100 onTeam0; Bovis4045 native tracker likewise namesattackingTeam1 andexcludesstate4004pillar250damage171291 onTeam0. Originalcriteria/stats untouched. Map/formation role snapshots are immutable pernewrealbattle; unrelatedrosters/maps stayordinary0/1. Role scope includes actual initial3854helper for rooms3/4, after typedownedally admission; originalworldroster remains separate. No base-only3/4policy skips helper admission.",
+      "map_id": 1002,
+      "monster_references": [
+        3845,
+        3854
+      ],
+      "player_team": 1,
+      "npc_team": 0
+    }
+  ]
+}

@@ -1,0 +1,2584 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2145)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 2014,
+      "cjG": 238,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -134,
+              "ckh": 43,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4250,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            7671
+          ],
+          "d": 3703,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            8
+          ],
+          "d": 4656,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": true,
+      "cjP": 6,
+      "cjQ": 2,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": true,
+      "cjX": 0,
+      "cjY": 2,
+      "cjZ": 2,
+      "cka": "ach.238",
+      "d": 2145,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2146)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 2014,
+      "cjG": 238,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -52,
+              "ckh": 108,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4251,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -63,
+              "ckh": 106,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4252,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -65,
+              "ckh": 107,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4253,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -63,
+              "ckh": 111,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4254,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -58,
+              "ckh": 113,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4255,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -56,
+              "ckh": 114,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4256,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            7671
+          ],
+          "d": 3702,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            8
+          ],
+          "d": 4657,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": true,
+      "cjP": 6,
+      "cjQ": 2,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": true,
+      "cjX": 0,
+      "cjY": 2,
+      "cjZ": 3,
+      "cka": "ach.238",
+      "d": 2146,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2150)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 2014,
+      "cjG": 239,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -29,
+              "ckh": -52,
+              "cki": 3,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4682,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            7671
+          ],
+          "d": 3725,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            8
+          ],
+          "d": 4661,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": true,
+      "cjP": 6,
+      "cjQ": 2,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": true,
+      "cjX": 0,
+      "cjY": 2,
+      "cjZ": 2,
+      "cka": "ach.239",
+      "d": 2150,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2151)",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 2014,
+      "cjG": 239,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 59,
+              "ckh": -32,
+              "cki": 0,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4265,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 59,
+              "ckh": -31,
+              "cki": 0,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4266,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 39,
+              "ckh": 64,
+              "cki": 0,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4267,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 38,
+              "ckh": 64,
+              "cki": 0,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4268,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -48,
+              "ckh": 44,
+              "cki": 0,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4269,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -48,
+              "ckh": 43,
+              "cki": 0,
+              "ckj": 546,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4270,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            7671
+          ],
+          "d": 3726,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            12686,
+            8
+          ],
+          "d": 4662,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": true,
+      "cjP": 6,
+      "cjQ": 2,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": true,
+      "cjX": 0,
+      "cjY": 2,
+      "cjZ": 3,
+      "cka": "ach.239",
+      "d": 2151,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "astrub-2145-4250",
+      "quest_id": 2145,
+      "objective_id": 4250,
+      "source": {
+        "x": -134.0,
+        "y": 43.0,
+        "z": 0.0,
+        "id": 24086,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-8_2",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffff7a0000002b00000001010101000d0000000335323600000000000101",
+        "native_parameters": "526",
+        "descriptor_id": 526
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 526,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 577,
+            "clx": 4,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 597,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1517,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementComplete(2145) && !IsHero()",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1518,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2145) && !IsHero()",
+                    "parameters": [
+                      "1747"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 597,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1517,
+            "effect_type": 1,
+            "criterion": "IsAchievementComplete(2145) && !IsHero()",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1518,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2145) && !IsHero()",
+            "parameters": [
+              "1747"
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 577,
+        "clx": 4,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 597,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1517,
+                "effect_type": 1,
+                "criterion": "IsAchievementComplete(2145) && !IsHero()",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1518,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2145) && !IsHero()",
+                "parameters": [
+                  "1747"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -134,
+          42,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "486f3d4fb113c34d09b08317410d860d0706def1484c6095b34ba423d7226fbc",
+      "roster": [
+        {
+          "reference": 3284,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1747,
+        "begin_event": 14483,
+        "win_event": 14485,
+        "loss_event": 14486
+      },
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2146-4251",
+      "quest_id": 2146,
+      "objective_id": 4251,
+      "source": {
+        "x": -52.0,
+        "y": 108.0,
+        "z": 0.0,
+        "id": 24101,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-3_6",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffffcc0000006c0000000101010100080000000335323900000000000101",
+        "native_parameters": "529",
+        "descriptor_id": 529
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 529,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 594,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 614,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4251)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1555,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4251)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 595,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 615,
+                "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4251)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1557,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4251) and not IsHero()",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1558,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4251) and not IsHero()",
+                    "parameters": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 614,
+        "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4251)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1555,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4251)",
+            "parameters": []
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 594,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 614,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4251)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1555,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4251)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -52,
+          109,
+          0
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "9ac952785cddd8030d677dce1d4dd6a007a8a9c2e88a97fc03a0ffb9e158a20a",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2146-4252",
+      "quest_id": 2146,
+      "objective_id": 4252,
+      "source": {
+        "x": -63.0,
+        "y": 106.0,
+        "z": 0.0,
+        "id": 24104,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-4_5",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffffc10000006a0000000101010100060000000335323800000000000101",
+        "native_parameters": "528",
+        "descriptor_id": 528
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 528,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 592,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 612,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1551,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1552,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+                    "parameters": [
+                      "1749"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 593,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 613,
+                "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4252)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1553,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4252) && !IsHero()",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1554,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4252) && !IsHero()",
+                    "parameters": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 612,
+        "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1551,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1552,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+            "parameters": [
+              "1749"
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 592,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 612,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1551,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1552,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4252) && !IsHero()",
+                "parameters": [
+                  "1749"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -64,
+          106,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "9ac952785cddd8030d677dce1d4dd6a007a8a9c2e88a97fc03a0ffb9e158a20a",
+      "roster": [
+        {
+          "reference": 3285,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1749,
+        "begin_event": 14490,
+        "win_event": 14492,
+        "loss_event": 14493
+      },
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2146-4253",
+      "quest_id": 2146,
+      "objective_id": 4253,
+      "source": {
+        "x": -65.0,
+        "y": 107.0,
+        "z": 0.0,
+        "id": 24107,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-4_5",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffffbf0000006b00000001010101000e0000000335333000000000000101",
+        "native_parameters": "530",
+        "descriptor_id": 530
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 530,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 596,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 616,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4253)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1559,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4253)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 597,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 617,
+                "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4253)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1561,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4253)",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1562,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4253)",
+                    "parameters": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 616,
+        "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4253)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1559,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4253)",
+            "parameters": []
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 596,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 616,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4253)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1559,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4253)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -66,
+          107,
+          0
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "9ac952785cddd8030d677dce1d4dd6a007a8a9c2e88a97fc03a0ffb9e158a20a",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2146-4254",
+      "quest_id": 2146,
+      "objective_id": 4254,
+      "source": {
+        "x": -63.0,
+        "y": 111.0,
+        "z": 0.0,
+        "id": 24113,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-4_6",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffffc10000006f00000001010101000d0000000335333100000000000101",
+        "native_parameters": "531",
+        "descriptor_id": 531
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 531,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 598,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 618,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4254)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1563,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and not IsAchievementObjectiveComplete(4254)",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1564,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4254) && !IsHero()",
+                    "parameters": [
+                      "1751"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 599,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 619,
+                "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4254)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1565,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4254)",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1566,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4254)",
+                    "parameters": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 618,
+        "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4254)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1563,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2146) and not IsAchievementObjectiveComplete(4254)",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1564,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4254) && !IsHero()",
+            "parameters": [
+              "1751"
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 598,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 618,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4254)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1563,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2146) and not IsAchievementObjectiveComplete(4254)",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1564,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4254) && !IsHero()",
+                "parameters": [
+                  "1751"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -63,
+          110,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "9ac952785cddd8030d677dce1d4dd6a007a8a9c2e88a97fc03a0ffb9e158a20a",
+      "roster": [
+        {
+          "reference": 3287,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1751,
+        "begin_event": 14497,
+        "win_event": 14499,
+        "loss_event": 14500
+      },
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2146-4256",
+      "quest_id": 2146,
+      "objective_id": 4256,
+      "source": {
+        "x": -56.0,
+        "y": 114.0,
+        "z": 0.0,
+        "id": 24114,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-4_6",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffffc80000007200000001010101000b0000000335323700000000000101",
+        "native_parameters": "527",
+        "descriptor_id": 527
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 527,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 590,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 610,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1547,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1548,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+                    "parameters": [
+                      "1753"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 591,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 611,
+                "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4256) && !IsHero()",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1549,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4256) and not IsHero()",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1550,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4256) && !IsHero()",
+                    "parameters": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 610,
+        "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1547,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1548,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+            "parameters": [
+              "1753"
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 590,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 610,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1547,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1548,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4256) && !IsHero()",
+                "parameters": [
+                  "1753"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -57,
+          114,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "9ac952785cddd8030d677dce1d4dd6a007a8a9c2e88a97fc03a0ffb9e158a20a",
+      "roster": [
+        {
+          "reference": 3288,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1753,
+        "begin_event": 14504,
+        "win_event": 14506,
+        "loss_event": 14507
+      },
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2146-4255",
+      "quest_id": 2146,
+      "objective_id": 4255,
+      "source": {
+        "x": -58.0,
+        "y": 113.0,
+        "z": 0.0,
+        "id": 24116,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-4_6",
+        "map_id": 527,
+        "payload_hex": "02000000000b010000000d000001020fffffffc60000007100000001010101000e0000000335333200000000000101",
+        "native_parameters": "532",
+        "descriptor_id": 532
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 532,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 583,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 603,
+                "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4255)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1535,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and not IsAchievementObjectiveComplete(4255)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 585,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 605,
+                "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4255)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1540,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4255)",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1541,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2146) and IsAchievementObjectiveComplete(4255)",
+                    "parameters": [
+                      "true"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 603,
+        "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4255)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1535,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2146) and not IsAchievementObjectiveComplete(4255)",
+            "parameters": []
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 583,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 603,
+            "criterion": "IsAchievementRunning(2146) and !IsAchievementObjectiveComplete(4255)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1535,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2146) and not IsAchievementObjectiveComplete(4255)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -59,
+          113,
+          0
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 3000,
+      "native_definition_sha256": "9ac952785cddd8030d677dce1d4dd6a007a8a9c2e88a97fc03a0ffb9e158a20a",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Reviewed reconstruction from exact native source action and scenario. Actual own source-triggered original encounter victory is mandatory for ambush branches; no global breed/name kill counts. Original scene rosters were not captured: singleton native3284 Virulent Treechnid or native family679 Astrub brigand is explicitly authored policy, preserving all original levels/stats/spells. Other three cargos are actual completed source gathers and mint no invented cargo item.",
+      "timing_basis": "Reviewed server milliseconds interpreting the original cog integer; native timer units are not proven."
+    },
+    {
+      "id": "astrub-2150-4682",
+      "quest_id": 2150,
+      "objective_id": 4682,
+      "source": {
+        "x": -29.0,
+        "y": -52.0,
+        "z": 3.0,
+        "id": 24126,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-2_-3",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d0000010222ffffffe3ffffffcc0003000101010100080000000335303600000000000101",
+        "native_parameters": "506",
+        "descriptor_id": 506
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 506,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 545,
+            "clx": 87,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 565,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1460,
+                    "effect_type": 1,
+                    "criterion": "not IsAchievementActive(2150)\r\nand not IsHero()",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1461,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementComplete(2150)\r\nand not IsHero()",
+                    "parameters": [
+                      "False"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1458,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2150)\r\nand not IsHero()",
+                    "parameters": [
+                      "1726"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 545,
+        "clx": 87,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 565,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1460,
+                "effect_type": 1,
+                "criterion": "not IsAchievementActive(2150)\r\nand not IsHero()",
+                "parameters": [
+                  "False"
+                ]
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1461,
+                "effect_type": 1,
+                "criterion": "IsAchievementComplete(2150)\r\nand not IsHero()",
+                "parameters": [
+                  "False"
+                ]
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1458,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2150)\r\nand not IsHero()",
+                "parameters": [
+                  "1726"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 565,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1460,
+            "effect_type": 1,
+            "criterion": "not IsAchievementActive(2150)\r\nand not IsHero()",
+            "parameters": [
+              "False"
+            ]
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1461,
+            "effect_type": 1,
+            "criterion": "IsAchievementComplete(2150)\r\nand not IsHero()",
+            "parameters": [
+              "False"
+            ]
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1458,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2150)\r\nand not IsHero()",
+            "parameters": [
+              "1726"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -29,
+          -51,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 0,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "0a9f9787a62e06d7e80fff3805d98d2b5298187d68035539e349750644ebc411",
+      "roster": [
+        {
+          "reference": 3253,
+          "count": 1
+        },
+        {
+          "reference": 3254,
+          "count": 1
+        },
+        {
+          "reference": 3255,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1726,
+        "begin_event": 14325,
+        "win_event": 14457,
+        "loss_event": 14327
+      },
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    },
+    {
+      "id": "astrub-2151-4265",
+      "quest_id": 2151,
+      "objective_id": 4265,
+      "source": {
+        "x": 59.0,
+        "y": -32.0,
+        "z": 0.0,
+        "id": 24138,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "3_-2",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d00000102220000003bffffffe00000000101010100090000000335333800000000000101",
+        "native_parameters": "538",
+        "descriptor_id": 538
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 538,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 603,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 623,
+                "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4265)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1572,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4265)",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 603,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 623,
+            "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4265)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1572,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4265)",
+                "parameters": [
+                  "false"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 623,
+        "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4265)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1572,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4265)",
+            "parameters": [
+              "false"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          60,
+          -32,
+          0
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 3000,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "6edb4b122029727758257d010c9fb506e4c63faadb94c87b1dc28cf04ed24898",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    },
+    {
+      "id": "astrub-2151-4266",
+      "quest_id": 2151,
+      "objective_id": 4266,
+      "source": {
+        "x": 59.0,
+        "y": -31.0,
+        "z": 0.0,
+        "id": 24139,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "3_-2",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d00000102220000003bffffffe10000000101010100080000000335333900000000000101",
+        "native_parameters": "539",
+        "descriptor_id": 539
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 539,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 604,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 624,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1574,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266)",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1575,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266) && !IsHero()",
+                    "parameters": [
+                      "1768"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 604,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 624,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1574,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266)",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1575,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266) && !IsHero()",
+                "parameters": [
+                  "1768"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 624,
+        "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1574,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266)",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1575,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4266) && !IsHero()",
+            "parameters": [
+              "1768"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          60,
+          -31,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "6edb4b122029727758257d010c9fb506e4c63faadb94c87b1dc28cf04ed24898",
+      "roster": [
+        {
+          "reference": 3285,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1768,
+        "begin_event": 14555,
+        "win_event": 14557,
+        "loss_event": 14558
+      },
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    },
+    {
+      "id": "astrub-2151-4267",
+      "quest_id": 2151,
+      "objective_id": 4267,
+      "source": {
+        "x": 39.0,
+        "y": 64.0,
+        "z": 0.0,
+        "id": 24140,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "2_3",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d000001022200000027000000400000000101010100090000000335343000000000000101",
+        "native_parameters": "540",
+        "descriptor_id": 540
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 540,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 605,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 625,
+                "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4267)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1576,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4267)",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 605,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 625,
+            "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4267)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1576,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4267)",
+                "parameters": [
+                  "false"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 625,
+        "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4267)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1576,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4267)",
+            "parameters": [
+              "false"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          40,
+          64,
+          0
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 3000,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "6edb4b122029727758257d010c9fb506e4c63faadb94c87b1dc28cf04ed24898",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    },
+    {
+      "id": "astrub-2151-4268",
+      "quest_id": 2151,
+      "objective_id": 4268,
+      "source": {
+        "x": 38.0,
+        "y": 64.0,
+        "z": 0.0,
+        "id": 24141,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "2_3",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d0000010222000000260000004000000001010101000a0000000335343100000000000101",
+        "native_parameters": "541",
+        "descriptor_id": 541
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 541,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 606,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 626,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1578,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268)",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1579,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268) && !IsHero()",
+                    "parameters": [
+                      "1766"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 606,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 626,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1578,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268)",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1579,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268) && !IsHero()",
+                "parameters": [
+                  "1766"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 626,
+        "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1578,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268)",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1579,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4268) && !IsHero()",
+            "parameters": [
+              "1766"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          37,
+          64,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "6edb4b122029727758257d010c9fb506e4c63faadb94c87b1dc28cf04ed24898",
+      "roster": [
+        {
+          "reference": 3287,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1766,
+        "begin_event": 14548,
+        "win_event": 14550,
+        "loss_event": 14551
+      },
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    },
+    {
+      "id": "astrub-2151-4269",
+      "quest_id": 2151,
+      "objective_id": 4269,
+      "source": {
+        "x": -48.0,
+        "y": 44.0,
+        "z": 0.0,
+        "id": 24142,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-3_2",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d0000010222ffffffd00000002c0000000101010100010000000335343200000000000101",
+        "native_parameters": "542",
+        "descriptor_id": 542
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 542,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 607,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 627,
+                "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4269)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1580,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4269)",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 607,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 627,
+            "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4269)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1580,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4269)",
+                "parameters": [
+                  "false"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 627,
+        "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4269)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1580,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2151) and not IsAchievementObjectiveComplete(4269)",
+            "parameters": [
+              "false"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -47,
+          44,
+          0
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 3000,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "6edb4b122029727758257d010c9fb506e4c63faadb94c87b1dc28cf04ed24898",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    },
+    {
+      "id": "astrub-2151-4270",
+      "quest_id": 2151,
+      "objective_id": 4270,
+      "source": {
+        "x": -48.0,
+        "y": 43.0,
+        "z": 0.0,
+        "id": 24143,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-3_2",
+        "map_id": 546,
+        "payload_hex": "02000000000b010000000d0000010222ffffffd00000002b0000000101010100090000000335343300000000000101",
+        "native_parameters": "543",
+        "descriptor_id": 543
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 543,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 608,
+            "clx": 86,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 3000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 628,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1582,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270)",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 1583,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270) && !IsHero()",
+                    "parameters": [
+                      "1764"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 608,
+        "clx": 86,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 3000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 628,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 1582,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270)",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 1583,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270) && !IsHero()",
+                "parameters": [
+                  "1764"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 628,
+        "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 1582,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270)",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 1583,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2151) and !IsAchievementObjectiveComplete(4270) && !IsHero()",
+            "parameters": [
+              "1764"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -47,
+          43,
+          0
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 3000,
+      "timing_basis": "Reviewed server milliseconds interpreting original cog integer; native timer units unproven. Zero is immediate.",
+      "native_definition_sha256": "6edb4b122029727758257d010c9fb506e4c63faadb94c87b1dc28cf04ed24898",
+      "roster": [
+        {
+          "reference": 3288,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1764,
+        "begin_event": 14541,
+        "win_event": 14543,
+        "loss_event": 14544
+      },
+      "evidence": "Exact native object/action/effect/scenario and authoritative floor join from sewer-mercenary-source. Formation absent: explicitly reviewed reconstruction uses native family680 colony3253/3254/3255 for nest or actual fighting brigands3285/3287/3288 for cargo ambushes; no original formation claim, no NPC-only3293 and no stat/spell overrides. No cargo item minted."
+    }
+  ],
+  "provenance": "Reviewed native source producers for Fields2145/2146 and Sewers2150/2151. Exact source/action/guard/scenario/floor joins. Formation/count and interpretation of cog milliseconds are explicitly reviewed server reconstruction. Native rank2 eligibility remains required; no objective from an ambush click."
+}

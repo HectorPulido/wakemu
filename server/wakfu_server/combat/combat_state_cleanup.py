@@ -64,6 +64,7 @@ class RetainedCleanupAuthority:
         self.identity_hash = identity_hash
         self.containers = {}
         self.removing = set()
+        self._state_source_bindings = None
 
     def _entries(self):
         view = self.retention.view()
@@ -118,9 +119,33 @@ class RetainedCleanupAuthority:
         if key.kind == 1:
             from .combat_native_container import resolve_state_container
 
-            if type(entry.owner_uid) is not int:
+            parent_uid = entry.owner_uid
+            if parent_uid is None and entry.effect_class == 310:
+                # A naturally applied eZk has its own target Qf ownership.
+                # Its applying fyW PL is captured separately; making that
+                # ancestry a removal owner would change native cascades.
+                from .combat_retained_source_provenance import state_source_provenance
+
+                if self._state_source_bindings is None:
+                    self._state_source_bindings = state_source_provenance(self.fight)
+                source = self._state_source_bindings.get(entry.uid)
+                if (
+                    source is None
+                    or source["source"] != "captured_application"
+                    or source["parent_known"] is not True
+                    or source["container_known"] is not True
+                    or source["container_present"] is not True
+                    or source["container_type"] != key.kind
+                    or source["container_id"] != key.identity
+                    or source["container_kind"] != "state"
+                    or source["container_is_spell"] is not False
+                    or source["target_id"] != entry.target_id
+                ):
+                    raise ValueError("State-owned effect lacks actual PL binding")
+                parent_uid = source["parent_state_uid"]
+            if type(parent_uid) is not int:
                 raise ValueError("State-owned effect lacks actual PL binding")
-            state = resolve_state_container(self.fight, entry.owner_uid)
+            state = resolve_state_container(self.fight, parent_uid)
             if key.identity != (pack_state_identity(state.reference, state.level)):
                 raise ValueError(
                     "Retained state PL differs from its actual owned snapshot"

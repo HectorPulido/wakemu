@@ -1,0 +1,131 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1302,
+  "scenario_id": 2447,
+  "lua_sha256": "ccc99b6fc95a66d96c248208e56748f40fcc76ffc89d8d57773ef0f55b609487",
+  "objects": [
+    {
+      "x": -11.0,
+      "y": -7.0,
+      "z": 0.0,
+      "id": 32856,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1302,
+      "payload_hex": "02000000000b010000000d0000010516fffffff5fffffff900000001000003000100000002333500000000000101"
+    }
+  ],
+  "scenario_events": [
+    21225,
+    21224,
+    21229,
+    21230,
+    21228,
+    21226,
+    21227,
+    21231
+  ],
+  "event_signatures": {
+    "21225": {
+      "argument_count": 0
+    },
+    "21224": {
+      "argument_count": 1
+    },
+    "21229": {
+      "argument_count": 0
+    },
+    "21230": {
+      "argument_count": 0
+    },
+    "21228": {
+      "argument_count": 0
+    },
+    "21226": {
+      "argument_count": 0
+    },
+    "21227": {
+      "argument_count": 0
+    },
+    "21231": {
+      "argument_count": 0
+    }
+  },
+  "scenes": {
+    "21224": {
+      "argument_count": 1,
+      "duration_ms": 20000,
+      "callback": 21229
+    }
+  },
+  "native_scripts": {},
+  "programs": {
+    "32856": {
+      "native_class": "aLl",
+      "descriptor_id": 35,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 43,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 40,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "loot_tables": {},
+  "evidence": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed.",
+  "scene_actors": [
+    {
+      "slot": 900,
+      "role": "sergeant",
+      "reference": 2142,
+      "level": 113,
+      "position": [
+        -10,
+        -4,
+        0
+      ],
+      "direction": 3,
+      "requires": [],
+      "until": [
+        "crisper-intro-done"
+      ],
+      "native_prototype_sha256": "8a6685c3cfe0b039ea468ea1aeb656b255c92cf99c9c7a813bc979f97c823a6c"
+    }
+  ],
+  "presentation_quests": {
+    "21225": 4871,
+    "21224": 4871,
+    "21229": 4871,
+    "21230": 4871,
+    "21228": 4871,
+    "21226": 4871,
+    "21227": 4871,
+    "21231": 4871
+  },
+  "interaction_approaches": {
+    "32856": [
+      [
+        -11,
+        -6,
+        0
+      ]
+    ]
+  }
+}

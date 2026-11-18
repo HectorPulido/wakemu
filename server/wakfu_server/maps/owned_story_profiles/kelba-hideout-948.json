@@ -1,0 +1,148 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "kelba-hideout-948",
+  "map_id": 948,
+  "maximum_members": 1,
+  "provenance": "Reviewed reconstruction of native1966 Hadibal hideout: original948 arrival/exit and literal Riktus combat activation/preparation/victory plus native Hadibal intervention15699/end15700. Original private enemy roster/count/coordinates are not serialized; one each native Kelba Riktus3565/3566/3567 is explicitly reviewed formation, preserving real levels/stats/books/states. No fabricated combat mechanic, ordinary win shortcut, native party actor substitution or quest completion from a cinematic alone.",
+  "admission": {
+    "alternatives": [
+      {
+        "quest_id": 2541,
+        "objective_id": null
+      },
+      {
+        "quest_id": 2542,
+        "objective_id": null
+      }
+    ],
+    "continuation_quest_id": 2543
+  },
+  "native_sources": {
+    "path": "kelba-hideout-948.native.v1.json",
+    "sha256": "6969274a6b93638ffb9ca161c551eb4bcfb89839e398715eb328fa4de54be929"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "hideout-discovered",
+      "kind": "world_ready",
+      "reference": 948,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1966,
+          "event": 15692
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2541,
+          "objective_id": 5040
+        }
+      ],
+      "evidence": "Genuine native25137/2184 arrival in secret hideout qualifies original find-Hadibal objective; actual enter1966/15692 is empty mechanical event."
+    },
+    {
+      "id": "hideout-riktus-admitted",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [
+        "hideout-discovered"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1966,
+          "event": 15693
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1966,
+          "event": 15704
+        }
+      ],
+      "evidence": "Authenticated owned group admission invokes original combat activation/preparation events; no simulated victory."
+    },
+    {
+      "id": "hideout-riktus-defeated",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "hideout-riktus-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1966,
+          "event": 15694
+        }
+      ],
+      "evidence": "Only actual settled original room roster victory qualifies the following Hadibal intervention; losses do not progress."
+    },
+    {
+      "id": "hideout-hadibal-intervention",
+      "kind": "world_ready",
+      "reference": 948,
+      "requires": [
+        "hideout-riktus-defeated"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1966,
+          "event": 15699,
+          "arguments": [
+            "story_npc:3588"
+          ]
+        }
+      ],
+      "evidence": "Native Hadibal intervention uses genuine scoped HadibalUID and original script; actual last actor motion at19.5sec."
+    },
+    {
+      "id": "hideout-film-finished",
+      "kind": "scenario_complete",
+      "reference": 15700,
+      "requires": [
+        "hideout-hadibal-intervention"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1966,
+          "event": 15700
+        },
+        {
+          "kind": "stage_position",
+          "event": 15700,
+          "position": [
+            10,
+            1,
+            0
+          ]
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2542,
+          "objective_id": 5041
+        }
+      ],
+      "evidence": "Reviewed20sec completion after original19.5sec movement restores native camera and server floor; objective also requires genuine prior Riktus victory. Suppressed once presentation still settles mechanics."
+    },
+    {
+      "id": "hideout-hadibal-debrief",
+      "kind": "npc_spoken",
+      "reference": 3588,
+      "requires": [
+        "hideout-film-finished"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2543,
+          "objective_id": 5042
+        }
+      ],
+      "evidence": "Only accepted original scoped Hadibal3588/direct native action675 after genuine Riktus victory and native film completion qualifies original speak-to-Hadibal objective5042. The installed catalog has no native2543 dialogue graph; no root, choice or text is invented. Shared objective adapter requires actually running2543."
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "native-dungeon-achievement-v1",
+  "id": "whisper-hushquarters693",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definition": {
+    "aHe": "GetRealLevel() >= 25 and IsAchievementComplete(2192)",
+    "aeV": 0,
+    "aqb": true,
+    "bwX": 690,
+    "cjG": 417,
+    "cjH": true,
+    "cjI": "",
+    "cjJ": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [],
+        "cke": "",
+        "ckf": [],
+        "d": 1464,
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "aeV": 3,
+        "ckk": false,
+        "ckl": [
+          20109
+        ],
+        "d": 945,
+        "native_class": "aJP"
+      },
+      {
+        "aeV": 5,
+        "ckk": false,
+        "ckl": [
+          21004,
+          10
+        ],
+        "d": 5095,
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": false,
+    "cjP": 0,
+    "cjQ": 1,
+    "cjR": false,
+    "cjS": -1,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": false,
+    "cjW": false,
+    "cjX": 0,
+    "cjY": 0,
+    "cjZ": 0,
+    "cka": "",
+    "d": 693,
+    "getDuration": 0,
+    "isVisible": true,
+    "native_class": "aJM"
+  },
+  "objective_id": 1464,
+  "proof": {
+    "map_id": 448,
+    "dungeon_definition_id": 53,
+    "template_id": 51,
+    "boss_references": [
+      2100
+    ],
+    "minimum_rooms": 4
+  },
+  "provenance": "Reviewed native achievement693 King and Cracklers I, objective1464 completes Hushquarters; original native real-level25/completed2192 journal visibility guard remains unchanged; native earning cjI/ckc/cke are empty. Only genuine owned final dungeon53 victory with admitted native2100 King in the frozen final roster grants the exact original Earthwhisp20109 and ten21004 reward through ordinary achievement outbox. No quest assignment, knowledge shortcut or ordinary species kill qualifies."
+}

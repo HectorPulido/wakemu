@@ -1,0 +1,347 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Private coherent2784–2787 source. Native objective guards and costs retained; reconstructed graph joins are explicit. Three actual physical trials are independent. No third-year assignment. Basket consumption is reviewed native/guide-backed; no original debit serialization claim.",
+  "speakers": [
+    {
+      "actor_id": -2251799934952783,
+      "action_id": 717,
+      "quest_ids": [
+        2784,
+        2786
+      ],
+      "graph": [
+        [
+          3340,
+          8329,
+          3374
+        ],
+        [
+          3374,
+          8330,
+          3375
+        ],
+        [
+          3375,
+          8331,
+          3376
+        ],
+        [
+          3376,
+          8332,
+          3377
+        ],
+        [
+          3377,
+          8333,
+          0
+        ],
+        [
+          3340,
+          8320,
+          3368
+        ],
+        [
+          3368,
+          8321,
+          3369
+        ],
+        [
+          3369,
+          8322,
+          3370
+        ],
+        [
+          3370,
+          8323,
+          3371
+        ],
+        [
+          3371,
+          8324,
+          0
+        ],
+        [
+          3340,
+          8273,
+          3341
+        ],
+        [
+          3341,
+          8274,
+          3342
+        ],
+        [
+          3342,
+          8275,
+          0
+        ],
+        [
+          3340,
+          8277,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2784,
+          "objective_id": 5618,
+          "node_id": 3340,
+          "choice_id": 8329,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2784,
+          "objective_id": 5620,
+          "node_id": 3340,
+          "choice_id": 8320,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            5616,
+            5617,
+            5618,
+            5619
+          ]
+        },
+        {
+          "quest_id": 2786,
+          "objective_id": 5633,
+          "node_id": 3340,
+          "choice_id": 8273,
+          "archetype": "talk"
+        }
+      ],
+      "running_roots": {
+        "2784": 3340,
+        "2786": 3340
+      }
+    },
+    {
+      "actor_id": -2251799934952785,
+      "action_id": 725,
+      "quest_ids": [
+        2785
+      ],
+      "graph": [
+        [
+          3324,
+          8228,
+          3325
+        ],
+        [
+          3325,
+          8237,
+          3329
+        ],
+        [
+          3329,
+          8239,
+          0
+        ],
+        [
+          3325,
+          8238,
+          0
+        ],
+        [
+          3324,
+          8229,
+          3326
+        ],
+        [
+          3326,
+          8244,
+          3327
+        ],
+        [
+          3324,
+          8231,
+          3327
+        ],
+        [
+          3327,
+          8241,
+          0
+        ],
+        [
+          3324,
+          8233,
+          3328
+        ],
+        [
+          3328,
+          8243,
+          0
+        ],
+        [
+          3324,
+          8226,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2785,
+          "objective_id": 5623,
+          "node_id": 3324,
+          "choice_id": 8229,
+          "archetype": "deliver",
+          "payment_basket": true
+        },
+        {
+          "quest_id": 2785,
+          "objective_id": 5624,
+          "node_id": 3324,
+          "choice_id": 8233,
+          "archetype": "talk"
+        }
+      ],
+      "placement": {
+        "quest_id": 2785,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934952785,
+          "reference_id": 3917,
+          "map_id": 1019,
+          "instance_id": 0,
+          "x": 59,
+          "y": -1,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 3324,
+          "action_ids": [
+            725
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION. Native Thomas3917/action725 beside the actual upper-floor portal25686. Original help marker60,-2 is a portal center, not captured NPC placement; reviewed nearby Sm6 actor59,-1 and approach58,-1 preserve the doorway."
+        },
+        "interaction_anchor": {
+          "x": 58,
+          "y": -1,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Actual native1019 Sm6 floor and bidirectional edges beside source25686; reviewed current-version placement, not recovered server formation.",
+        "graph": []
+      },
+      "reviewed_site_placement": {
+        "source_id": 25686,
+        "geometry_sha256": "8466007530bf0a8cafaa58625dd2efd55f6a33bcffab4b3142c016ce17a797db",
+        "evidence": "Native source25686 and actual connected Sm6 site. Prices use unchanged native offered predicates; exact basket debit is reviewed native/guide-backed reconstruction because original serialized server debit operands were not recovered."
+      },
+      "spoken_objectives": [
+        {
+          "quest_id": 2785,
+          "objective_id": 5621,
+          "action_ids": [
+            725
+          ],
+          "evidence": "Native objective5621 asks Thomas. Only authenticated successful actual NPC opening qualifies; normal native objective prerequisite and running quest remain authoritative. Opening grants no resources, puzzle completion or travel."
+        }
+      ]
+    },
+    {
+      "actor_id": -2251799934952778,
+      "action_id": 724,
+      "quest_ids": [
+        2786
+      ],
+      "graph": [
+        [
+          3311,
+          8267,
+          3336
+        ],
+        [
+          3336,
+          8265,
+          3337
+        ],
+        [
+          3337,
+          8268,
+          3338
+        ],
+        [
+          3338,
+          8269,
+          0
+        ],
+        [
+          3311,
+          8361,
+          3339
+        ],
+        [
+          3339,
+          8271,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2786,
+          "objective_id": 5630,
+          "node_id": 3311,
+          "choice_id": 8267,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 2786,
+          "objective_id": 5631,
+          "node_id": 3339,
+          "choice_id": 8271,
+          "archetype": "deliver",
+          "payment_basket": true,
+          "native_guard_path": [
+            [
+              3311,
+              8361,
+              3339
+            ],
+            [
+              3339,
+              8271,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "actor_id": -2251799934952776,
+      "action_id": 722,
+      "quest_ids": [
+        2787
+      ],
+      "graph": [
+        [
+          3309,
+          8327,
+          3372
+        ],
+        [
+          3372,
+          8325,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2787,
+          "objective_id": 5635,
+          "node_id": 3309,
+          "choice_id": 8327,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            5626,
+            5627,
+            5628,
+            5629
+          ]
+        }
+      ]
+    }
+  ]
+}

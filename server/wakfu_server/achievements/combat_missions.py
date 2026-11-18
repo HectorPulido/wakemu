@@ -4,6 +4,9 @@ Bindings must be curated and published by an operator; no mappings are inferred
 from names or packets during combat. This adapter only processes non-recurring
 missions under an explicit reconstructed acceptance policy, and consumes the fight service's validated event.
 """
+
+from . import native_effective_eligibility
+
 from copy import deepcopy
 
 SETTING = "combat_mission_bindings_v1"
@@ -28,18 +31,36 @@ def validate(document, definitions):
             "count",
             "evidence",
         }
+        if row.get("kind") == "victory":
+            expected = (expected - {"target_id"}) | {"minimum_level"}
         if row.get("kind") == "boss":
             expected = expected | {"dungeon_id"}
         if "acceptance" in row:
             expected = expected | {"acceptance"}
         if (
             set(row) != expected
-            or row.get("kind") not in ("monster", "dungeon", "boss")
+            or row.get("kind") not in ("monster", "dungeon", "boss", "victory")
             or row.get("acceptance", "on_matching_victory")
             not in ("on_matching_victory", "explicit")
             or any(
                 type(row.get(k)) is not int or row[k] <= 0 or row[k] >= 2**31
-                for k in ("quest_id", "objective_id", "target_id", "count")
+                for k in ("quest_id", "objective_id", "count")
+            )
+            or (
+                row.get("kind") != "victory"
+                and (
+                    type(row.get("target_id")) is not int
+                    or not 0 < row["target_id"] < 2**31
+                )
+            )
+            or (
+                row.get("kind") == "victory"
+                and (
+                    type(row.get("minimum_level")) is not int
+                    or not 1 <= row["minimum_level"] <= 2**15 - 1
+                    or row.get("acceptance") != "explicit"
+                    or row.get("count") != 1
+                )
             )
             or (
                 row.get("kind") == "boss"
@@ -70,14 +91,20 @@ def validate(document, definitions):
         objectives = [o for o in definition["cjJ"] if o.get("d") == row["objective_id"]]
         if len(objectives) != 1 or objectives[0].get("ckf"):
             raise ValueError("Missing objective or unsupported native variable")
+        if row["kind"] == "victory" and (
+            type(definition.get("cjP")) is not int
+            or row["minimum_level"] < definition["cjP"]
+        ):
+            raise ValueError("Victory objective level is below native quest level")
     return document["bindings"]
 
 
 def advance(state, event, rules, definitions, *, character, store, now_ms, counts):
     """Plan updates for validated rules and a server-authenticated fight event."""
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
     from wakfu_server import dungeon_criteria
     from .mission_progress import advance_objective
+    from .combat_mission_activation import _level_matches
 
     result = deepcopy(state)
     counter = dict(counts)
@@ -96,24 +123,30 @@ def advance(state, event, rules, definitions, *, character, store, now_ms, count
         quest_id, objective_id = binding["quest_id"], binding["objective_id"]
         if quest_id not in result["running"] or objective_id in result["objectives"]:
             continue
+        if not _level_matches(binding, character):
+            continue
         definition = definitions[quest_id]
         objective = next(o for o in definition["cjJ"] if o["d"] == objective_id)
-        queries = queries_from_snapshot(
-            {k: result[k] for k in ("running", "completed", "objectives")}
-        )
+        queries = queries_from_state(result)
         try:
             eligible = all(
                 dungeon_criteria.evaluate(
                     store, expr, character=character, queries=queries, now_ms=now_ms
                 )
-                for expr in (definition["cjI"], objective["ckc"], objective["cke"])
+                for expr in (
+                    native_effective_eligibility.criterion(definition),
+                    objective["ckc"],
+                    objective["cke"],
+                )
             )
         except (ValueError, NotImplementedError, KeyError):
             # An unimplemented predicate must not prevent unrelated missions.
             continue
         if not eligible:
             continue
-        if binding["kind"] == "monster":
+        if binding["kind"] == "victory":
+            amount = int(bool(breeds))
+        elif binding["kind"] == "monster":
             amount = breeds.count(binding["target_id"])
         elif binding["kind"] == "boss":
             amount = (
@@ -184,7 +217,7 @@ def stage(db, store, character, event):
     """
     from psycopg.types.json import Jsonb
     from . import storage
-    from .combat_mission_activation import auto_accept, _matches
+    from .combat_mission_activation import auto_accept, _matches, _level_matches
 
     publication = load(db, event=event)
     if publication is None:
@@ -205,16 +238,15 @@ def stage(db, store, character, event):
         now_ms=now_ms,
     )
     from wakfu_server import dungeon_criteria
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
 
-    queries = queries_from_snapshot(
-        {k: accepted[k] for k in ("running", "completed", "objectives")}
-    )
+    queries = queries_from_state(accepted)
     eligible = []
     for rule in matched:
         if (
             rule["quest_id"] not in accepted["running"]
             or rule["objective_id"] in accepted["objectives"]
+            or not _level_matches(rule, character)
         ):
             continue
         definition = definitions[rule["quest_id"]]
@@ -231,7 +263,7 @@ def stage(db, store, character, event):
                     now_ms=now_ms,
                 )
                 for expression in (
-                    definition["cjI"],
+                    native_effective_eligibility.criterion(definition),
                     objective["ckc"],
                     objective["cke"],
                 )
@@ -325,6 +357,13 @@ def settle(db, store, character, event):
         (character["id"], event["fight_id"]),
     )
     # Announce acceptance first even if the same fight finishes the quest.
-    return wire.changes(
+    packets = wire.changes(
         character["id"], before, accepted, [], [], now_ms
     ) + wire.changes(character["id"], accepted, after, objectives, completed, now_ms)
+    if completed:
+        from . import mission_toolkit
+
+        packets.extend(
+            mission_toolkit.settle_completions(db, store, character, completed)
+        )
+    return packets

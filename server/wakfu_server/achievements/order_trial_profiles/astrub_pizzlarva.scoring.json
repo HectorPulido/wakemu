@@ -1,0 +1,66 @@
+{
+  "schema": "reviewed-order-trial-scoring-v1",
+  "id": "astrub-pizzlarva-reconstruction-v1",
+  "provenance": {
+    "kind": "reviewed_reconstruction",
+    "evidence": "Original server score code is absent. This explicit approximation preserves distinct color/ingredient rewards, five-point units, and a 400-point hard-mode threshold. Narrated video deltas are hints, not verified native weights. Unknown entries are authored balancing parameters."
+  },
+  "score_threshold": 400,
+  "strike_limit": 3,
+  "ingredient_batch": 2,
+  "ingredient_capacity": 10,
+  "weights": [
+    [
+      "blue",
+      "tomato",
+      10
+    ],
+    [
+      "blue",
+      "cheese",
+      20
+    ],
+    [
+      "blue",
+      "pepper",
+      35
+    ],
+    [
+      "red",
+      "tomato",
+      15
+    ],
+    [
+      "red",
+      "cheese",
+      30
+    ],
+    [
+      "red",
+      "pepper",
+      60
+    ],
+    [
+      "green",
+      "tomato",
+      25
+    ],
+    [
+      "green",
+      "cheese",
+      45
+    ],
+    [
+      "green",
+      "pepper",
+      75
+    ]
+  ],
+  "rationale": "Each color and topping combination has a distinct positive award. Pepper recipes pay more than cheese, and cheese more than tomato; green recipes pay more than red, and red more than blue. Candidate narrated deltas for blue/cheese, red/tomato and red/pepper, and a conditional blue/cheese plus blue/pepper sum, inform those entries without establishing original accuracy. The remaining entries interpolate a bounded five-point scale; completing the challenge still requires genuine requested recipes and a genuine finish.",
+  "evidence_urls": [
+    "https://www.youtube.com/watch?v=oVjBNbIzv2Y",
+    "https://www.youtube.com/watch?v=YUMK90gDdQ4",
+    "https://guidactik.com/wakfu/guide-de-progression-pour-rush-les-neo-serveurs-wakfu/"
+  ],
+  "native_accuracy": "Recipe weights are not recovered official values. Native action costs, ingredient capacity, failure rules, score scale and threshold are separate source-qualified declarations."
+}

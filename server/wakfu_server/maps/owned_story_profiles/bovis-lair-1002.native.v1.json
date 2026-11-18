@@ -1,0 +1,613 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1002,
+  "objects": [
+    {
+      "x": 28.0,
+      "y": 15.0,
+      "z": 0.0,
+      "id": 25519,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "1_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000001c0000000f000000010100010001000000043230343900000000000000"
+    },
+    {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 25520,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000000000000010000000101010300000001000000000000000100000004323034390000003baf0001"
+    },
+    {
+      "x": -4.0,
+      "y": -10.0,
+      "z": 2.0,
+      "id": 25524,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103eafffffffcfffffff6000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": -1.0,
+      "y": -12.0,
+      "z": 2.0,
+      "id": 25525,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103eafffffffffffffff4000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 1.0,
+      "y": -7.0,
+      "z": 2.0,
+      "id": 25526,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000001fffffff9000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 4.0,
+      "y": -9.0,
+      "z": 2.0,
+      "id": 25527,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000004fffffff7000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 14.0,
+      "y": -8.0,
+      "z": 2.0,
+      "id": 25528,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000000efffffff8000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 14.0,
+      "y": -12.0,
+      "z": 2.0,
+      "id": 25529,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000000efffffff4000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 22.0,
+      "y": -8.0,
+      "z": 2.0,
+      "id": 25530,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000016fffffff8000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 22.0,
+      "y": -12.0,
+      "z": 2.0,
+      "id": 25531,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000016fffffff4000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 32.0,
+      "y": -10.0,
+      "z": 2.0,
+      "id": 25532,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000020fffffff6000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 36.0,
+      "y": -10.0,
+      "z": 2.0,
+      "id": 25533,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000024fffffff6000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 40.0,
+      "y": -10.0,
+      "z": 2.0,
+      "id": 25534,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000028fffffff6000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 32.0,
+      "y": 24.0,
+      "z": 2.0,
+      "id": 25535,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000002000000018000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 32.0,
+      "y": 15.0,
+      "z": 2.0,
+      "id": 25536,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea000000200000000f000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 36.0,
+      "y": 19.0,
+      "z": 2.0,
+      "id": 25537,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000002400000013000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 40.0,
+      "y": 24.0,
+      "z": 2.0,
+      "id": 25538,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000002800000018000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 40.0,
+      "y": 15.0,
+      "z": 2.0,
+      "id": 25539,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea000000280000000f000200000101010000000000043135323100000000000101"
+    },
+    {
+      "x": 36.0,
+      "y": 11.0,
+      "z": 2.0,
+      "id": 25540,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea000000240000000b000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 32.0,
+      "y": 6.0,
+      "z": 2.0,
+      "id": 25541,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000002000000006000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 40.0,
+      "y": 6.0,
+      "z": 2.0,
+      "id": 25542,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_0",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000002800000006000200000100010000000000043135323100000000000101"
+    },
+    {
+      "x": 6.0,
+      "y": -14.0,
+      "z": -1.0,
+      "id": 25581,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000006fffffff2ffff000101010100020000000339363800000000000101"
+    },
+    {
+      "x": 6.0,
+      "y": -14.0,
+      "z": -1.0,
+      "id": 25596,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000006fffffff2ffff000100000100000000000000000000000101"
+    },
+    {
+      "x": 24.0,
+      "y": -15.0,
+      "z": -1.0,
+      "id": 25599,
+      "auto": false,
+      "type": "Door",
+      "chunk": "1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000018fffffff1ffff000101000100000000000000000000000101"
+    },
+    {
+      "x": 21.0,
+      "y": -19.0,
+      "z": 0.0,
+      "id": 25600,
+      "auto": false,
+      "type": "Door",
+      "chunk": "1_-2",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000015ffffffed0000000101010100000000000000000000000101"
+    },
+    {
+      "x": 36.0,
+      "y": -2.0,
+      "z": -1.0,
+      "id": 25601,
+      "auto": false,
+      "type": "Door",
+      "chunk": "2_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea00000024fffffffeffff000101000300000000000000000000000101"
+    },
+    {
+      "x": 30.0,
+      "y": -15.0,
+      "z": 0.0,
+      "id": 25602,
+      "auto": false,
+      "type": "ZoneTrigger",
+      "chunk": "1_-1",
+      "map_id": 1002,
+      "payload_hex": "02000000000b010000000d00000103ea0000001efffffff100000001010103ffff00040000001efffffff100000000001ffffffff100000000001ffffffff200000000001efffffff20000000000000000000000"
+    }
+  ],
+  "scenario_id": 2045,
+  "scenario_events": [
+    16152,
+    16154,
+    16156,
+    16159,
+    16161,
+    16164,
+    16165,
+    16166,
+    16173,
+    16175,
+    16207,
+    16235,
+    16236,
+    16237,
+    16267,
+    16295,
+    16296,
+    16300,
+    16341,
+    16342,
+    16385,
+    19866
+  ],
+  "event_signatures": {
+    "16166": {
+      "argument_count": 4
+    },
+    "16152": {
+      "argument_count": 0
+    },
+    "16267": {
+      "argument_count": 4
+    },
+    "16295": {
+      "argument_count": 0
+    },
+    "16164": {
+      "argument_count": 0
+    },
+    "16165": {
+      "argument_count": 0
+    },
+    "16154": {
+      "argument_count": 0
+    },
+    "16235": {
+      "argument_count": 0
+    },
+    "16173": {
+      "argument_count": 0
+    },
+    "16156": {
+      "argument_count": 0
+    },
+    "16296": {
+      "argument_count": 0
+    },
+    "16300": {
+      "argument_count": 0
+    },
+    "16236": {
+      "argument_count": 0
+    },
+    "16175": {
+      "argument_count": 0
+    },
+    "16341": {
+      "argument_count": 0
+    },
+    "16159": {
+      "argument_count": 0
+    },
+    "19866": {
+      "argument_count": 0
+    },
+    "16237": {
+      "argument_count": 0
+    },
+    "16207": {
+      "argument_count": 0
+    },
+    "16342": {
+      "argument_count": 0
+    },
+    "16161": {
+      "argument_count": 0
+    },
+    "16385": {
+      "argument_count": 0
+    }
+  },
+  "scenes": {
+    "16267": {
+      "argument_count": 4,
+      "duration_ms": 51500,
+      "callback": 16267
+    },
+    "16296": {
+      "argument_count": 0,
+      "duration_ms": 76500,
+      "callback": 16296
+    },
+    "16159": {
+      "argument_count": 0,
+      "duration_ms": 22500,
+      "callback": 16159
+    },
+    "16161": {
+      "argument_count": 0,
+      "duration_ms": 25500,
+      "callback": 2
+    }
+  },
+  "programs": {
+    "25581": {
+      "native_class": "aLl",
+      "descriptor_id": 968,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1196,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 1000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1218,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2426,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "2426": {
+      "present": false,
+      "sha256": null
+    }
+  },
+  "teleporters": {
+    "25519": {
+      "x": 28.0,
+      "y": 15.0,
+      "z": 0.0,
+      "id": 25519,
+      "map_id": 1002,
+      "destinations": [
+        {
+          "x": -32,
+          "y": 61,
+          "z": 0,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1134,
+          "criterion": "",
+          "direction": 1,
+          "destination_id": 2261,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 1,
+      "definition_id": 2049,
+      "native_parameters": "2049",
+      "approach_positions": [
+        {
+          "x": 29,
+          "y": 15,
+          "z": 0
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25520": {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 0.0,
+      "id": 25520,
+      "map_id": 1002,
+      "destinations": [
+        {
+          "x": -32,
+          "y": 61,
+          "z": 0,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 1134,
+          "criterion": "",
+          "direction": 1,
+          "destination_id": 2261,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 204,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "definition_id": 2049,
+      "native_parameters": "2049",
+      "approach_positions": [],
+      "approach_orientation": 3,
+      "approach_blocks_center": false
+    }
+  },
+  "interaction_approaches": {
+    "25581": [
+      [
+        5,
+        -14,
+        0
+      ]
+    ]
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/2045.lua": "1e702084a6ef781ca967a5bb4f3495c19eb4bc818936ed4237662b5797e62d26"
+  },
+  "argument_sources": {
+    "16166": {
+      "room_actors": {
+        "room_actor:1:0": {
+          "room_order": 1,
+          "index": 0,
+          "reference": 3774
+        },
+        "room_actor:1:1": {
+          "room_order": 1,
+          "index": 1,
+          "reference": 3774
+        },
+        "room_actor:1:2": {
+          "room_order": 1,
+          "index": 2,
+          "reference": 3234
+        },
+        "room_actor:1:3": {
+          "room_order": 1,
+          "index": 3,
+          "reference": 3234
+        }
+      }
+    },
+    "16267": {
+      "room_actors": {
+        "room_actor:1:0": {
+          "room_order": 1,
+          "index": 0,
+          "reference": 3774
+        },
+        "room_actor:1:1": {
+          "room_order": 1,
+          "index": 1,
+          "reference": 3774
+        },
+        "room_actor:1:2": {
+          "room_order": 1,
+          "index": 2,
+          "reference": 3234
+        },
+        "room_actor:1:3": {
+          "room_order": 1,
+          "index": 3,
+          "reference": 3234
+        }
+      }
+    }
+  },
+  "combat_helpers": {
+    "3": "wakemu.bovis-lair.native-ally.v1",
+    "4": "wakemu.bovis-lair.native-ally.v1"
+  },
+  "presentation_quests": {
+    "16267": 2711,
+    "16296": 2711,
+    "16159": 2711,
+    "16161": 2720
+  },
+  "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 557,
+  "objects": [],
+  "scenario_events": [],
+  "scenes": {},
+  "programs": {},
+  "loot_tables": {},
+  "native_scripts": {},
+  "provenance": "Original VIP raft18981/1289 requires one16833 and enters actual557(0,0,16); return18984/1290 remains free. This source-authentic narrative context qualifies1263 arrival only. Native DJ minigame1264 is deliberately not activated: its missing original encounter bootstrap/control cannot be replaced by an ordinary enemy or injected state1941."
+}

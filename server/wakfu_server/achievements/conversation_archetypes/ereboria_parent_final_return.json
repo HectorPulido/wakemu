@@ -1,0 +1,47 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Original5059 has two mandatory objectives after all three child chains:10539 Confront Cire Momore and10540 Return to Cyross. This additive final-return declaration reuses the existing native Cyross5406/action1208 actor and the source-guarded5598/13174\u21925696/13173 terminal branch. It does not credit10539, auto-complete any child or admit a replacement ordinary boss fight. The original client catalog has no serialized edge; this two-node semantic path is explicitly reviewed reconstruction.",
+  "speakers": [
+    {
+      "actor_id": -2251799934995059,
+      "action_id": 1208,
+      "quest_ids": [
+        5059
+      ],
+      "objectives": [
+        {
+          "quest_id": 5059,
+          "objective_id": 10540,
+          "node_id": 5696,
+          "choice_id": 13173,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              5598,
+              13174,
+              5696
+            ],
+            [
+              5696,
+              13173,
+              0
+            ]
+          ],
+          "running_branch": 5059
+        }
+      ],
+      "graph": [
+        [
+          5598,
+          13174,
+          5696
+        ],
+        [
+          5696,
+          13173,
+          0
+        ]
+      ]
+    }
+  ]
+}

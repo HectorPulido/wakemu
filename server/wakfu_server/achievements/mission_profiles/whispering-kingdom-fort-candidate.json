@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "whispering-kingdom-fort-candidate",
+  "evidence": [
+    "LOCAL SOURCE CANDIDATE4872, not published automatically. Genuine completed4871 admits4872; entire producer block is owned Fort453 entry10046, actual infantry death10047, authorized scoped Airwhisp10048, owned native Lieutenant2143 victory10087 and ten native paint occupations10088.4873/4874 are not activated.",
+    "DORMANT physical native resource450/451 harvest actions1141/1142 require the running4872 owner, native objective10088 prerequisites, exact original criteria and reviewed reachable public1295 placement. Native counter726 threshold10 is preserved.",
+    "Actual committed3000ms occupations emit resource_action_completed once, including productless harvests; token replay cannot increment again. Native cvF0 depletes, reviewed immediate refill publishes a fresh full resource. No fake item or interaction objective is emitted."
+  ],
+  "bindings": [
+    {
+      "id": "whisper-native-paint-action-1141",
+      "quest_id": 4872,
+      "objective_id": 10088,
+      "variable_id": 726,
+      "event": {
+        "kind": "resource_action_completed",
+        "reference": 1141
+      },
+      "maps": [
+        1295
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "whisper-native-paint-action-1142",
+      "quest_id": 4872,
+      "objective_id": 10088,
+      "variable_id": 726,
+      "event": {
+        "kind": "resource_action_completed",
+        "reference": 1142
+      },
+      "maps": [
+        1295
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "whisper-earned-4871-to-4872",
+      "quest_id": 4872,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 4871
+      },
+      "requires_completed": [
+        4871
+      ]
+    },
+    {
+      "id": "whisper-earned-fort-recovery",
+      "quest_id": 4872,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        4871
+      ],
+      "minimum_level": 96,
+      "admission_evidence": "Recovery for genuine completed4871 owners at original native level96. Publish only atomically with the complete Fort/Lieutenant/pinned paint producer block."
+    }
+  ]
+}

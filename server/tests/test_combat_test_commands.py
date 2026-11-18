@@ -1,7 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
-from wakfu_server.combat_test_commands import finish
+from wakfu_server.combat_test_commands import administrative_victory, finish
 
 
 class Fight(SimpleNamespace):
@@ -41,6 +41,55 @@ class CombatTestCommandsTests(unittest.TestCase):
         self.assertIs(result.runtime.fight, result.fight)
         self.assertEqual(result.packets, ())  # Normal finish owns terminal packets.
 
+    def test_operator_win_marker_is_owner_scoped_idempotent_and_not_a_death(self):
+        result = self.outcome(True)
+        fight = result.fight
+        markers = [
+            event
+            for event in fight.events
+            if event.get("kind") == "administrative_outcome"
+        ]
+        self.assertEqual(
+            markers,
+            [
+                dict(
+                    kind="administrative_outcome",
+                    command="!winfight",
+                    account_id=10,
+                    character_id=1,
+                    winner=0,
+                )
+            ],
+        )
+        self.assertFalse(any(event.get("kind") == "death" for event in fight.events))
+        self.assertTrue(administrative_victory(fight, account_id=10, character_id=1))
+
+        again = finish(fight, result.runtime, account_id=10, character_id=1, win=True)
+        self.assertEqual(
+            sum(
+                event.get("kind") == "administrative_outcome"
+                for event in again.fight.events
+            ),
+            1,
+        )
+
+        actor = fight.actors[1]
+        self.assertFalse(administrative_victory(fight, account_id=99, character_id=1))
+        actor.owner_id = 99
+        self.assertFalse(administrative_victory(fight, account_id=10, character_id=1))
+        actor.owner_id = 10
+        actor.controlled = False
+        self.assertFalse(administrative_victory(fight, account_id=10, character_id=1))
+        actor.controlled = True
+        actor.pve_withdrawn = True
+        self.assertFalse(administrative_victory(fight, account_id=10, character_id=1))
+        actor.pve_withdrawn = False
+        fight.winner = 1
+        self.assertFalse(administrative_victory(fight, account_id=10, character_id=1))
+        fight.winner = 0
+        fight.phase = "active"
+        self.assertFalse(administrative_victory(fight, account_id=10, character_id=1))
+
     def test_defeat_affects_the_whole_team_including_heroes(self):
         result = self.outcome(False)
         self.assertEqual(result.fight.winner, 1)
@@ -48,6 +97,9 @@ class CombatTestCommandsTests(unittest.TestCase):
             [result.fight.actors[i].hp for i in (1, 2, 3, 4)], [0, 0, 0, 90]
         )
         self.assertEqual(result.fight.events, [{"kind": "finished", "winner": 1}])
+        self.assertFalse(
+            administrative_victory(result.fight, account_id=10, character_id=1)
+        )
 
     def test_foreign_owner_cannot_force_outcome(self):
         with self.assertRaises(ValueError):

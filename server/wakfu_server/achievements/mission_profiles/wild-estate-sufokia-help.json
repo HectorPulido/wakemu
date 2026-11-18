@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "id": "wild-estate-sufokia-help",
+  "evidence": [
+    "Reviewed reconstruction of native1678 discovery: original711/source20448 generic475 enters Sufokian storehouse715 at(0,-1,0), with original Complete1677 criterion and no payment; original715/20538/1419 returns to711(-28,-104,-79). Native player Sm6 floor and all source bytes are pinned. The guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ explicitly identifies entering this storehouse as Garbage Day discovery. Objective3110 requires authenticated owned World-ready after that exact committed entrance; public map visits, teleports and NPC opening cannot grant it. This finite slice does not start/credit1679, fabricate an Excarnate victory or replace Bworkball.",
+    "Reviewed reconstruction from original Wild1679 native2811/type4/action440, guarded2331/5639→2332/5640 confirmation and2331/5645→2333/5642 debrief; edges and private actor formation/positions are explicitly reconstructed from original matching text, not recovered server graph. Actual confirmed native5640 admits one original2798 and one2799 level50 Sufokian Excarnate, matching original1651 male/female fight; genuine source-qualified victory alone earns3115, and accepted guarded debrief alone earns3116. Ordinary unrelated wins, dialogue opening and selecting the preliminary5639 do not qualify. Native stats, spells and resources unchanged. No Bworkball result is invented."
+  ],
+  "bindings": [
+    {
+      "id": "wild-frightened-bwork-debrief",
+      "quest_id": 1679,
+      "objective_id": 3116,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 3116
+      },
+      "count": "operation",
+      "maps": [
+        715
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-sufokia-discovery-earned",
+      "quest_id": 1678,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1677
+      },
+      "requires_completed": [
+        1677
+      ]
+    },
+    {
+      "id": "wild-sufokia-discovery-recovery",
+      "quest_id": 1678,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1677
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed reconstruction of native1678 discovery: original711/source20448 generic475 enters Sufokian storehouse715 at(0,-1,0), with original Complete1677 criterion and no payment; original715/20538/1419 returns to711(-28,-104,-79). Native player Sm6 floor and all source bytes are pinned. The guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ explicitly identifies entering this storehouse as Garbage Day discovery. Objective3110 requires authenticated owned World-ready after that exact committed entrance; public map visits, teleports and NPC opening cannot grant it. This finite slice does not start/credit1679, fabricate an Excarnate victory or replace Bworkball."
+    },
+    {
+      "id": "wild-sufokia-help-earned",
+      "quest_id": 1679,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1678
+      },
+      "requires_completed": [
+        1678
+      ]
+    },
+    {
+      "id": "wild-sufokia-help-recovery",
+      "quest_id": 1679,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1678
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed reconstruction from original Wild1679 native2811/type4/action440, guarded2331/5639→2332/5640 confirmation and2331/5645→2333/5642 debrief; edges and private actor formation/positions are explicitly reconstructed from original matching text, not recovered server graph. Actual confirmed native5640 admits one original2798 and one2799 level50 Sufokian Excarnate, matching original1651 male/female fight; genuine source-qualified victory alone earns3115, and accepted guarded debrief alone earns3116. Ordinary unrelated wins, dialogue opening and selecting the preliminary5639 do not qualify. Native stats, spells and resources unchanged. No Bworkball result is invented."
+    }
+  ]
+}

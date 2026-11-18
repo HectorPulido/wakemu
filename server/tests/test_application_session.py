@@ -18,7 +18,10 @@ import unittest
 from unittest.mock import Mock, patch
 
 from wakfu_server.application.dispatch_result import DispatchResult
-from wakfu_server.application.network_delivery import NetworkDelivery
+from wakfu_server.application.network_delivery import (
+    NetworkDelivery,
+    PendingSessionWork,
+)
 from wakfu_server.application.session import Session
 from wakfu_server.application.transport import Connection
 
@@ -373,6 +376,105 @@ class NetworkDeliveryTests(unittest.TestCase):
         connection.recv.side_effect = [b""]
         with self.assertRaises(EOFError):
             delivery.receive(connection, 1)
+
+    def test_pending_work_interrupts_only_an_empty_frame_header(self):
+        _, delivery = self.runtime()
+        connection = Mock(objectives_updates=None)
+        queued = []
+        source_attack = struct.pack(">qHH", 24139, 0, 0)
+
+        def idle():
+            queued.append(source_attack)
+            return True
+
+        connection.recv.side_effect = [socket.timeout(), b"must-not-be-read"]
+        with self.assertRaises(PendingSessionWork):
+            delivery.receive(
+                connection,
+                4,
+                idle,
+                pending_work=lambda: bool(queued),
+            )
+        self.assertEqual(queued, [source_attack])
+        connection.recv.assert_called_once_with(4)
+
+        connection = Mock(objectives_updates=None)
+        queued = []
+        connection.recv.side_effect = [b"\x00\x00", socket.timeout(), b"\x00\x08"]
+        header = delivery.receive(
+            connection,
+            4,
+            lambda: (queued.append(source_attack) or True),
+            pending_work=lambda: bool(queued),
+        )
+        self.assertEqual(header, b"\x00\x00\x00\x08")
+        self.assertEqual(connection.recv.call_count, 3)
+
+    def test_actual_session_dispatches_idle_queued_source_attack_without_client_frame(
+        self,
+    ):
+        session = session_fixture(
+            loaded=False,
+            account_id=None,
+            service="diagnostic",
+            active_request=None,
+            pending_guardian_attack=None,
+            connection_trace_id="fixture-connection",
+            peer=("local", 0),
+        )
+        runtime, delivery = self.runtime()
+        runtime.COMBAT_TEST = True
+        runtime.GUILD_REQUEST_OPCODES = frozenset()
+        runtime.STOPPING = threading.Event()
+        runtime.CONNECTIONS = Mock()
+        runtime.CONNECTIONS.register.return_value = True
+        runtime.Connection = lambda raw: raw
+        runtime.receive = delivery.receive
+        runtime.send = delivery.send
+        runtime.ECOLOGY_BRIDGE = None
+        runtime.REQUEST_STATE_DETAIL = False
+        runtime.state_summary = Mock(return_value={})
+        runtime.exception_frames = Mock(return_value=[])
+        runtime.safe_snapshot = lambda operation: operation()
+        runtime.write_records = Mock()
+        runtime.RequestTrace = lambda **_kwargs: Mock()
+        session.runtime = runtime
+        raw = Mock()
+        raw.objectives_updates = None
+        raw.is_bot_peer = False
+        raw.trace_id = None
+        raw.recv.side_effect = [socket.timeout(), b""]
+        raw.version.return_value = "fixture-TLS"
+        session.state.raw = raw
+        session.state.context = SimpleNamespace(
+            wrap_socket=lambda *args, **kwargs: nullcontext(raw)
+        )
+        session.release_completed_combat_action_results = Mock()
+        idle_calls = []
+        marker = struct.pack(">qHH", 24139, 0, 0)
+
+        def idle():
+            idle_calls.append(True)
+            if len(idle_calls) == 2:
+                session.state.pending_guardian_attack = marker
+            return True
+
+        session.idle = idle
+        session.checkpoint_fight = Mock()
+        session.close = Mock()
+        session.prepare_request = Mock(return_value=DispatchResult.FALLTHROUGH)
+        session.dispatch_request = Mock(return_value=DispatchResult.CONTINUE)
+
+        session.run()
+
+        session.dispatch_request.assert_called_once_with()
+        self.assertEqual(
+            (session.state.route, session.state.opcode, session.state.body),
+            (0, 13130, marker),
+        )
+        self.assertEqual(raw.recv.call_count, 2)
+        session.checkpoint_fight.assert_not_called()
+        session.close.assert_called_once_with()
 
     def test_failed_socket_write_invalidates_publication_and_unlocks(self):
         runtime, _ = self.runtime()

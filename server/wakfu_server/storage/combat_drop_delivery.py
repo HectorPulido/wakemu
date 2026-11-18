@@ -5,6 +5,7 @@ Successful decisions are never rerolled here: their attempt identity is the
 foreign key of the delivery receipt, and any failure rolls the whole victory
 transaction back.
 """
+
 import struct
 from hashlib import sha256
 
@@ -46,7 +47,7 @@ def _item_proto(item):
         item.pop("resistance_elements", None)
     # All publication routes share the native field55 message codec.
     enum, binding_type, _ = _template_binding(item["reference"])
-    if enum != "NOT_BOUND" or _effective_bound(item):
+    if "binding_type" not in item and (enum != "NOT_BOUND" or _effective_bound(item)):
         item["binding_type"] = binding_type
         item["bound"] = _effective_bound(item)
     return item_proto(item)
@@ -84,6 +85,11 @@ def _effective_bound(item):
     value = item.get("bound", False)
     if type(value) is not bool:
         raise ValueError("Invalid persisted item binding")
+    if "binding_type" in item:
+        from wakfu_server.item_binding import validate_override
+
+        validate_override(item["binding_type"])
+        return value
     return value or _template_bound(item["reference"])
 
 
@@ -154,7 +160,7 @@ def _temporary_item_form(item):
         item.pop("damage_elements", None)
         item.pop("resistance_elements", None)
     enum, binding_type, _ = _template_binding(item["reference"])
-    if enum != "NOT_BOUND" or _effective_bound(item):
+    if "binding_type" not in item and (enum != "NOT_BOUND" or _effective_bound(item)):
         item["binding_type"] = binding_type
         item["bound"] = _effective_bound(item)
     return item_form(item)
@@ -343,7 +349,8 @@ def apply(store, db, batch):
         _template_bound(entry.item_reference)
         if (
             db.execute(
-                "SELECT 1 FROM mount_models WHERE reference=%s", (entry.item_reference,)
+                "SELECT 1 FROM mount_item_models WHERE reference=%s",
+                (entry.item_reference,),
             ).fetchone()
             is not None
         ):
@@ -1024,6 +1031,18 @@ def claim(store, account_id, generation, character_id, body):
             _save_binding(db, item["uid"], item["reference"], item["bound"])
         _record_transfer(db, character_id, 1, body, character_id)
         character, packets = _inventory_snapshot(store, account_id, character_id, db)
+        from wakfu_server.achievements import combat_loot_events
+
+        packets.extend(
+            combat_loot_events.settle_temporary_claim(
+                db,
+                store,
+                character,
+                token="claim:" + sha256(body).hexdigest(),
+                reference=source["reference"],
+                quantity=request["quantity"],
+            )
+        )
         return dict(
             character=character,
             packets=packets + temporary_updates(db, character_id),
@@ -1088,6 +1107,22 @@ def bulk_transfer(store, account_id, generation, character_id, body):
             character, packets = _inventory_snapshot(
                 store, account_id, character_id, db
             )
+            from wakfu_server.achievements import combat_loot_events
+
+            for received in rows:
+                packets.extend(
+                    combat_loot_events.settle_temporary_claim(
+                        db,
+                        store,
+                        character,
+                        token="bulk:"
+                        + sha256(body).hexdigest()
+                        + ":"
+                        + str(received["uid"]),
+                        reference=received["reference"],
+                        quantity=received["quantity"],
+                    )
+                )
             return dict(
                 source=character,
                 destination=character,

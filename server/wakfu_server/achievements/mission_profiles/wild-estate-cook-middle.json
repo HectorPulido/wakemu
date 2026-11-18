@@ -1,0 +1,228 @@
+{
+  "id": "wild-estate-cook-middle",
+  "version": 1,
+  "evidence": [
+    "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+  ],
+  "bindings": [
+    {
+      "id": "wild-chief-real-return-after-bworkball",
+      "quest_id": 1665,
+      "objective_id": 3082,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 3082
+      },
+      "maps": [
+        726
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "wild-quarantine-authentic-arrival",
+      "quest_id": 1639,
+      "objective_id": 3083,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 1417
+      },
+      "maps": [
+        720
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "wild-mobbits-native-acquisition-counter",
+      "quest_id": 1640,
+      "objective_id": 3085,
+      "variable_id": 371,
+      "event": {
+        "kind": "combat_loot",
+        "reference": 17829
+      },
+      "count": "quantity"
+    },
+    {
+      "id": "wild-cook-actual-return-for-beer",
+      "quest_id": 1641,
+      "objective_id": 3104,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 3104
+      },
+      "maps": [
+        720
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "wild-cook-after-authentic-cure",
+      "quest_id": 1666,
+      "objective_id": 3169,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 3169
+      },
+      "maps": [
+        720
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-middle-earned-1638-1665",
+      "quest_id": 1665,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1638
+      },
+      "requires_completed": [
+        1638
+      ]
+    },
+    {
+      "id": "wild-middle-ready-1665",
+      "quest_id": 1665,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "requires_completed": [
+        1638
+      ],
+      "admission_evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+    },
+    {
+      "id": "wild-middle-earned-1665-1639",
+      "quest_id": 1639,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1665
+      },
+      "requires_completed": [
+        1665
+      ]
+    },
+    {
+      "id": "wild-middle-ready-1639",
+      "quest_id": 1639,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "requires_completed": [
+        1665
+      ],
+      "admission_evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+    },
+    {
+      "id": "wild-middle-earned-1639-1640",
+      "quest_id": 1640,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1639
+      },
+      "requires_completed": [
+        1639
+      ]
+    },
+    {
+      "id": "wild-middle-ready-1640",
+      "quest_id": 1640,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "requires_completed": [
+        1639
+      ],
+      "admission_evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+    },
+    {
+      "id": "wild-middle-earned-1640-1688",
+      "quest_id": 1688,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1640
+      },
+      "requires_completed": [
+        1640
+      ]
+    },
+    {
+      "id": "wild-middle-ready-1688",
+      "quest_id": 1688,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "requires_completed": [
+        1640
+      ],
+      "admission_evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+    },
+    {
+      "id": "wild-middle-earned-1688-1641",
+      "quest_id": 1641,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1688
+      },
+      "requires_completed": [
+        1688
+      ]
+    },
+    {
+      "id": "wild-middle-ready-1641",
+      "quest_id": 1641,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "requires_completed": [
+        1688
+      ],
+      "admission_evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+    },
+    {
+      "id": "wild-middle-earned-1641-1666",
+      "quest_id": 1666,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1641
+      },
+      "requires_completed": [
+        1641
+      ]
+    },
+    {
+      "id": "wild-middle-ready-1666",
+      "quest_id": 1666,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "requires_completed": [
+        1641
+      ],
+      "admission_evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+    }
+  ]
+}

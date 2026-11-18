@@ -116,7 +116,7 @@ def grant(
             result["uid"] = allocate(db)
             return result
         mount_model = db.execute(
-            "SELECT model_id FROM mount_models WHERE reference=%s", (reference,)
+            "SELECT model_id FROM mount_item_models WHERE reference=%s", (reference,)
         ).fetchone()
         pet_model = db.execute(
             "SELECT model_id FROM native_pet_models WHERE reference=%s", (reference,)

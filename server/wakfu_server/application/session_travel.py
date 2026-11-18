@@ -589,6 +589,12 @@ class TravelSessionMixin:
             self.state.generation, self.state.connection, self.state.character
         )
         self.mark_static_sync_pending()
+        if "owned_story_refresh" in wakeup:
+            from wakfu_server import owned_story_refresh
+
+            owned_story_refresh.acknowledge(
+                self.runtime.STORE, self.state.character, wakeup["owned_story_refresh"]
+            )
         rift_transition_delivery.acknowledge(
             self.state.account_id,
             self.state.generation,
@@ -1375,6 +1381,31 @@ class TravelSessionMixin:
                 )
                 pending = None
             if pending is not None:
+                if configuration["topology"].get("owned_story_controller") is not None:
+                    from . import owned_story_dispatch
+
+                    owned_story_dispatch.hydrate(self)
+                    owned_story_dispatch.refresh_group(self)
+                    with self.runtime.STORE.connection() as story_db:
+                        progress = story_db.execute(
+                            "SELECT revision FROM dungeon_room_runs WHERE instance_id=%s",
+                            (self.state.character["instance_id"],),
+                        ).fetchone()
+                        story_db.execute(
+                            "UPDATE dungeon_room_encounters SET result=result || "
+                            "jsonb_build_object('physical_publication_revision',%s) "
+                            "WHERE instance_id=%s AND fight_id=%s AND result_revision=%s",
+                            (
+                                progress["revision"],
+                                self.state.character["instance_id"],
+                                pending["fight_id"],
+                                progress["revision"],
+                            ),
+                        )
+                    return {
+                        "state": "owned_story_room_published",
+                        "pending_event_ids": (),
+                    }
                 from wakfu_server import dungeon_native_flow
 
                 if dungeon_native_flow.enabled(configuration["topology"]):
@@ -2107,11 +2138,6 @@ class TravelSessionMixin:
                         ) = self.state.dungeon_runtime.configuration_for_instance(
                             dungeon_db, self.state.character["instance_id"]
                         )
-                    if (
-                        self.state.dungeon_config["topology"].get("policy")
-                        == "local_accessible_anchor_policy"
-                    ):
-                        raise ValueError("This dungeon uses automatic party travel")
                     (
                         self.state.source_id,
                         self.state.destination_id,
@@ -2171,6 +2197,33 @@ class TravelSessionMixin:
                             is not None
                         )
 
+                    if (
+                        self.state.dungeon_config["topology"].get("policy")
+                        == "local_accessible_anchor_policy"
+                    ):
+                        from wakfu_server import dungeon_auto_exit
+
+                        dungeon_auto_exit.native_completed_return(
+                            self.runtime.STORE,
+                            self.state.character,
+                            self.state.body,
+                            topology=self.state.dungeon_config["topology"],
+                            source_allowed=approach,
+                            in_fight=dungeon_member_in_fight,
+                            positions=self.runtime.POSITIONS,
+                        )
+                        self.deliver_dungeon_transitions(before_action=True)
+                        return DispatchResult.CONTINUE
+
+                    from . import owned_story_dispatch
+
+                    if owned_story_dispatch.handle_travel(
+                        self,
+                        self.state.dungeon_config,
+                        source_allowed=approach,
+                        in_fight=dungeon_member_in_fight,
+                    ):
+                        return DispatchResult.CONTINUE
                     if destination["map_id"] != self.state.character["map_id"]:
                         from wakfu_server import dungeon_native_flow
 

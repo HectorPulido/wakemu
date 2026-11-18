@@ -1,0 +1,31 @@
+{
+  "schema": "owned-story-instance-v1",
+  "content_policy": "owned-object-trials-v1",
+  "id": "huppermage-labyrinth-1027",
+  "version": 1,
+  "map_id": 1027,
+  "entry": {
+    "map_id": 1019,
+    "object_id": 25725,
+    "destination_id": 2333
+  },
+  "native_entry_criterion": "IsAchievementActive(2788) or IsAchievementActive(2789)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    26170
+  ],
+  "controller_file": "huppermage-labyrinth-1027.json",
+  "exploration_file": "huppermage-labyrinth-1027.exploration.json",
+  "owned_transfers": [
+    {
+      "schema": "owned-quest-transfer-v1",
+      "source_id": 26189,
+      "destination_id": 2366,
+      "target_route_key": "quest-map-1028-26189-2366"
+    }
+  ],
+  "provenance": "Reviewed world labyrinth reconstruction on unchanged native1027. Original2075 callbacks, seven980 lamps, three868 levers, twoDoor objects, seventeen literal trap cells and native exit are unchanged. Original server timer quantities/minimum light/lever-door joins were not recovered: version1 explicitly uses120s initial+30s per lamp,minimum4 collected lamps,26187->26188 and26213->26214. No combat/talk/admin success. Server elapsed clock,source-qualified12870 actions and accepted native floor movement own every result."
+}

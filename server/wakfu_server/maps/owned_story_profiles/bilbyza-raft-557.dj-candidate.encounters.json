@@ -1,0 +1,50 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "bilbyza-raft-557-dj-encounters",
+  "map_id": 557,
+  "provenance": "Reviewed native DJ challenge reconstruction: original raft18981/1289 paid VIP16833 and free18984/1290 return remain literal. Native DJ2502/action343/type4 at an explicitly reconstructed legal Sm6 stage anchor opens the genuine2502 encounter. Native2502 level100/INIT1000/spell3700 and source-pinned consumer2518 innate1895 initialize the solo challenge;1941 and areas527-530 are produced only by the original3700/95219/95845 and native1001 callbacks. No ordinary monster death supplies2393.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "dj-requested"
+      ],
+      "arena_seed": [
+        -20,
+        -17,
+        3
+      ],
+      "bounds": [
+        -30,
+        -27,
+        -8,
+        -6
+      ],
+      "z": 3,
+      "monsters": [
+        {
+          "reference": 2502,
+          "count": 1,
+          "role": "boss"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "bilbyza-native-dj-setup-v1",
+        "authority": "authorized_wakemu_quest_scene_reconstruction",
+        "source_uri": "native://aMb/2502/csd/3700;native://aMb/2518/cle/1895",
+        "full_room_scope": true,
+        "controlled_state_programs": [
+          {
+            "state_id": 1895,
+            "level": 1,
+            "protected": false,
+            "source_sha256": "92160fa1d2f5f4c1525fb8e9014b475609ba705da1f22e235fa6056dac0e847a",
+            "evidence": "Actual original2518 constructor innate1895 at1, applied through existing scoped player scene-state publisher. Native own-turn program supplies randomized mode/order, no synthetic color states."
+          }
+        ]
+      }
+    }
+  ]
+}

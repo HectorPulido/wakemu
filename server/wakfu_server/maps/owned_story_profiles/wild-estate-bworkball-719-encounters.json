@@ -1,0 +1,942 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "wild-estate-bworkball-719-encounters",
+  "map_id": 719,
+  "provenance": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+  "sequential_arenas": true,
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "bworkball-1-requested"
+      ],
+      "arena_seed": [
+        -4,
+        0,
+        0
+      ],
+      "bounds": [
+        -8,
+        -5,
+        8,
+        5
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2783,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2781,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2780,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2782,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wild-bworkball-match-1",
+        "authority": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+        "source_uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+        "full_room_scope": true,
+        "ball_goals": {
+          "schema": "owned-native-ball-goals-v1",
+          "id": "wild-bworkball-match-1",
+          "quest_id": 1638,
+          "objective_id": 3079,
+          "match_index": 1,
+          "source_id": 20383,
+          "ball_reference": 2783,
+          "player_form_reference": 2784,
+          "player_goal_cells": [
+            [
+              8,
+              -1,
+              0
+            ],
+            [
+              8,
+              0,
+              0
+            ],
+            [
+              8,
+              1,
+              0
+            ]
+          ],
+          "opponent_goal_cells": [
+            [
+              -8,
+              -1,
+              0
+            ],
+            [
+              -8,
+              0,
+              0
+            ],
+            [
+              -8,
+              1,
+              0
+            ]
+          ],
+          "recruitment_cells": [
+            [
+              -6,
+              -3,
+              0
+            ],
+            [
+              -6,
+              -1,
+              0
+            ],
+            [
+              -6,
+              1,
+              0
+            ],
+            [
+              -6,
+              3,
+              0
+            ],
+            [
+              -5,
+              0,
+              0
+            ]
+          ],
+          "native_source_sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f",
+          "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+        },
+        "fixed_actor_placements": [
+          {
+            "reference": 2783,
+            "occurrence": 0,
+            "cell": [
+              0,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2781,
+            "occurrence": 0,
+            "cell": [
+              3,
+              -1,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2780,
+            "occurrence": 0,
+            "cell": [
+              5,
+              -3,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2782,
+            "occurrence": 0,
+            "cell": [
+              6,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          }
+        ],
+        "native_initial_glyphs": [
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              0,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              0,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              -3,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              3,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -5,
+              0,
+              0
+            ],
+            "level": 0
+          }
+        ],
+        "native_initial_glyph_policy": "wakemu.owned-native-bworkball-v1",
+        "native_initial_glyph_authority": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+        "native_initial_glyph_source_url": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+        "controlled_state_programs": [
+          {
+            "state_id": 2338,
+            "level": 1,
+            "protected": true,
+            "source_sha256": "be6416b1e279c615e70f3033da59b2306ede475f0f89a63d2242cd6821def35f",
+            "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "bworkball-2-requested"
+      ],
+      "arena_seed": [
+        -4,
+        0,
+        0
+      ],
+      "bounds": [
+        -8,
+        -5,
+        8,
+        5
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2783,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2781,
+          "count": 2,
+          "role": "monster"
+        },
+        {
+          "reference": 2780,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2782,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wild-bworkball-match-2",
+        "authority": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+        "source_uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+        "full_room_scope": true,
+        "ball_goals": {
+          "schema": "owned-native-ball-goals-v1",
+          "id": "wild-bworkball-match-2",
+          "quest_id": 1638,
+          "objective_id": 3080,
+          "match_index": 2,
+          "source_id": 20407,
+          "ball_reference": 2783,
+          "player_form_reference": 2784,
+          "player_goal_cells": [
+            [
+              8,
+              -1,
+              0
+            ],
+            [
+              8,
+              0,
+              0
+            ],
+            [
+              8,
+              1,
+              0
+            ]
+          ],
+          "opponent_goal_cells": [
+            [
+              -8,
+              -1,
+              0
+            ],
+            [
+              -8,
+              0,
+              0
+            ],
+            [
+              -8,
+              1,
+              0
+            ]
+          ],
+          "recruitment_cells": [
+            [
+              -6,
+              -3,
+              0
+            ],
+            [
+              -6,
+              -1,
+              0
+            ],
+            [
+              -6,
+              1,
+              0
+            ],
+            [
+              -6,
+              3,
+              0
+            ],
+            [
+              -5,
+              0,
+              0
+            ]
+          ],
+          "native_source_sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f",
+          "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+        },
+        "fixed_actor_placements": [
+          {
+            "reference": 2783,
+            "occurrence": 0,
+            "cell": [
+              0,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2781,
+            "occurrence": 0,
+            "cell": [
+              3,
+              -1,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2781,
+            "occurrence": 1,
+            "cell": [
+              3,
+              1,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2780,
+            "occurrence": 0,
+            "cell": [
+              5,
+              -3,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2782,
+            "occurrence": 0,
+            "cell": [
+              6,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          }
+        ],
+        "native_initial_glyphs": [
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              0,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              0,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              -3,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              3,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -5,
+              0,
+              0
+            ],
+            "level": 0
+          }
+        ],
+        "native_initial_glyph_policy": "wakemu.owned-native-bworkball-v1",
+        "native_initial_glyph_authority": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+        "native_initial_glyph_source_url": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+        "controlled_state_programs": [
+          {
+            "state_id": 2338,
+            "level": 1,
+            "protected": true,
+            "source_sha256": "be6416b1e279c615e70f3033da59b2306ede475f0f89a63d2242cd6821def35f",
+            "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "bworkball-3-requested"
+      ],
+      "arena_seed": [
+        -4,
+        0,
+        0
+      ],
+      "bounds": [
+        -8,
+        -5,
+        8,
+        5
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2783,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2781,
+          "count": 2,
+          "role": "monster"
+        },
+        {
+          "reference": 2780,
+          "count": 2,
+          "role": "monster"
+        },
+        {
+          "reference": 2782,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wild-bworkball-match-3",
+        "authority": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+        "source_uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+        "full_room_scope": true,
+        "ball_goals": {
+          "schema": "owned-native-ball-goals-v1",
+          "id": "wild-bworkball-match-3",
+          "quest_id": 1638,
+          "objective_id": 3081,
+          "match_index": 3,
+          "source_id": 20406,
+          "ball_reference": 2783,
+          "player_form_reference": 2784,
+          "player_goal_cells": [
+            [
+              8,
+              -1,
+              0
+            ],
+            [
+              8,
+              0,
+              0
+            ],
+            [
+              8,
+              1,
+              0
+            ]
+          ],
+          "opponent_goal_cells": [
+            [
+              -8,
+              -1,
+              0
+            ],
+            [
+              -8,
+              0,
+              0
+            ],
+            [
+              -8,
+              1,
+              0
+            ]
+          ],
+          "recruitment_cells": [
+            [
+              -6,
+              -3,
+              0
+            ],
+            [
+              -6,
+              -1,
+              0
+            ],
+            [
+              -6,
+              1,
+              0
+            ],
+            [
+              -6,
+              3,
+              0
+            ],
+            [
+              -5,
+              0,
+              0
+            ]
+          ],
+          "native_source_sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f",
+          "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+        },
+        "fixed_actor_placements": [
+          {
+            "reference": 2783,
+            "occurrence": 0,
+            "cell": [
+              0,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2781,
+            "occurrence": 0,
+            "cell": [
+              3,
+              -1,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2781,
+            "occurrence": 1,
+            "cell": [
+              3,
+              1,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2780,
+            "occurrence": 0,
+            "cell": [
+              5,
+              -3,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2780,
+            "occurrence": 1,
+            "cell": [
+              5,
+              3,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          },
+          {
+            "reference": 2782,
+            "occurrence": 0,
+            "cell": [
+              6,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+              "sha256": "f64e97e2e40064b906e738ca2ccf4c466088c810bea76957c23f9e712147a46f"
+            }
+          }
+        ],
+        "native_initial_glyphs": [
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              0,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 625,
+            "cell": [
+              8,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              0,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 626,
+            "cell": [
+              -8,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              -3,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              -1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              1,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -6,
+              3,
+              0
+            ],
+            "level": 0
+          },
+          {
+            "reference": 635,
+            "cell": [
+              -5,
+              0,
+              0
+            ],
+            "level": 0
+          }
+        ],
+        "native_initial_glyph_policy": "wakemu.owned-native-bworkball-v1",
+        "native_initial_glyph_authority": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+        "native_initial_glyph_source_url": "https://methodwakfu.com/quetes/principales/domaine-sauvage/",
+        "controlled_state_programs": [
+          {
+            "state_id": 2338,
+            "level": 1,
+            "protected": true,
+            "source_sha256": "be6416b1e279c615e70f3033da59b2306ede475f0f89a63d2242cd6821def35f",
+            "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+          }
+        ]
+      }
+    }
+  ]
+}

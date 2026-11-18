@@ -1,0 +1,545 @@
+{
+  "3276": {
+    "ref": 3276,
+    "name": "Esqueleto de soldado",
+    "family_id": 676,
+    "min_level": 5,
+    "max_level": 5,
+    "statistics": {
+      "AP": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": -5,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 35,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28,
+        16
+      ],
+      "csc": [
+        53,
+        7
+      ]
+    },
+    "sprite_id": 104701127,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": 7,
+        "spell_id": 2390
+      },
+      {
+        "level_parameter": 7,
+        "spell_id": 1237
+      }
+    ],
+    "loot_definitions": []
+  },
+  "3261": {
+    "ref": 3261,
+    "name": "Esqueleto de arquera",
+    "family_id": 676,
+    "min_level": 8,
+    "max_level": 8,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 80,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        53,
+        13,
+        7
+      ]
+    },
+    "sprite_id": 104701366,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 2325
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2326
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2390
+      }
+    ],
+    "loot_definitions": []
+  },
+  "3263": {
+    "ref": 3263,
+    "name": "Esqueleto de lancera",
+    "family_id": 676,
+    "min_level": 8,
+    "max_level": 8,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 70,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [],
+      "csc": [
+        53,
+        13,
+        7
+      ]
+    },
+    "sprite_id": 104701355,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 2363
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2364
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2390
+      }
+    ],
+    "loot_definitions": []
+  },
+  "3262": {
+    "ref": 3262,
+    "name": "Esqueleto de general",
+    "family_id": 676,
+    "min_level": 10,
+    "max_level": 10,
+    "statistics": {
+      "AP": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 2,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 80,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        53,
+        13,
+        7
+      ]
+    },
+    "sprite_id": 104701364,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 2362
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2389
+      },
+      {
+        "level_parameter": 11,
+        "spell_id": 2390
+      },
+      {
+        "level_parameter": 11,
+        "spell_id": 2361
+      }
+    ],
+    "loot_definitions": []
+  },
+  "735": {
+    "ref": 735,
+    "name": "Larva blanca",
+    "family_id": 147,
+    "min_level": 8,
+    "max_level": 18,
+    "statistics": {
+      "AP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 2,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 4,
+        "per_level": 2.0
+      },
+      "HP": {
+        "base": 20,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [],
+      "csc": []
+    },
+    "sprite_id": 101400735,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 1948
+      }
+    ],
+    "loot_definitions": [
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 5407,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.25
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 18787,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.01
+      },
+      {
+        "csH": true,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 18021,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.1
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14968,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14976,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14980,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14984,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      }
+    ]
+  },
+  "125": {
+    "ref": 125,
+    "name": "Larva verde",
+    "family_id": 147,
+    "min_level": 8,
+    "max_level": 18,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 8,
+        "per_level": 2.0
+      },
+      "HP": {
+        "base": 50,
+        "per_level": 8.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": []
+    },
+    "sprite_id": 101400125,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 1951
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 5796
+      }
+    ],
+    "loot_definitions": [
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 5407,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.25
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 18787,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.01
+      },
+      {
+        "csH": true,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 18021,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.1
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14968,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14976,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14980,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      },
+      {
+        "csH": false,
+        "csG": [],
+        "csF": 0,
+        "csE": -1,
+        "csD": -1,
+        "cqA": false,
+        "item_reference_id": 14984,
+        "drop_quantity_min": 1,
+        "drop_quantity_max": 1,
+        "drop_rate": 0.008
+      }
+    ]
+  },
+  "2819": {
+    "ref": 2819,
+    "name": "Larva nutricia",
+    "family_id": 110,
+    "min_level": 5,
+    "max_level": 5,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": -10,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 100,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 1014002819,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 4625
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 4626
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 4627
+      }
+    ],
+    "loot_definitions": []
+  }
+}

@@ -3,6 +3,7 @@
 The instance initializer defers encounter spawning for excavation_access until
 its source-qualified initial choice is committed in the same transaction.
 """
+
 from contextlib import ExitStack, contextmanager
 import hashlib
 from wakfu_server import dungeon_excavation, dungeon_ground_outcomes
@@ -83,9 +84,9 @@ def owned(store, account_id, generation, character_id, rule, *, in_fight, positi
             admission.get("key") != rule["key"]
             or admission.get("rule_sha256") != dungeon_excavation.digest(rule)
             or config["route"]["key"] != rule["route_key"]
-            or native_catalog.release() != rule["qualified_native_release"]
         ):
             raise ValueError("Pinned dungeon does not authorize this excavation rule")
+        dungeon_excavation.require_source(rule)
         dungeon_rotation.validate(config)
         yield db, character, instance_id, config
 

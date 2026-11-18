@@ -1,0 +1,100 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "huppermage-platform-1030",
+  "map_id": 1030,
+  "provenance": "Reviewed version relocation: original2067 platform choreography uses unavailable/unaligned old map coordinates0. Current installed1030 retains an actual150-cell floor0 component122..136,-22..-8. Native family807 actors3927/3928/3929, grades/stats/spells and4091/909 remain original; composition/placement are reviewed reconstruction, not recovered original formation. Guide corroborates three foes and ring-out challenge. Unsafe16393/16395 movie omitted; safe16396 native tutorial retained once.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "platform-ready"
+      ],
+      "bounds": [
+        122,
+        -22,
+        136,
+        -8
+      ],
+      "z": 0,
+      "arena_seed": [
+        128,
+        -15,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3927,
+          "count": 1
+        },
+        {
+          "reference": 3928,
+          "count": 1
+        },
+        {
+          "reference": 3929,
+          "count": 1
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "huppermage-moving-platform-reviewed-1030",
+        "authority": "Authorized reviewed native-content version relocation",
+        "source_uri": "https://oropoproject.wordpress.com/guide/quest-achievements/huppermage-school-1-anno/",
+        "full_room_scope": true,
+        "native_border_reference": 909,
+        "native_boundary_failure": {
+          "schema": "owned-boundary-failure-v1",
+          "border_reference": 909,
+          "losing_role": "original_controlled",
+          "outcome": "opposing_team_wins",
+          "evidence": "Guide-corroborated player ring-out failure; reviewed actual1030 relocation, not claimed original server condition."
+        },
+        "fixed_actor_placements": [
+          {
+            "reference": 3927,
+            "cell": [
+              124,
+              -15,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://oropoproject.wordpress.com/guide/quest-achievements/huppermage-school-1-anno/",
+              "sha256": "adead66c9ae657ddbb34f5bd29e8acbd59e7596cc5c14bd7914facaab4f7e8ae"
+            }
+          },
+          {
+            "reference": 3928,
+            "cell": [
+              129,
+              -20,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://oropoproject.wordpress.com/guide/quest-achievements/huppermage-school-1-anno/",
+              "sha256": "adead66c9ae657ddbb34f5bd29e8acbd59e7596cc5c14bd7914facaab4f7e8ae"
+            }
+          },
+          {
+            "reference": 3929,
+            "cell": [
+              129,
+              -12,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "https://oropoproject.wordpress.com/guide/quest-achievements/huppermage-school-1-anno/",
+              "sha256": "adead66c9ae657ddbb34f5bd29e8acbd59e7596cc5c14bd7914facaab4f7e8ae"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

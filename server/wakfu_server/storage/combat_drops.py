@@ -6,6 +6,7 @@ identities, the winner's authoritative Wakfu prospection bonus, and the fight
 condition snapshot. `resolve` writes one immutable, idempotent award batch in
 the caller's transaction so it can share the victory reward/lifecycle commit.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.reward_rates import MAX_REWARD_RATE_BP
 from wakfu_server.combat_drop_types import AwardBatch, DropDecision
@@ -19,7 +20,6 @@ from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
 from wakfu_server.paths import DATA_ROOT
-
 
 ALGORITHM = "wakfu-capped-prospection-drop-formula-v2-native-catalog"
 DRAW_DENOMINATOR = 1 << 53
@@ -154,6 +154,7 @@ def _normalize_fight_context(context):
         "dungeon_drop_rate_bp",
         "boss_score_drop_rate_bp",
         "nox_complex_loot",
+        "quest_complex_loot",
         "selected_stele_item_references",
     }
     if set(context) - allowed:
@@ -201,6 +202,12 @@ def _normalize_fight_context(context):
         normalized["nox_complex_loot"] = validate_context(
             context["nox_complex_loot"], normalized.get("score")
         )
+    if "quest_complex_loot" in context:
+        from wakfu_server.native_quest_complex_loot import validate_context
+
+        normalized["quest_complex_loot"] = validate_context(
+            context["quest_complex_loot"]
+        )
     return normalized
 
 
@@ -215,13 +222,24 @@ def _row_is_eligible(
         return False
     if row.get("complex_criteria") is not False:
         permission = fight_context.get("nox_complex_loot")
+        nox_allowed = (
+            row.get("complex_criteria") is True
+            and monster_reference == 5664
+            and permission is not None
+            and row.get("conditions") == []
+            and row.get("reference_id") in permission["item_references"]
+        )
+        quest_allowed = False
         if (
-            row.get("complex_criteria") is not True
-            or monster_reference != 5664
-            or permission is None
-            or row.get("conditions") != []
-            or row.get("reference_id") not in permission["item_references"]
+            row.get("complex_criteria") is True
+            and "quest_complex_loot" in fight_context
         ):
+            from wakfu_server.native_quest_complex_loot import row_allowed
+
+            quest_allowed = row_allowed(
+                row, monster_reference, fight_context["quest_complex_loot"]
+            )
+        if not nox_allowed and not quest_allowed:
             return False
     conditions = row.get("conditions")
     # A selected reward subset authorizes only its actual native item rows.
@@ -583,6 +601,12 @@ def resolve(
         )
 
         validate_durable_permission(db, fight_id, fight_context)
+    if isinstance(fight_context, dict) and "quest_complex_loot" in fight_context:
+        from wakfu_server.native_quest_complex_loot import validate_durable
+
+        validate_durable(
+            db, fight_id, character_id, fight_context["quest_complex_loot"]
+        )
 
     settings = db.execute(
         "SELECT v.version,v.drop_rate_bp FROM combat_drop_policy_active a "
@@ -612,9 +636,11 @@ def resolve(
             )
         result = dict(
             reached_wave=run["wave"],
-            outcome="won"
-            if rift_fight.winner == assigned_roles(rift_fight).player_team
-            else "lost",
+            outcome=(
+                "won"
+                if rift_fight.winner == assigned_roles(rift_fight).player_team
+                else "lost"
+            ),
         )
         rift_factor = frozen_factor(db, run, result)
     profiles = []
@@ -761,6 +787,20 @@ def resolve(
         if current is None:
             raise RuntimeError("Drop award receipt disappeared")
         return current
+    persist_decisions(db, fight_id, character_id, decisions)
+    return AwardBatch(
+        fight_id=fight_id,
+        character_id=character_id,
+        policy_version=settings["version"],
+        snapshot=snapshot,
+        snapshot_sha256=digest,
+        decisions=tuple(decisions),
+        replayed=False,
+    )
+
+
+def persist_decisions(db, fight_id, character_id, decisions):
+    """Store normal native decisions; allocation and award authority are caller-owned."""
     for decision in decisions:
         db.execute(
             "INSERT INTO fight_drop_attempt_receipts "
@@ -790,15 +830,6 @@ def resolve(
                 decision.native_min_prospection,
             ),
         )
-    return AwardBatch(
-        fight_id=fight_id,
-        character_id=character_id,
-        policy_version=settings["version"],
-        snapshot=snapshot,
-        snapshot_sha256=digest,
-        decisions=tuple(decisions),
-        replayed=False,
-    )
 
 
 def report_loots(batch, *, loot_actor_id=None):

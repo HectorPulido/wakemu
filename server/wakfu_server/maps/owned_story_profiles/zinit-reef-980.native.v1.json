@@ -1,0 +1,1143 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 980,
+  "objects": [
+    {
+      "x": 17.0,
+      "y": -6.0,
+      "z": -6.0,
+      "id": 25401,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-1",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000011fffffffafffa00010101010100000000043230323900000000000000"
+    },
+    {
+      "x": 13.0,
+      "y": -29.0,
+      "z": -6.0,
+      "id": 25402,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000000dffffffe3fffa00010101010100000000043230333000000000000000"
+    },
+    {
+      "x": -22.0,
+      "y": -20.0,
+      "z": -6.0,
+      "id": 25403,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-2_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4ffffffeaffffffecfffa00010101010100000000043230333200000000000000"
+    },
+    {
+      "x": -28.0,
+      "y": -43.0,
+      "z": -6.0,
+      "id": 25404,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-2_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4ffffffe4ffffffd5fffa00010101010100000000043230333300000000000000"
+    },
+    {
+      "x": -15.0,
+      "y": -45.0,
+      "z": -6.0,
+      "id": 25405,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4fffffff1ffffffd3fffa00010101010100000000043230333400000000000000"
+    },
+    {
+      "x": -1.0,
+      "y": -21.0,
+      "z": -6.0,
+      "id": 25413,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "-1_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4ffffffffffffffebfffa00010101010100000000043230333100000000000000"
+    },
+    {
+      "x": 141.0,
+      "y": -6.0,
+      "z": -6.0,
+      "id": 25414,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "7_-1",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000008dfffffffafffa00010101010100000000043230333500000000000000"
+    },
+    {
+      "x": 137.0,
+      "y": -29.0,
+      "z": -6.0,
+      "id": 25415,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "7_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000089ffffffe3fffa00010101010100000000043230333600000000000000"
+    },
+    {
+      "x": 123.0,
+      "y": -21.0,
+      "z": -6.0,
+      "id": 25416,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "6_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000007bffffffebfffa00010101010100000000043230333700000000000000"
+    },
+    {
+      "x": 96.0,
+      "y": -43.0,
+      "z": -6.0,
+      "id": 25417,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "5_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000060ffffffd5fffa00010101010100000000043230333900000000000000"
+    },
+    {
+      "x": 102.0,
+      "y": -20.0,
+      "z": -6.0,
+      "id": 25418,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "5_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000066ffffffecfffa00010101010100000000043230333800000000000000"
+    },
+    {
+      "x": 109.0,
+      "y": -45.0,
+      "z": -6.0,
+      "id": 25419,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "6_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000006dffffffd3fffa00010101010100000000043230343000000000000000"
+    },
+    {
+      "x": 123.0,
+      "y": -75.0,
+      "z": -6.0,
+      "id": 25420,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "6_-5",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000007bffffffb5fffa00010101010100000000043230343100000000000000"
+    },
+    {
+      "x": -22.0,
+      "y": -20.0,
+      "z": -6.0,
+      "id": 25421,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4ffffffeaffffffecfffa000101010100010000000339353300000000000101"
+    },
+    {
+      "x": -28.0,
+      "y": -43.0,
+      "z": -6.0,
+      "id": 25422,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-2_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4ffffffe4ffffffd5fffa000101010100080000000339353300000000000101"
+    },
+    {
+      "x": -15.0,
+      "y": -45.0,
+      "z": -6.0,
+      "id": 25423,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d4fffffff1ffffffd3fffa000101010100080000000339353300000000000101"
+    },
+    {
+      "x": 141.0,
+      "y": -4.0,
+      "z": -6.0,
+      "id": 25424,
+      "auto": false,
+      "type": "Door",
+      "chunk": "7_-1",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000008dfffffffcfffa000101000100000000000000000000000101"
+    },
+    {
+      "x": 121.0,
+      "y": -21.0,
+      "z": -6.0,
+      "id": 25425,
+      "auto": false,
+      "type": "Door",
+      "chunk": "6_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000079ffffffebfffa000101000100000000000000000000000101"
+    },
+    {
+      "x": 137.0,
+      "y": -31.0,
+      "z": -8.0,
+      "id": 25426,
+      "auto": false,
+      "type": "Door",
+      "chunk": "7_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000089ffffffe1fff8000101000100000000000000000000000101"
+    },
+    {
+      "x": 109.0,
+      "y": -43.0,
+      "z": -6.0,
+      "id": 25427,
+      "auto": false,
+      "type": "Door",
+      "chunk": "6_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d40000006dffffffd5fffa000101000100000000000000000000000101"
+    },
+    {
+      "x": 96.0,
+      "y": -41.0,
+      "z": -6.0,
+      "id": 25428,
+      "auto": false,
+      "type": "Door",
+      "chunk": "5_-3",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000060ffffffd7fffa000101000100000000000000000000000101"
+    },
+    {
+      "x": 103.0,
+      "y": -20.0,
+      "z": -8.0,
+      "id": 25429,
+      "auto": false,
+      "type": "Door",
+      "chunk": "5_-2",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000067ffffffecfff8000101000100000000000000000000000101"
+    },
+    {
+      "x": 0.0,
+      "y": 1.0,
+      "z": 1.0,
+      "id": 25447,
+      "auto": false,
+      "type": "Door",
+      "chunk": "0_0",
+      "map_id": 980,
+      "payload_hex": "02000000000b010000000d00000103d400000000000000010001000101000100000000000000000000000101"
+    }
+  ],
+  "scenario_id": 2015,
+  "scenario_events": [
+    16045,
+    16046,
+    16093,
+    16066,
+    16078,
+    16047,
+    16048,
+    16049,
+    16052,
+    15992,
+    15993,
+    15995,
+    15996,
+    15997,
+    16007,
+    16008,
+    16010,
+    16011,
+    16012,
+    15998,
+    15999,
+    16001,
+    16002,
+    16003
+  ],
+  "scenes": {
+    "16066": {
+      "argument_count": 1,
+      "duration_ms": 5000,
+      "callback": 2
+    }
+  },
+  "source_sha256": {
+    "client/contents/scripts/scripts.jar:scenario/2021.lua": "cf1ac5d0a2085a10269bb50f8c08b71681d52ad3f8d534ab1820920d829d2e98",
+    "client/contents/maps/env/980.jar": "ef2ef1f20a4e14fed7e1825153ee760374d9fb61e65636d598709d0f862b0d17"
+  },
+  "teleporters": {
+    "25401": {
+      "x": 17.0,
+      "y": -6.0,
+      "z": -6.0,
+      "id": 25401,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 141,
+          "y": -7,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170) and IsAchievementRunning(2687)",
+          "direction": 7,
+          "destination_id": 2237,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        },
+        {
+          "x": -60,
+          "y": 0,
+          "z": 0,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 986,
+          "criterion": "IsAchievementComplete(2170) and IsAchievementComplete(2687)",
+          "direction": 7,
+          "destination_id": 2255,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2029,
+      "native_parameters": "2029",
+      "approach_positions": [
+        {
+          "x": 17,
+          "y": -6,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25402": {
+      "x": 13.0,
+      "y": -29.0,
+      "z": -6.0,
+      "id": 25402,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 137,
+          "y": -28,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 3,
+          "destination_id": 2238,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2030,
+      "native_parameters": "2030",
+      "approach_positions": [
+        {
+          "x": 13,
+          "y": -29,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25403": {
+      "x": -22.0,
+      "y": -20.0,
+      "z": -6.0,
+      "id": 25403,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 101,
+          "y": -20,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 5,
+          "destination_id": 2240,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2032,
+      "native_parameters": "2032",
+      "approach_positions": [
+        {
+          "x": -22,
+          "y": -20,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25404": {
+      "x": -28.0,
+      "y": -43.0,
+      "z": -6.0,
+      "id": 25404,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 96,
+          "y": -44,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "GetItemQuantity(18722) > 0",
+          "direction": 7,
+          "destination_id": 2241,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2033,
+      "native_parameters": "2033",
+      "approach_positions": [
+        {
+          "x": -28,
+          "y": -43,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25405": {
+      "x": -15.0,
+      "y": -45.0,
+      "z": -6.0,
+      "id": 25405,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 109,
+          "y": -46,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 7,
+          "destination_id": 2242,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2034,
+      "native_parameters": "2034",
+      "approach_positions": [
+        {
+          "x": -15,
+          "y": -45,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25413": {
+      "x": -1.0,
+      "y": -21.0,
+      "z": -6.0,
+      "id": 25413,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 124,
+          "y": -21,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 1,
+          "destination_id": 2239,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2031,
+      "native_parameters": "2031",
+      "approach_positions": [
+        {
+          "x": -1,
+          "y": -21,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25414": {
+      "x": 141.0,
+      "y": -6.0,
+      "z": -6.0,
+      "id": 25414,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 17,
+          "y": -5,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "GetItemQuantity(18722) > 0",
+          "direction": 3,
+          "destination_id": 2243,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2035,
+      "native_parameters": "2035",
+      "approach_positions": [
+        {
+          "x": 141,
+          "y": -6,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25415": {
+      "x": 137.0,
+      "y": -29.0,
+      "z": -6.0,
+      "id": 25415,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 13,
+          "y": -30,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 7,
+          "destination_id": 2244,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2036,
+      "native_parameters": "2036",
+      "approach_positions": [
+        {
+          "x": 137,
+          "y": -29,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25416": {
+      "x": 123.0,
+      "y": -21.0,
+      "z": -6.0,
+      "id": 25416,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": -2,
+          "y": -21,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 5,
+          "destination_id": 2245,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2037,
+      "native_parameters": "2037",
+      "approach_positions": [
+        {
+          "x": 123,
+          "y": -21,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25417": {
+      "x": 96.0,
+      "y": -43.0,
+      "z": -6.0,
+      "id": 25417,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": -28,
+          "y": -42,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 3,
+          "destination_id": 2247,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2039,
+      "native_parameters": "2039",
+      "approach_positions": [
+        {
+          "x": 96,
+          "y": -43,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25418": {
+      "x": 102.0,
+      "y": -20.0,
+      "z": -6.0,
+      "id": 25418,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": -21,
+          "y": -20,
+          "z": -7,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 1,
+          "destination_id": 2246,
+          "item_reference": 0,
+          "arrival_heights": [
+            -7
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2038,
+      "native_parameters": "2038",
+      "approach_positions": [
+        {
+          "x": 102,
+          "y": -20,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25419": {
+      "x": 109.0,
+      "y": -45.0,
+      "z": -6.0,
+      "id": 25419,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": -15,
+          "y": -44,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170)",
+          "direction": 3,
+          "destination_id": 2248,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2040,
+      "native_parameters": "2040",
+      "approach_positions": [
+        {
+          "x": 109,
+          "y": -45,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    },
+    "25420": {
+      "x": 123.0,
+      "y": -75.0,
+      "z": -6.0,
+      "id": 25420,
+      "map_id": 980,
+      "destinations": [
+        {
+          "x": 17,
+          "y": -5,
+          "z": -6,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 980,
+          "criterion": "IsAchievementComplete(2170) and GetInstanceId() == 986",
+          "direction": 3,
+          "destination_id": 2254,
+          "item_reference": 0,
+          "arrival_heights": [
+            -6
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        },
+        {
+          "x": -60,
+          "y": 0,
+          "z": 0,
+          "cof": false,
+          "cvd": true,
+          "cyW": 0,
+          "cyX": 0,
+          "cyY": true,
+          "cyZ": -1,
+          "map_id": 986,
+          "criterion": "IsAchievementComplete(2170) and GetInstanceId() == 980",
+          "direction": 7,
+          "destination_id": 2249,
+          "item_reference": 0,
+          "arrival_heights": [
+            0
+          ],
+          "display_reference": 66,
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 256,
+      "definition_id": 2041,
+      "native_parameters": "2041",
+      "approach_positions": [
+        {
+          "x": 123,
+          "y": -75,
+          "z": -6
+        }
+      ],
+      "approach_orientation": 1,
+      "approach_blocks_center": false
+    }
+  },
+  "scenario_bindings": {
+    "15992": 2015,
+    "15993": 2015,
+    "15995": 2015,
+    "15996": 2015,
+    "15997": 2015,
+    "16007": 2018,
+    "16008": 2018,
+    "16010": 2018,
+    "16011": 2018,
+    "16012": 2018,
+    "15998": 2016,
+    "15999": 2016,
+    "16001": 2016,
+    "16002": 2016,
+    "16003": 2016,
+    "16045": 2021,
+    "16046": 2021,
+    "16093": 2021,
+    "16066": 2021,
+    "16078": 2021,
+    "16047": 2021,
+    "16048": 2021,
+    "16049": 2021,
+    "16052": 2021
+  },
+  "argument_sources": {
+    "15993": {
+      "room_actors": {
+        "room_actor:1:0": {
+          "room_order": 1,
+          "index": 0,
+          "reference": 3771
+        },
+        "room_actor:1:1": {
+          "room_order": 1,
+          "index": 1,
+          "reference": 3771
+        }
+      }
+    },
+    "16008": {
+      "room_actors": {
+        "room_actor:2:0": {
+          "room_order": 2,
+          "index": 0,
+          "reference": 3783
+        },
+        "room_actor:2:1": {
+          "room_order": 2,
+          "index": 1,
+          "reference": 3783
+        }
+      }
+    },
+    "15999": {
+      "room_actors": {
+        "room_actor:3:0": {
+          "room_order": 3,
+          "index": 0,
+          "reference": 3769
+        },
+        "room_actor:3:1": {
+          "room_order": 3,
+          "index": 1,
+          "reference": 3769
+        },
+        "room_actor:3:2": {
+          "room_order": 3,
+          "index": 2,
+          "reference": 3769
+        }
+      }
+    },
+    "16066": {
+      "story_npcs": {
+        "story_npc:3801": 3801
+      }
+    }
+  },
+  "combat_helpers": {
+    "1": "wakemu.zinit.voyage.native-ally.v1",
+    "2": "wakemu.zinit.voyage.native-ally.v1",
+    "3": "wakemu.zinit.voyage.native-ally.v1"
+  },
+  "script_sources": [
+    {
+      "path": "scenario/2015.lua",
+      "sha256": "4fc40be470cd4a5960333e3014bb74e65cbb6fafbc8edfe133bf395d692ee1ff"
+    },
+    {
+      "path": "scenario/2018.lua",
+      "sha256": "e5af932eebfaaadbf7323874a169ae1e370bc78eb4308199ab322a854a6c8789"
+    },
+    {
+      "path": "scenario/2016.lua",
+      "sha256": "999060bc777b2bcca31d4c4ec7d8c7e2b589ad962f8e875abbb6595bdb51169c"
+    }
+  ],
+  "event_signatures": {
+    "15993": {
+      "argument_count": 2
+    },
+    "16008": {
+      "argument_count": 2
+    },
+    "15999": {
+      "argument_count": 3
+    },
+    "16046": 1,
+    "16093": 1,
+    "16078": 1,
+    "16047": 1,
+    "16048": 1,
+    "16049": 1
+  },
+  "context_refresh_delays": {
+    "voyage-stage-1-victory": 3500,
+    "voyage-stage-2-victory": 2000,
+    "voyage-stage-3-victory": 2000
+  },
+  "presentation_quests": {
+    "16066": 2684
+  },
+  "presentation_groups": [
+    {
+      "id": "zinit-voyage",
+      "start_event": 15992,
+      "initializers": {
+        "2015": 15992,
+        "2018": 16007,
+        "2016": 15998
+      },
+      "events": [
+        15992,
+        15993,
+        15995,
+        16007,
+        16008,
+        16010,
+        15998,
+        15999,
+        16001
+      ]
+    }
+  ],
+  "programs": {
+    "25421": {
+      "native_class": "aLl",
+      "descriptor_id": 953,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1174,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1196,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2395,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25422": {
+      "native_class": "aLl",
+      "descriptor_id": 953,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1174,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1196,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2395,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "25423": {
+      "native_class": "aLl",
+      "descriptor_id": 953,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1174,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1196,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2395,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "native_scripts": {
+    "2395": {
+      "present": true,
+      "sha256": "a9341aa2e21f9715702d83fcc4819a0cdd709facb2d5749e1cab77789cc04b24"
+    }
+  }
+}

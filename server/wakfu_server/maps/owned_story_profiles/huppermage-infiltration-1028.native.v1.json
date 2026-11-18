@@ -1,0 +1,129 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1028,
+  "scenario_id": 2082,
+  "objects": [
+    {
+      "chunk": "-1_-1",
+      "id": 26211,
+      "payload_hex": "02000000000b010000000d0000010404fffffffeffffffff00000001010103ffff0001fffffffeffffffff0000000000000000000000",
+      "x": -2.0,
+      "y": -1.0,
+      "map_id": 1028,
+      "z": 0.0,
+      "auto": false,
+      "type": "StoppingPositionZoneTrigger"
+    },
+    {
+      "chunk": "0_-1",
+      "id": 26209,
+      "payload_hex": "02000000000b010000000d000001040400000006fffffff2000000010000010000000100000006fffffff200000004323133380000003baf0000",
+      "x": 6.0,
+      "y": -14.0,
+      "map_id": 1028,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "0_0",
+      "id": 26223,
+      "payload_hex": "02000000000b010000000d000001040400000004000000010000000101010100000001000000040000000100000004323133390000003baf0000",
+      "x": 4.0,
+      "y": 1.0,
+      "map_id": 1028,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    }
+  ],
+  "programs": {},
+  "scenario_events": [
+    16562,
+    16563,
+    16586
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "16562": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 0
+    },
+    "16563": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    },
+    "16586": {
+      "argument_count": 0,
+      "presentation": false,
+      "duration_ms": 0
+    }
+  },
+  "presentations": [
+    16562
+  ],
+  "lua_sources": {
+    "scenario/2082.lua": "2d2829e1a6f2daa51135ab3d4884ac401627152259f017dec3a356794cd64079"
+  },
+  "guard_prototypes": [
+    {
+      "ref": 3948,
+      "name": "Guardia encapuchado",
+      "family_id": 807,
+      "min_level": 130,
+      "max_level": 130,
+      "statistics": {
+        "AP": {
+          "base": 8,
+          "per_level": 0.0
+        },
+        "MP": {
+          "base": 3,
+          "per_level": 0.0
+        },
+        "WP": {
+          "base": 0,
+          "per_level": 0.0
+        },
+        "INIT": {
+          "base": 900,
+          "per_level": 0.0
+        },
+        "HP": {
+          "base": 1000,
+          "per_level": 0.0
+        }
+      },
+      "raw_visual_arrays": {
+        "csu": [],
+        "csb": [
+          15,
+          78,
+          92,
+          93,
+          51
+        ],
+        "csc": [
+          13,
+          35,
+          103,
+          7
+        ]
+      },
+      "sprite_id": 180103927,
+      "illustration_id": -1,
+      "native_abilities": [],
+      "loot_definitions": []
+    }
+  ],
+  "version_boundary": {
+    "policy": "reviewed-world-stealth-1028-v1",
+    "evidence": "Reviewed world infiltration reconstruction: actual1028 native Sm6 floor/edges; original2082 five cinematic patrol waypoint loops are expanded one native edge per accepted owner cell. This deliberately declared world turn schedule is not claimed original combat timing. Vision is a reviewed forward2-cell cone clipped to native floors; guide-backed proximity<3 for2consecutive turns,2rear strikes and nearby<3 guard alert are preserved. Actual native13130 Attack at the current source-owned guard UID/pose and rear floor supplies each hit; no dialogue or ordinary combat victory grants5650.",
+    "omitted_events": [
+      16561
+    ],
+    "omitted_reason": "Original16561 accepts five client mob IDs and performs client-owned cinematic movement, not actual server patrol authority."
+  }
+}

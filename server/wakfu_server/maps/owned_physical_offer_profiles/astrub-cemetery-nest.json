@@ -1,0 +1,34 @@
+{
+  "schema": "owned-physical-offers-v1",
+  "version": 1,
+  "appearance": {
+    "reference_id": 3275,
+    "action_id": 596,
+    "speaker_sha256": "2eaf97aa3dedbe814ede8cb8824f7ad2e50d578afe1ca7fa36c62fedc785ac3a",
+    "action_sha256": "3f95a81b2341ef0c8cd619cdac6d23dd6539ca982a8e94e5b4eab6d7b9cfe637"
+  },
+  "offers": [
+    {
+      "route_key": "quest-map-889-19411-1249",
+      "policy_version": 1,
+      "configuration_sha256": "7b3ecf1d9cbd7bff6aff5ea1128875ce30df73035714437e5ec9d0d44d81dbd6",
+      "source_map_id": 527,
+      "source_id": 19411,
+      "destination_id": 1249,
+      "native_source_sha256": "a840b761adc83b08bdb724cbf8e155d6d1bf236c7e62a20f24b711cf3d186c4d",
+      "label": "Enter dungeon",
+      "evidence": "Reviewed physical-visit attendant beside the original native entrance; explicit separate action retains source, native prices and owned transition, with no unassigned/completed story credit."
+    },
+    {
+      "route_key": "quest-map-728-20653-1441",
+      "policy_version": 1,
+      "configuration_sha256": "c892b94cab2a34bcd25b143dbbd98587081a9eba59365861729c2bfb15adfad4",
+      "source_map_id": 546,
+      "source_id": 20653,
+      "destination_id": 1441,
+      "native_source_sha256": "ca7454a8d291af229972033dfcd8de8f3b0e47b2319481a792f856877356d598",
+      "label": "Enter dungeon",
+      "evidence": "Reviewed physical-visit attendant beside the original native entrance; explicit separate action retains source, native prices and owned transition, with no unassigned/completed story credit."
+    }
+  ]
+}

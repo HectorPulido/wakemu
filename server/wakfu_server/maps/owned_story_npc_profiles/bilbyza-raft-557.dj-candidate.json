@@ -1,0 +1,38 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "bilbyza-raft-557-dj-request",
+  "controller_id": "bilbyza-raft-557",
+  "policy_version": 2,
+  "map_id": 557,
+  "quest_id": 1264,
+  "physical_visit": true,
+  "requires": [
+    "raft-loaded"
+  ],
+  "until": [
+    "dj-requested"
+  ],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 2502,
+      "controller_reference": 2502,
+      "action_ids": [
+        343
+      ],
+      "action_type": 4,
+      "action_criterion": "",
+      "x": -21,
+      "y": -17,
+      "z": 3,
+      "direction": 1,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -20,
+        "y": -17,
+        "z": 3
+      },
+      "provenance": "Original native2502/action343/type4/empty criterion already in original NPC catalog. Stage placement is reviewed legal native floor, not claimed captured NPC source placement."
+    }
+  ]
+}

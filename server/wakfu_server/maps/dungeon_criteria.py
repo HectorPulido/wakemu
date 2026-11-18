@@ -91,11 +91,19 @@ def evaluate(
         "IsNeoServer",
         "GetBooleanSystemConfiguration",
         "GetRealLevel",
+        "GetLevel",
+        "GetNationId",
+        "GetInstanceId",
+        "GetX",
+        "GetY",
+        "GetZ",
         "GetItemQuantity",
         "HasState",
+        "IsHero",
         "IsAfter",
         "IsBefore",
         "GetDate",
+        "IsAchievementActive",
         "IsAchievementRunning",
         "IsAchievementObjectiveComplete",
         "IsAchievementComplete",
@@ -145,6 +153,22 @@ def evaluate(
     def visit(node, negated=False):
         if isinstance(node, ast.Constant) and type(node.value) in (int, str, bool):
             return node.value
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            value = visit(node.operand, negated)
+            if type(value) is not int:
+                raise ValueError("Native criterion sign requires integer authority")
+            value = -value if isinstance(node.op, ast.USub) else value
+            if not -(2**63) <= value < 2**63:
+                raise ValueError("Native criterion sign exceeds integral bounds")
+            return value
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            left, right = visit(node.left, negated), visit(node.right, negated)
+            if type(left) is not int or type(right) is not int:
+                raise ValueError("Native criterion addition requires integer authority")
+            result = left + right
+            if not -(2**63) <= result < 2**63:
+                raise ValueError("Native criterion addition exceeds integral bounds")
+            return result
         if isinstance(node, ast.BoolOp):
             values = [boolean(visit(value, negated)) for value in node.values]
             if isinstance(node.op, ast.And):
@@ -189,6 +213,11 @@ def evaluate(
             return False if False in results else waived if waived in results else True
         if isinstance(node, ast.Call):
             name, args = node.func.id, tuple(visit(arg) for arg in node.args)
+            if name == "IsHero" and not args and not node.keywords:
+                query = queries.get(name)
+                if not callable(query):
+                    raise ValueError("Missing dungeon predicate authority: " + name)
+                return boolean(query())
             if name == "IsNeoServer" and not args:
                 return is_neo_server(store)
             if name == "GetBooleanSystemConfiguration" and len(args) == 1:
@@ -198,6 +227,44 @@ def evaluate(
                     ),
                     args[0],
                 )
+            if name == "GetNationId" and not args and not node.keywords:
+                from wakfu_server.nation_state import NATION_IDS
+
+                nation = None if character is None else character.get("nation_id")
+                if type(nation) is not int or nation not in NATION_IDS:
+                    raise ValueError("Missing owned character nation authority")
+                return nation
+            if name == "GetInstanceId" and not args and not node.keywords:
+                # Native exploration uses its world/map identity here, not the
+                # server's separate private-instance membership identifier.
+                world = None if character is None else character.get("map_id")
+                if type(world) is not int or not 0 <= world < 2**31:
+                    raise ValueError("Missing native exploration world authority")
+                return world
+            if name in ("GetX", "GetY", "GetZ") and not args and not node.keywords:
+                if (
+                    not isinstance(character, dict)
+                    or any(
+                        type(character.get(key)) is not int or character[key] <= 0
+                        for key in ("id", "account_id", "map_id")
+                    )
+                    or type(character.get("instance_id")) is not int
+                    or character["instance_id"] < 0
+                ):
+                    raise ValueError("Missing owned character coordinate authority")
+                axis = {"GetX": "x", "GetY": "y", "GetZ": "z"}[name]
+                value = character.get(axis)
+                bound = 2**15 if axis == "z" else 2**31
+                if type(value) is not int or not -bound <= value < bound:
+                    raise ValueError("Missing native character coordinate authority")
+                return value
+            if name == "GetLevel" and not args and not node.keywords:
+                # Store.character hydrates the selected owned build; combat
+                # producers may supply their authoritative modulated projection.
+                level = None if character is None else character.get("effective_level")
+                if type(level) is not int or level < 1:
+                    raise ValueError("Missing effective character level authority")
+                return level
             if name == "GetRealLevel" and not args:
                 level = None if character is None else character.get("level")
                 if type(level) is not int or level < 1:
@@ -241,6 +308,7 @@ def evaluate(
                 return current > date if name == "IsAfter" else current < date
             if name in (
                 "HasState",
+                "IsAchievementActive",
                 "IsAchievementRunning",
                 "IsAchievementObjectiveComplete",
                 "IsAchievementComplete",

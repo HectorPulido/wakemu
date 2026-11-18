@@ -1,0 +1,96 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "huppermage-platform-1030",
+  "map_id": 1030,
+  "maximum_members": 1,
+  "admission": {
+    "alternatives": [
+      {
+        "quest_id": 2773,
+        "objective_id": 5592
+      },
+      {
+        "quest_id": 2774,
+        "objective_id": 5593
+      }
+    ],
+    "continuation_quest_id": 2775
+  },
+  "provenance": "Reviewed version relocation: original2067 platform choreography uses unavailable/unaligned old map coordinates0. Current installed1030 retains an actual150-cell floor0 component122..136,-22..-8. Native family807 actors3927/3928/3929, grades/stats/spells and4091/909 remain original; composition/placement are reviewed reconstruction, not recovered original formation. Guide corroborates three foes and ring-out challenge. Unsafe16393/16395 movie omitted; safe16396 native tutorial retained once.",
+  "native_sources": {
+    "path": "huppermage-platform-1030.native.v1.json",
+    "sha256": "a886be8d4c6dacf723ce046c917a427c5b8710a3ccf554c4e1de6f09effc5e4d"
+  },
+  "initial_elements": [],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "platform-ready"
+    ],
+    "evidence": "Actual accepted Jang8297 entry and loaded native1030 context unlock normal attack against one durable owned native group."
+  },
+  "steps": [
+    {
+      "id": "platform-ready",
+      "kind": "world_ready",
+      "reference": 1030,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2067,
+          "event": 16396
+        }
+      ],
+      "evidence": "Original2067/16396 only loads native quest.huppermage.initiation tutorial strings; no old coordinates or actors. Presentation once per character, mechanics independent."
+    },
+    {
+      "id": "platform-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "platform-ready"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2775,
+          "objective_id": 5594
+        }
+      ],
+      "evidence": "Actual normal terminal victory of three original pinned foes, including native border deaths; no cinematic callback grants victory."
+    }
+  ],
+  "npc_public_visit": {
+    "schema": "native-npc-public-visit-v1",
+    "source_map_id": 1017,
+    "source_object_id": 25675,
+    "source_sha256": "8c6c4ba3d37f0c562dd2f9289a938825e05b824991f138786150d0700df480c1",
+    "approach": {
+      "x": 0,
+      "y": -59,
+      "z": -44
+    },
+    "direction": 7,
+    "evidence": "Actual nativeSchool exterior source25675 approach. Questless/completed accepted Jang trip approaches this normal public gate without replaying challenge or assigning a quest."
+  },
+  "terminal_returns": {
+    "schema": "owned-story-terminal-return-v1",
+    "room_order": 1,
+    "victory": {
+      "source_map_id": 1017,
+      "source_id": 25675,
+      "source_sha256": "8c6c4ba3d37f0c562dd2f9289a938825e05b824991f138786150d0700df480c1",
+      "position": [
+        0,
+        -59,
+        -44
+      ]
+    },
+    "defeat": {
+      "kind": "recorded_entry"
+    },
+    "evidence": "Reviewed native School terminal return: actual three-foe platform victory returns to native School entrance25675 walkable approach. Genuine defeat returns to the original authenticated public embarkation stored by normal owned entry; quest2775 stays running for retry. No cinematic or synthetic fight callback grants victory."
+  }
+}

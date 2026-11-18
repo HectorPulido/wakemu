@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "astrub-crypt-followup",
+  "evidence": [
+    "Native2161 eligibility requires completed2160. Only the durable actual2160 quest_completed event from real crypt admission activates2161. Independent Active2160 remains set after completion, preserving literal native reentry gate; no display-level or completed-as-running shortcut."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "begin-owned-crypt-exploration",
+      "quest_id": 2161,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2160
+      },
+      "requires_completed": [
+        2160
+      ]
+    }
+  ]
+}

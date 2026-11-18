@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "id": "astrub-low-level-followups",
+  "evidence": [
+    "Reviewed native eligibility is exactly precursor completion for2191/2159/2161. Only authenticated quest_completed events emitted by real producers activate followups; no display-level or visibility trigger.",
+    "In particular crypt2161 must activate after actual2160 admission before its exploration event; source ownership and native eligibility remain required.",
+    "Native2191 objective4281 names the ForestDrago-Express. Typed original transport27004 is at527(-162,60,0). Only actual authenticated REGISTER action24 emits transport_registered; already-known account discovery still qualifies a new accepted request."
+  ],
+  "bindings": [
+    {
+      "id": "locate-forest-drago",
+      "quest_id": 2191,
+      "objective_id": 4281,
+      "event": {
+        "kind": "transport_registered",
+        "reference": 27004
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "locate-known-forest-drago",
+      "quest_id": 2191,
+      "objective_id": 4281,
+      "event": {
+        "kind": "transport_interacted",
+        "reference": 27004
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "followup-2190-2191",
+      "quest_id": 2191,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2190
+      },
+      "requires_completed": [
+        2190
+      ]
+    },
+    {
+      "id": "followup-2158-2159",
+      "quest_id": 2159,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2158
+      },
+      "requires_completed": [
+        2158
+      ]
+    },
+    {
+      "id": "followup-2160-2161",
+      "quest_id": 2161,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2160
+      },
+      "requires_completed": [
+        2160
+      ]
+    }
+  ]
+}

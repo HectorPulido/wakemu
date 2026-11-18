@@ -1,0 +1,354 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed reconstruction from exact native quest prerequisites, objective markers, named native NPC references, and literal offered-choice predicates. No claim of an official captured server graph.",
+  "speakers": [
+    {
+      "actor_id": -2251799934991108,
+      "action_id": 275,
+      "quest_ids": [
+        1109
+      ],
+      "available_quests_on_open": [
+        1109
+      ],
+      "objectives": [
+        {
+          "quest_id": 1109,
+          "objective_id": 2046,
+          "node_id": 1985,
+          "choice_id": 4560,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          1985,
+          4560,
+          1991
+        ],
+        [
+          1991,
+          4570,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934991217,
+      "action_id": 304,
+      "quest_ids": [
+        1112
+      ],
+      "available_quests_on_open": [
+        1112
+      ],
+      "objectives": [
+        {
+          "quest_id": 1112,
+          "objective_id": 2049,
+          "node_id": 1986,
+          "choice_id": 4589,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          1986,
+          4589,
+          1993
+        ],
+        [
+          1993,
+          4590,
+          1994
+        ],
+        [
+          1994,
+          4592,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934995277,
+      "action_id": 1213,
+      "quest_ids": [
+        5277
+      ],
+      "native_marker": {
+        "quest_id": 5277,
+        "objective_id": 10960
+      },
+      "placement": {
+        "quest_id": 5277,
+        "activation_policy": "qualified_native_availability",
+        "row": {
+          "actor_id": -2251799934995277,
+          "reference_id": 5411,
+          "map_id": 1365,
+          "instance_id": 0,
+          "x": -10,
+          "y": 35,
+          "z": -45,
+          "direction": 3,
+          "dialogue_root": 5644,
+          "action_ids": [
+            1213
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Frida Mofette5411 from exact native quest5277 marker10960 and named native speaker/action1213; talk and three payment acknowledgements reconstructed from explicit native predicates, not an official captured dialogue graph"
+        },
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 5277,
+          "objective_id": 10960,
+          "node_id": 5644,
+          "choice_id": 13835,
+          "archetype": "talk"
+        },
+        {
+          "quest_id": 5277,
+          "objective_id": 10962,
+          "node_id": 5644,
+          "choice_id": 13831,
+          "archetype": "deliver"
+        },
+        {
+          "quest_id": 5277,
+          "objective_id": 10963,
+          "node_id": 5644,
+          "choice_id": 13832,
+          "archetype": "deliver"
+        },
+        {
+          "quest_id": 5277,
+          "objective_id": 10964,
+          "node_id": 5644,
+          "choice_id": 13833,
+          "archetype": "deliver"
+        }
+      ],
+      "graph": [
+        [
+          5644,
+          13835,
+          0
+        ],
+        [
+          5644,
+          13831,
+          0
+        ],
+        [
+          5644,
+          13832,
+          0
+        ],
+        [
+          5644,
+          13833,
+          0
+        ],
+        [
+          5644,
+          13217,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992017,
+      "action_id": 430,
+      "quest_ids": [
+        2017
+      ],
+      "native_marker": {
+        "quest_id": 2017,
+        "objective_id": 4083
+      },
+      "placement": {
+        "quest_id": 2017,
+        "activation_policy": "explicit_choice",
+        "running_root": 2299,
+        "start_on_choice": [
+          2711,
+          6503
+        ],
+        "row": {
+          "actor_id": -2251799934992017,
+          "reference_id": 2776,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 4,
+          "y": 50,
+          "z": 0,
+          "direction": 3,
+          "dialogue_root": 2299,
+          "action_ids": [
+            430
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed N.D. Hammersmith2776 from exact native quest2017 marker4083 and named native speaker/action430; native2015 acceptance predicates and five-handle delivery preserved; original server graph not captured"
+        },
+        "graph": [],
+        "interaction_anchor": {
+          "x": 4,
+          "y": 49,
+          "z": 0
+        },
+        "interaction_anchor_evidence": "Reviewed native directed terrain: actor marker(4,50,0) is disconnected; reachable station-adjacent(4,49,0) preserves native actor placement and supports ordinary approach. Reconstructed interaction anchor, not an official captured endpoint."
+      },
+      "objectives": [
+        {
+          "quest_id": 2017,
+          "objective_id": 4083,
+          "node_id": 2299,
+          "choice_id": 6504,
+          "archetype": "deliver"
+        }
+      ],
+      "graph": [
+        [
+          2299,
+          6502,
+          2711
+        ],
+        [
+          2711,
+          6503,
+          0
+        ],
+        [
+          2299,
+          6504,
+          0
+        ],
+        [
+          2299,
+          5547,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992019,
+      "action_id": 431,
+      "quest_ids": [
+        2019,
+        2025,
+        2026
+      ],
+      "available_quests_on_open": [
+        2019,
+        2025,
+        2026
+      ],
+      "native_marker": {
+        "quest_id": 2019,
+        "objective_id": 4087
+      },
+      "placement": {
+        "quest_id": 2019,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992019,
+          "reference_id": 2777,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": -36,
+          "y": 2,
+          "z": 3,
+          "direction": 3,
+          "dialogue_root": 2301,
+          "action_ids": [
+            431
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Missy Amulet2777 from exact native quests2019/2025/2026 marker and named native speaker/action431; native talk, five-powder payment, empty-saddle guard and original saddle reward preserved; original server graph not captured"
+        },
+        "graph": [],
+        "interaction_anchor": {
+          "x": -37,
+          "y": 2,
+          "z": 3
+        },
+        "interaction_anchor_evidence": "Reviewed actual whole-chain QA387: native actor marker(-36,2,3) is an isolated surface in directed geometry; reachable adjacent(-37,2,3) preserves native actor placement and permits ordinary authenticated approach. Reconstructed interaction endpoint, not captured original coordinates."
+      },
+      "objectives": [
+        {
+          "quest_id": 2019,
+          "objective_id": 4087,
+          "node_id": 2713,
+          "choice_id": 6510,
+          "archetype": "talk",
+          "single_objective": true
+        },
+        {
+          "quest_id": 2025,
+          "objective_id": 4099,
+          "node_id": 2301,
+          "choice_id": 6514,
+          "archetype": "deliver",
+          "single_objective": true
+        },
+        {
+          "quest_id": 2026,
+          "objective_id": 4101,
+          "node_id": 2301,
+          "choice_id": 6516,
+          "archetype": "talk",
+          "single_objective": true,
+          "item_absence_guard": true
+        }
+      ],
+      "graph": [
+        [
+          2301,
+          6509,
+          2713
+        ],
+        [
+          2713,
+          6510,
+          0
+        ],
+        [
+          2301,
+          6514,
+          0
+        ],
+        [
+          2301,
+          6516,
+          2714
+        ],
+        [
+          2714,
+          6517,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": [
+    {
+      "after_quest": 2019,
+      "start_quest": 2025,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native2025 prerequisite is GetRealLevel()>=35 and IsAchievementComplete(2019); the same reviewed Missy conversation starts the five-powder follow-up only after earning2019 and preserving the native level gate."
+    },
+    {
+      "after_quest": 2025,
+      "start_quest": 2026,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native2026 prerequisite is GetRealLevel()>=35 and IsAchievementComplete(2025); after the actual five-powder payment, ask the same native speaker for the saddle using the native empty-item guard."
+    }
+  ]
+}

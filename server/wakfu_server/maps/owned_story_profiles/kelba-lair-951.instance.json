@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "kelba-lair-951",
+  "version": 1,
+  "map_id": 951,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "map_id": 949,
+    "object_id": 25127,
+    "destination_id": 2210
+  },
+  "native_entry_criterion": "IsAchievementActive(2544)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    {
+      "source_id": 25126,
+      "destination_id": 2178
+    }
+  ],
+  "controller_file": "kelba-lair-951.json",
+  "exploration_file": "kelba-lair-951.exploration.json",
+  "provenance": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented."
+}

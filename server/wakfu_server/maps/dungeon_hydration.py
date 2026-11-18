@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from wakfu_server import dungeon_context, native_transports, party_wire
 from wakfu_server.dungeon_transition_recovery import DungeonHydrationDeferred
 
-
 _LOCATION = ("map_id", "instance_id", "x", "y", "z")
 
 
@@ -42,6 +41,14 @@ def prepare_transition(
         raise ValueError("Dungeon hydration requires a valid destination")
     party_packets = ()
     if event.get("transition_kind", "enter") == "exit":
+        destination_instance = character["instance_id"]
+        if destination_instance != 0:
+            from wakfu_server.intro_cinematic import private_instance_id
+
+            if destination_instance != private_instance_id(character_id):
+                raise DungeonHydrationDeferred(
+                    "Private exterior scope belongs to another owner"
+                )
         # The durable event must be authorized by returned membership even
         # after the final member closes the run; arbitrary instance-zero input
         # is not sufficient to clear the native dungeon context.
@@ -51,9 +58,15 @@ def prepare_transition(
                 "JOIN dungeon_instance_members m USING(instance_id,character_id) "
                 "WHERE o.event_id=%s AND o.character_id=%s AND o.session_generation=%s "
                 "AND o.status='pending' AND o.transition_kind='exit' "
-                "AND o.destination_instance_id=0 AND m.status='returned' "
+                "AND o.destination_instance_id=%s AND m.status='returned' "
                 "AND m.session_generation=%s",
-                (event.get("event_id"), character_id, generation, generation),
+                (
+                    event.get("event_id"),
+                    character_id,
+                    generation,
+                    destination_instance,
+                    generation,
+                ),
             ).fetchone()
             dissolved_party = db.execute(
                 "SELECT p.id FROM player_parties p "
@@ -65,7 +78,7 @@ def prepare_transition(
                 "WHERE m.character_id=%s)",
                 (event.get("event_id"), character_id),
             ).fetchone()
-        if character["instance_id"] != 0 or authorized is None:
+        if authorized is None:
             raise DungeonHydrationDeferred(
                 "Dungeon exterior hydration is not authorized"
             )

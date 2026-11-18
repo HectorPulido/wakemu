@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "id": "archaeology-site-arrival",
+  "evidence": [
+    "Original quest2700 objective5334 asks to reach the Sufokia dig site after completed2699. Native source1135/object25523/definition2051 has destination2263 to public1003(19,-12,1), retaining its complete Active2700/2930 branch predicates. The existing native_transport_objectives producer authenticates the committed exact original source and destination; neither a map visit, an administrative teleport, nor shared dialogue choice8106 supplies this fact. Other native branches2568/2572 remain unbound."
+  ],
+  "bindings": [
+    {
+      "id": "original-site-transport-2263",
+      "quest_id": 2700,
+      "objective_id": 5334,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 2263
+      },
+      "count": "operation",
+      "maps": [1003],
+      "instances": [0]
+    }
+  ],
+  "links": [],
+  "activations": []
+}

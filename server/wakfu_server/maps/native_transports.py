@@ -23,6 +23,17 @@ def registration(character, body):
     return source["kind"], source["id"]
 
 
+def activation(character, body):
+    """Decode the real native ACTIVATE action used to open known transports."""
+    if type(body) is not bytes or len(body) != 12:
+        raise ValueError("Invalid native transport activation")
+    identity, action, parameter = struct.unpack(">qHH", body)
+    if action != 0 or parameter != 0:
+        raise ValueError("Not a native transport ACTIVATE action")
+    source = _source(character, identity)
+    return source["kind"], source["id"]
+
+
 def _source(character, identity):
     source = TRANSPORTS.get(identity)
     obj = OBJECTS.get(identity)

@@ -1,0 +1,38 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "zinit-shore-980",
+  "controller_id": "zinit-reef-980",
+  "policy_version": 1,
+  "map_id": 980,
+  "requires": [
+    "voyage-stage-3-victory"
+  ],
+  "quest_id": 2684,
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 3801,
+      "action_ids": [
+        697
+      ],
+      "action_criterion": "GetInstanceId() == 980",
+      "dialogue_root": 3212,
+      "choice_id": 7974,
+      "choice_type": 7,
+      "objective_id": 5305,
+      "x": 18,
+      "y": -1,
+      "z": -6,
+      "direction": 4,
+      "interaction_range": 4,
+      "interaction_anchor": {
+        "x": 17,
+        "y": -1,
+        "z": -6
+      },
+      "provenance": "Reviewed relocation onto original map980 Sm6 connected shore floor; native speaker3801/action697/root3212/choice7974 retained. The position is reconstructed, not an official capture. Requires real final voyage victory and acknowledged context refresh; only an accepted conversation earns5305.",
+      "exit_choice_id": 7973,
+      "exit_criterion": "IsAchievementComplete(2684)"
+    }
+  ]
+}

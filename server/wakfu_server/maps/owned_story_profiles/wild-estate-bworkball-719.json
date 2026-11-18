@@ -1,0 +1,186 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-estate-bworkball-719",
+  "map_id": 719,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1638,
+    "objective_id": null,
+    "continuation_quest_id": 1638
+  },
+  "provenance": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify.",
+  "steps": [
+    {
+      "id": "bworkball-arrival",
+      "kind": "world_ready",
+      "reference": 719,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1638,
+          "objective_id": 3090
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-1-requested",
+      "kind": "interactive",
+      "reference": 20383,
+      "requires": [
+        "bworkball-arrival"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1645,
+          "event": 13081
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-1-admitted",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [
+        "bworkball-1-requested"
+      ],
+      "effects": [],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-1-won",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "bworkball-1-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1638,
+          "objective_id": 3079
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-2-requested",
+      "kind": "interactive",
+      "reference": 20407,
+      "requires": [
+        "bworkball-1-won"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1645,
+          "event": 13084
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-2-admitted",
+      "kind": "room_admission",
+      "reference": 2,
+      "requires": [
+        "bworkball-2-requested"
+      ],
+      "effects": [],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-2-won",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "bworkball-2-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1638,
+          "objective_id": 3080
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-3-requested",
+      "kind": "interactive",
+      "reference": 20406,
+      "requires": [
+        "bworkball-2-won"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1645,
+          "event": 13085
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-3-admitted",
+      "kind": "room_admission",
+      "reference": 3,
+      "requires": [
+        "bworkball-3-requested"
+      ],
+      "effects": [],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    },
+    {
+      "id": "bworkball-3-won",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "bworkball-3-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1638,
+          "objective_id": 3081
+        }
+      ],
+      "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+    }
+  ],
+  "initial_elements": [],
+  "interaction_approach_policy": "pinned_native_qv",
+  "native_sources": {
+    "path": "wild-estate-bworkball-719.native.v1.json",
+    "sha256": "96a24996f7a548b4ba3cca6e7939e7b32afdc9104dd12215762acec359798af2"
+  },
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v2",
+    "rooms": [
+      {
+        "room_order": 1,
+        "requires": [
+          "bworkball-1-requested"
+        ],
+        "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+      },
+      {
+        "room_order": 2,
+        "requires": [
+          "bworkball-2-requested"
+        ],
+        "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+      },
+      {
+        "room_order": 3,
+        "requires": [
+          "bworkball-3-requested"
+        ],
+        "evidence": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+      }
+    ]
+  }
+}

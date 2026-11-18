@@ -1,0 +1,40 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1025,
+  "scenario_id": 2072,
+  "objects": [
+    {
+      "chunk": "-1_-1",
+      "id": 26175,
+      "payload_hex": "02000000000b010000000d0000010401fffffffdffffffef00020001010103ffff0007fffffffcffffffef0002fffffffdffffffef0002fffffffdffffffee0002fffffffeffffffef0002fffffffeffffffee0002fffffffeffffffed0002fffffffeffffffec0002000000000000000000",
+      "x": -3.0,
+      "y": -17.0,
+      "map_id": 1025,
+      "z": 2.0,
+      "auto": false,
+      "type": "ZoneTrigger"
+    }
+  ],
+  "programs": {},
+  "scenario_events": [
+    16432
+  ],
+  "scenes": {},
+  "event_signatures": {
+    "16432": {
+      "argument_count": 0,
+      "presentation": true,
+      "duration_ms": 0
+    }
+  },
+  "presentations": [
+    16432
+  ],
+  "lua_sources": {
+    "scenario/2072.lua": "96086ba708f5c84249d00b86b6d67562a509ae048885e1bb5e3a3d528cd17fb0"
+  },
+  "version_boundary": {
+    "policy": "reviewed-world-tile-swaps-v1",
+    "evidence": "Reviewed School80 world-trial version: original1025 asset, exact native entry25688/2321 and exit25689/2322. The native15-tile adjacent-swap rule is reconstructed through actual accepted owner movement and durable permutation; standard native information packets show current tile identities/blank and the reviewed row-major target. Original fighting form/state references are provenance, not silently applied to a world actor. Native26175 inspection zone qualifies the flooded-path discovery, separately from its item hand-in and resource round trip. All story objectives still require actual running quests."
+  }
+}

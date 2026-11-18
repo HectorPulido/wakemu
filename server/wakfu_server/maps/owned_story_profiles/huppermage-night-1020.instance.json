@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "huppermage-night-1020",
+  "version": 1,
+  "map_id": 1020,
+  "entry": {
+    "map_id": 1018,
+    "object_id": 25682,
+    "destination_id": 2314
+  },
+  "native_entry_criterion": "IsAchievementRunning(2777) and not IsAchievementObjectiveComplete(5597)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25690
+  ],
+  "controller_file": "huppermage-night-1020.json",
+  "encounters_file": "huppermage-night-1020-encounters.json",
+  "exploration_file": "huppermage-night-1020.exploration.json",
+  "provenance": "Reviewed reconstruction on original installed dormitory asset1020. Actual native entry25682/2314 and four-cell trigger25692 qualify the sleep/ambush boundary; no invented bed interactive is added. Original2070 names three masked actor arguments and seven-second arrival choreography. Three native3918 Masq Al Capo retain native4083 backstab mechanics/stats/spells. The exact same-reference formation and floor placements are reviewed, not recovered official server roster."
+}

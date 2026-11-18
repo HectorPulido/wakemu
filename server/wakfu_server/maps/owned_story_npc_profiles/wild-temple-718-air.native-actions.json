@@ -1,0 +1,19 @@
+{
+  "schema": "owned-story-native-npc-actions-v1",
+  "provenance": "Fresh original aMb.csj extraction: exact type1/clx67 archaeologist action. Native dialogue texts exist separately; no unobserved graph edge is claimed.",
+  "speakers": [
+    {
+      "ref": 2813,
+      "min_level": 100,
+      "max_level": 100,
+      "visual_id": 70,
+      "actions": [
+        {
+          "id": 445,
+          "type": 1,
+          "criteria": ""
+        }
+      ]
+    }
+  ]
+}

@@ -199,8 +199,19 @@ def current_snapshot(
     ):
         raise ValueError("Live fight context differs from its shared location")
     leaders = context["leaders"]
+    from .native_order_trial_encounter import policy_for
+
+    order_policy = policy_for(fight)
+    # The typed arcade's initial empty team keeps its zero leader after
+    # registered larvae are born; those actors do not invent a team captain.
     if set(leaders) != {0, 1} or any(
-        identity not in fight.actors or fight.actors[identity].team != team
+        not (
+            order_policy is not None
+            and team == order_policy.npc_team
+            and type(identity) is int
+            and identity == 0
+        )
+        and (identity not in fight.actors or fight.actors[identity].team != team)
         for team, identity in leaders.items()
     ):
         raise ValueError("Live fight leaders are not current actors")
@@ -250,7 +261,14 @@ def current_snapshot(
                 if 114 not in getattr(actor, "native_fight_properties", ())
             ],
         )
-        fight_timeline = initial_timeline([actor.id for actor in actors], order)
+        fight_timeline = initial_timeline(
+            [
+                actor.id
+                for actor in actors
+                if 114 not in getattr(actor, "native_fight_properties", ())
+            ],
+            order,
+        )
         action_id = 0
     elif fight.phase == "active":
         if type(deadline_ms) is not int or deadline_ms <= 0:

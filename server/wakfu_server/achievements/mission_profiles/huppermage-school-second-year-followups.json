@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "id": "huppermage-school-second-year-followups",
+  "evidence": [
+    "PRIVATE complete School80 followup graph after earned2783. Original2784/2785/2786 eligibility is Complete2783; reviewed admission starts these parallel branches and their certificate together. Publish only with the coherent storage, sliding-world-tile, flooded-resource, native basket/NPC and final registrar producer block.",
+    "Native2787 objective links5626->2783,5627->2784,5628->2785,5629->2786 use real completed child facts. Final5635 remains a separate actual offered registrar dialogue; neither admission nor completed-child reconciliation grants the certificate, spell5621, item26346 or other native reward.",
+    "Original exclusive2781/2782 Active criteria are retained through existing native authority. No alternate introduction is fabricated and no level130/third-year quest is started by this profile.",
+    "Reviewed physical visit qualifier: actual native1209 source31438 at(-13,-159,41) exactly matches the current5619 native waypoint and transports through3955 into1211. Only that committed original doorway traversal qualifies the external visit after actual5618; entry into the Bonta Mine itself through old1136 source29947/3402 is insufficient. No synthetic position or admin arrival event is accepted.",
+    "Actual authenticated native Thomas3917/action725 opening at the reviewed public1019 placement qualifies Ask for help5621. The separate8229 basket hand-in still requires actual5621, both required native quantities and its fresh offered choice; opening does not consume materials or solve the tile trial."
+  ],
+  "bindings": [
+    {
+      "id": "school-zeppelantern-native-doorway-visit",
+      "quest_id": 2784,
+      "objective_id": 5619,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 3955
+      },
+      "maps": [
+        1211
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "school-thomas-native-help-opening",
+      "quest_id": 2785,
+      "objective_id": 5621,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 5621
+      },
+      "maps": [
+        1019
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [
+    {
+      "parent_quest_id": 2787,
+      "objective_id": 5626,
+      "child_quest_id": 2783
+    },
+    {
+      "parent_quest_id": 2787,
+      "objective_id": 5627,
+      "child_quest_id": 2784
+    },
+    {
+      "parent_quest_id": 2787,
+      "objective_id": 5628,
+      "child_quest_id": 2785
+    },
+    {
+      "parent_quest_id": 2787,
+      "objective_id": 5629,
+      "child_quest_id": 2786
+    }
+  ],
+  "activations": [
+    {
+      "id": "school-second-year-earned-2783-2784",
+      "quest_id": 2784,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2783
+      },
+      "requires_completed": [
+        2783
+      ]
+    },
+    {
+      "id": "school-second-year-ready-2784",
+      "quest_id": 2784,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 80,
+      "requires_completed": [
+        2783
+      ],
+      "admission_evidence": "Reviewed continuation after genuine Childs Play2783 completion; original native eligibility independently enforced. Real ready/level admission only, not administrative map movement or trial success."
+    },
+    {
+      "id": "school-second-year-earned-2783-2785",
+      "quest_id": 2785,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2783
+      },
+      "requires_completed": [
+        2783
+      ]
+    },
+    {
+      "id": "school-second-year-ready-2785",
+      "quest_id": 2785,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 80,
+      "requires_completed": [
+        2783
+      ],
+      "admission_evidence": "Reviewed continuation after genuine Childs Play2783 completion; original native eligibility independently enforced. Real ready/level admission only, not administrative map movement or trial success."
+    },
+    {
+      "id": "school-second-year-earned-2783-2786",
+      "quest_id": 2786,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2783
+      },
+      "requires_completed": [
+        2783
+      ]
+    },
+    {
+      "id": "school-second-year-ready-2786",
+      "quest_id": 2786,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 80,
+      "requires_completed": [
+        2783
+      ],
+      "admission_evidence": "Reviewed continuation after genuine Childs Play2783 completion; original native eligibility independently enforced. Real ready/level admission only, not administrative map movement or trial success."
+    },
+    {
+      "id": "school-second-year-earned-2783-2787",
+      "quest_id": 2787,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2783
+      },
+      "requires_completed": [
+        2783
+      ]
+    },
+    {
+      "id": "school-second-year-ready-2787",
+      "quest_id": 2787,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 80,
+      "requires_completed": [
+        2783
+      ],
+      "admission_evidence": "Reviewed continuation after genuine Childs Play2783 completion; original native eligibility independently enforced. Real ready/level admission only, not administrative map movement or trial success."
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 """Final-victory party return is atomic and idempotent in isolated PostgreSQL."""
 from types import SimpleNamespace
+from contextlib import nullcontext
+import struct
 import unittest
+from unittest.mock import Mock, patch
 
 from postgres_case import PostgresCase
 from test_dungeon_progression import DungeonProgressionPostgresTests as Fixture
@@ -304,6 +307,105 @@ class AutomaticDungeonExitPostgresTests(PostgresCase):
 
 
 del Fixture
+
+
+class NativeCompletedReturnTests(unittest.TestCase):
+    def test_pohl_native_exit_requires_completed_run_and_non_deferred_party_transition(
+        self,
+    ):
+        character = {
+            "id": 501,
+            "account_id": 502,
+            "map_id": 1369,
+            "instance_id": 503,
+            "x": -7,
+            "y": -66,
+            "z": -15,
+        }
+        topology = {"asset_map_id": 1369}
+        positions = object()
+        body = struct.pack(">qiBi", 33429, 4499, 0, 2)
+        default_final = object()
+
+        class ReadOnlyStore:
+            def __init__(self, final):
+                self.final = final
+
+            def connection(self):
+                return nullcontext(self)
+
+            def execute(self, sql, params):
+                if "SELECT e.fight_id,i.entry_map_id" in sql:
+                    return SimpleNamespace(fetchone=lambda: self.final)
+                raise AssertionError(f"Unexpected test query: {sql}")
+
+        def invoke(
+            *, final=default_final, packet=body, allowed=True, complete_result=None
+        ):
+            store = ReadOnlyStore(
+                {"fight_id": 9001, "entry_map_id": 1358}
+                if final is default_final
+                else final
+            )
+            source_calls = []
+
+            def source_allowed(actor, source_row):
+                source_calls.append((actor, source_row))
+                return allowed and (
+                    source_row["id"],
+                    source_row["x"],
+                    source_row["y"],
+                    source_row["z"],
+                ) == (33429, -7.0, -66.0, -15.0)
+
+            def run_transition(
+                _store,
+                _positions,
+                instance_id,
+                fight_id,
+                *,
+                transition,
+                topology,
+                in_fight,
+            ):
+                return transition(
+                    _store, instance_id, fight_id, topology=topology, in_fight=in_fight
+                )
+
+            with patch(
+                "wakfu_server.dungeon_position_barrier.run_auto_transition",
+                side_effect=run_transition,
+            ), patch.object(
+                dungeon_auto_exit, "complete", return_value=complete_result
+            ) as complete:
+                result = dungeon_auto_exit.native_completed_return(
+                    store,
+                    character,
+                    packet,
+                    topology=topology,
+                    source_allowed=source_allowed,
+                    in_fight=lambda _identity: False,
+                    positions=positions,
+                )
+            return result, complete, source_calls
+
+        completed_run = {"fight_id": 9001, "entry_map_id": 1358}
+        result, complete, source_calls = invoke(
+            final=completed_run, complete_result={"returned": True}
+        )
+        self.assertEqual(result, {"returned": True})
+        complete.assert_called_once()
+        self.assertEqual(len(source_calls), 1)
+        self.assertEqual(source_calls[0][1]["id"], 33429)
+
+        with self.assertRaisesRegex(ValueError, "Native dungeon exterior return"):
+            invoke(final=completed_run, packet=struct.pack(">qiBi", 33429, 4498, 0, 2))
+        with self.assertRaisesRegex(ValueError, "source is not authorized"):
+            invoke(final=completed_run, allowed=False)
+        with self.assertRaisesRegex(ValueError, "completed owned run"):
+            invoke(final=None)
+        with self.assertRaisesRegex(ValueError, "pending native source"):
+            invoke(final=completed_run, complete_result=None)
 
 
 if __name__ == "__main__":

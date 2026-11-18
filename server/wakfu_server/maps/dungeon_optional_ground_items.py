@@ -1,4 +1,5 @@
 """Original bIg item-to-ground request; unknown native ground rules stay closed."""
+
 from contextlib import ExitStack
 from functools import lru_cache
 import hashlib
@@ -77,8 +78,16 @@ def qualified_rule(action):
     use_criterion(rule)
     from wakfu_server import native_catalog
 
-    if native_catalog.release() != rule["qualified_native_release"]:
-        raise ValueError("Optional ground source publication changed")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        rule["qualified_native_release"],
+        (
+            "item-action-rules.json",
+            "item-stack-rules.json",
+            f'combat-maps/{ground["map_id"]}.json',
+        ),
+    )
     return rule
 
 
@@ -115,7 +124,7 @@ def use(
     body,
     *,
     in_fight=False,
-    positions=None
+    positions=None,
 ):
     request = decode(body)
     return activate(
@@ -141,7 +150,7 @@ def step_on_target(
     position,
     *,
     in_fight=False,
-    positions=None
+    positions=None,
 ):
     """Activate only an actual accepted endpoint, never a forged item request."""
     matches = [
@@ -195,7 +204,7 @@ def _activate(
     rule,
     activation_method,
     in_fight=False,
-    positions=None
+    positions=None,
 ):
     if activation_method not in rule.get("activation_methods", ()):
         raise ValueError("Ground activation method is not reviewed")

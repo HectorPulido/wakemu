@@ -115,6 +115,59 @@ class CriticalTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             spell_critical_available(6908, 201)
 
+    def test_scoped_zero_level_morph_critical_availability_and_ordinary_levels(self):
+        from wakfu_server.combat_critical import (
+            spell_critical_available,
+            _spell_availability,
+        )
+        from pathlib import Path
+        import json
+        from unittest.mock import patch
+
+        zero_source = json.loads(
+            Path(
+                ".runtime/quest-archetypes/mount2014/native/bundle/native-class-morph933-level-zero.json"
+            ).read_text()
+        )
+        morph_spells = (4476, 4477, 4480, 4479, 4478, 5589, 5620)
+        self.assertTrue(set(map(str, morph_spells)) <= set(zero_source["spells"]))
+
+        with patch(
+            "wakfu_server.combat_morph_dependencies.zero_catalog",
+            return_value=zero_source,
+        ):
+            for spell_id in morph_spells:
+                self.assertFalse(spell_critical_available(spell_id, 0))
+
+            class Forbidden:
+                def randint(self, _a, _b):
+                    raise AssertionError("Unavailable critical branch must not roll")
+
+            decision = choose_critical(
+                self.actor(99),
+                rng=Forbidden(),
+                critical_available=spell_critical_available(4476, 0),
+            )
+        self.assertFalse(decision.critical)
+        self.assertIsNone(decision.roll)
+
+        ordinary = _spell_availability()["5562"]
+        for level in (1, 200):
+            self.assertEqual(
+                spell_critical_available(5562, level),
+                level in ordinary["critical_levels"],
+            )
+        with self.assertRaisesRegex(
+            ValueError, "Missing audited native spell critical level"
+        ):
+            spell_critical_available(5562, 246)
+        with self.assertRaisesRegex(
+            ValueError, "Missing audited native spell critical level"
+        ):
+            spell_critical_available(5562, 0)
+        with self.assertRaises(ValueError):
+            spell_critical_available(999999999, 0)
+
     def test_real_auto_entry_rolls_inside_reversible_boundary_and_reuses_branch(self):
         import struct
         from unittest.mock import patch

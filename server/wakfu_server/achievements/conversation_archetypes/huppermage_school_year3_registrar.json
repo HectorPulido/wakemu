@@ -1,0 +1,27 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "SOURCE-ONLY School130 final certification. Original2797 requires the genuine completed labyrinth2790, infiltration2791 and Occullege2792; its three child objectives must already be reconciled by the coherent third-year toolkit. Native3309/8328 provides the separate registrar hand-in5643. Reuse the existing reviewed3913/action722 public1018 placement without relocating it to the historical2797 waypoint. This manifest supplies no secret-passage, labyrinth, infiltration or dungeon success and must not be used to advertise an incomplete playable third year.",
+  "speakers": [
+    {
+      "actor_id": -2251799934952776,
+      "action_id": 722,
+      "quest_ids": [2797],
+      "graph": [
+        [3309, 8328, 3373],
+        [3373, 8326, 0]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2797,
+          "objective_id": 5643,
+          "node_id": 3309,
+          "choice_id": 8328,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [5646, 5647, 5648]
+        }
+      ]
+    }
+  ],
+  "activation_links": []
+}

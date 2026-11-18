@@ -11,6 +11,22 @@ NON_ORDINARY_PROPERTIES = frozenset((13, 43, 45, 49, 99, 115))
 BOSS_PROPERTIES = frozenset((43, 49, 99))
 
 
+def generated_quantity(order, room_count, ceiling):
+    """Start generated formations at three and progress to their native ceiling."""
+    if (
+        any(type(value) is not int for value in (order, room_count, ceiling))
+        or not 1 <= order <= room_count <= 100
+        or not 1 <= ceiling <= 121
+    ):
+        raise ValueError("Invalid generated room quantity progression")
+    minimum = min(3, ceiling)
+    if room_count == 1:
+        return ceiling
+    return minimum + ((ceiling - minimum) * (order - 1) + room_count - 2) // (
+        room_count - 1
+    )
+
+
 def generated_reference(candidates, catalog, *, order, room_count, index):
     """Use native tiers for new ordinary drafts; preserve final/controller slots.
 
@@ -38,7 +54,7 @@ def draft(
     *,
     room_count=None,
     capacity=121,
-    generation_target=8,
+    generation_target=None,
     generation_targets=None,
     boss_references=(),
     admission_policy=None,
@@ -51,7 +67,9 @@ def draft(
     plan = reconcile(plan, definition, encounter_recipe)
     if type(capacity) is not int or not 1 <= capacity <= 121:
         raise ValueError("Local room capacity must be between one and 121")
-    if type(generation_target) is not int or not 1 <= generation_target <= capacity:
+    if generation_target is not None and (
+        type(generation_target) is not int or not 1 <= generation_target <= capacity
+    ):
         raise ValueError("Invalid local generation target")
     if room_count is not None and (
         type(room_count) is not int or not 1 <= room_count <= 100
@@ -135,6 +153,8 @@ def draft(
             )
     if type(count) is not int or not 1 <= count <= 100:
         raise ValueError("Invalid local room count")
+    if generation_target is None:
+        generation_target = min(capacity, 10 if count >= 4 else 8)
     targets = {} if generation_targets is None else generation_targets
     if not isinstance(targets, dict) or any(
         type(order) is not int
@@ -349,7 +369,7 @@ def draft(
             if fixed_quantities
             else 1
             if ultimate
-            else targets.get(order, generation_target)
+            else targets.get(order, generated_quantity(order, count, generation_target))
         )
         final_boss_missing = (
             not fixed_quantities
@@ -423,6 +443,11 @@ def draft(
         "definition_id": definition["id"],
         "transport_npc_capacity": capacity,
         "generation_target": generation_target,
+        "generated_quantity_policy": {
+            "mode": "progressive_common_formation_ceiling",
+            "ceiling": generation_target,
+            "scope": "Missing quantities and synthetic slots; explicit per-room targets and reviewed quantities remain authoritative",
+        },
         "generated_species_assignment_policy": {
             "mode": "native_stage_tiers_before_final_encounter",
             "scope": "Absent anonymous identities and synthetic ordinary slots only",

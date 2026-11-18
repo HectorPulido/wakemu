@@ -258,6 +258,93 @@ class ReuseCompatibilityTests(unittest.TestCase):
                 after["compiler_sources"][path] = "new"
                 self.assertTrue(reuse.compatible(before, after))
 
+    def test_native_entry_admission_modules_are_runtime_only_with_exact_pins(self):
+        before, after = identity(), identity()
+        for path in (
+            "wakfu_server/maps/owned_physical_entry.py",
+            "wakfu_server/maps/dungeon_transport.py",
+        ):
+            before["compiler_sources"][path] = "old-runtime"
+            after["compiler_sources"][path] = "new-runtime"
+        self.assertTrue(reuse.compatible(before, after))
+
+        for changed in (
+            identity(changed_source="wakfu_server/combat/combat_spell.py"),
+            identity(changed_source="wakfu_server/maps/owned_physical_entry.py"),
+        ):
+            with self.subTest(changed_source=changed["compiler_sources"]):
+                changed["compiler_sources"].update(after["compiler_sources"])
+                changed["compiler_sources"][
+                    "wakfu_server/combat/combat_spell.py"
+                ] = "unreviewed-combat-change"
+                self.assertFalse(reuse.compatible(before, changed))
+
+        for field in ("source_inventory_sha256", "config_sha256", "config"):
+            with self.subTest(pin=field):
+                changed = copy.deepcopy(after)
+                changed[field] = "changed"
+                self.assertFalse(reuse.compatible(before, changed))
+
+    def test_owned_story_runtime_classification_is_narrow_and_pins_static_inputs(self):
+        paths = {
+            "wakfu_server/maps/owned_story_controller.py",
+            "wakfu_server/maps/owned_story_configuration.py",
+            "wakfu_server/maps/owned_story_terminal_returns.py",
+            "wakfu_server/maps/owned_story_defeat_qualification.py",
+            "wakfu_server/combat/combat_death_events.py",
+        }
+        self.assertTrue(paths <= reuse.RUNTIME_ONLY)
+        before, after = identity(), identity()
+        for path in paths:
+            before["compiler_sources"][path] = "reviewed-runtime-before"
+            after["compiler_sources"][path] = "reviewed-runtime-after"
+        self.assertTrue(reuse.compatible(before, after))
+
+        unreviewed = copy.deepcopy(after)
+        unreviewed["compiler_sources"][
+            "wakfu_server/combat/combat_spell.py"
+        ] = "changed"
+        self.assertFalse(reuse.compatible(before, unreviewed))
+
+        for field, changed_value in (
+            ("source_inventory_sha256", "f" * 64),
+            ("source_documents", {"native-monsters.json": "changed"}),
+            ("config_sha256", "f" * 64),
+            ("config", {"combat": "changed"}),
+        ):
+            with self.subTest(static_input=field):
+                changed = copy.deepcopy(after)
+                changed[field] = changed_value
+                self.assertFalse(reuse.compatible(before, changed))
+
+        unknown_inventory = copy.deepcopy(after)
+        unknown_inventory["compiler_sources"][
+            "database/protocol/native-monsters.json"
+        ] = "changed"
+        self.assertFalse(reuse.compatible(before, unknown_inventory))
+
+    def test_reviewed_session_travel_runtime_change_keeps_compiled_identity(self):
+        path = "wakfu_server/application/session_travel.py"
+        self.assertIn(path, reuse.RUNTIME_ONLY)
+        before, after = identity(), identity()
+        before["compiler_sources"][path] = "reviewed-runtime-before"
+        after["compiler_sources"][path] = "reviewed-runtime-after"
+        self.assertTrue(reuse.compatible(before, after))
+
+        for changed in (
+            dict(compiler_source=("wakfu_server/combat/combat_spell.py", "changed")),
+            dict(source_inventory_sha256="f" * 64),
+            dict(source_documents={"native-monsters.json": "changed"}),
+            dict(config={"combat": "changed"}),
+        ):
+            rejected = copy.deepcopy(after)
+            if "compiler_source" in changed:
+                key, value = changed["compiler_source"]
+                rejected["compiler_sources"][key] = value
+            else:
+                rejected.update(changed)
+            self.assertFalse(reuse.compatible(before, rejected))
+
     def test_world_dispatch_modules_have_no_package_or_publisher_references(self):
         # The World application now owns the former root dispatcher. References
         # from other package modules still require a reuse classification review.

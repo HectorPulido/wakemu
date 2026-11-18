@@ -15,6 +15,20 @@ def native_damage_source(fight, identity):
     # registered_area_pv already verifies fbc's own native constructor and
     # characteristic set. Never substitute the trap owner's characteristics.
     contract = row.get("native_area_contract")
+    if contract == "faW":
+        from .combat_effect_area import native_effect_areas
+        from .combat_fake_fighter import verified_fake_fighter
+        from .combat_fake_fighter_resources import fake_fighter_characteristics
+
+        definition = native_effect_areas()[str(row["reference"])]
+        constructor = verified_fake_fighter(row, definition)
+        if constructor["characteristic_ids"] != (1,):
+            raise ValueError("Unsupported native faW damage source PA contract")
+        source.native_characteristics = {
+            key: value["current"]
+            for key, value in fake_fighter_characteristics(row, definition).items()
+        }
+        return source
     if contract not in ("faP", "faY", "fbc"):
         raise ValueError("Unsupported native damage source PA contract")
     if source.native_is_area is not True or (

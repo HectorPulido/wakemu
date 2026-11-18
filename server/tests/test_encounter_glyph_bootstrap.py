@@ -18,6 +18,7 @@ class EncounterGlyphBootstrapTests(unittest.TestCase):
             type="GLYPH",
             native_class="bcT",
             native_shape_class="anD",
+            native_shape_description="point",
             shape_parameters=[],
             raw_bdh=[],
             raw_bdf=0,

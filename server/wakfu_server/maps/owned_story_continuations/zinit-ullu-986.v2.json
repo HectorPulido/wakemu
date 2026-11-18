@@ -1,0 +1,59 @@
+{
+  "schema": "owned-cinematic-continuation-v2",
+  "id": "zinit-ullu-986",
+  "source_map_id": 987,
+  "quest_id": 2689,
+  "required_story_steps": [
+    "cave-authenticated-exit"
+  ],
+  "admission": {
+    "quest_id": 2689,
+    "required_objectives": [
+      5308
+    ]
+  },
+  "completion": {
+    "quest_id": 2689,
+    "objective_id": 5309
+  },
+  "native_arrival": {
+    "map_id": 986,
+    "x": -61,
+    "y": -16,
+    "z": 0
+  },
+  "stage": {
+    "map_id": 986,
+    "x": -6,
+    "y": -8,
+    "z": 0
+  },
+  "entries": [
+    {
+      "source_id": 25395,
+      "destination_id": 2234
+    },
+    {
+      "source_id": 25430,
+      "destination_id": 2234
+    }
+  ],
+  "presentation": {
+    "scenario": 2029,
+    "event": 16087,
+    "finish_event": 16088,
+    "duration_ms": 40500,
+    "argument_count": 0,
+    "lua_sha256": "7108d4a27af50d1ee37b1a18ebffd71873dde8e3993eda7d4997db8dccac0198"
+  },
+  "return_anchor": {
+    "source_map_id": 986,
+    "source_id": 27538,
+    "destination_id": 2599,
+    "map_id": 986,
+    "x": -48,
+    "y": -13,
+    "z": 0
+  },
+  "provenance": "Explicit reviewed association, not a captured original map-to-scenario binding: authentic cave987 free native exits25395/25430 destination2234 land986(-61,-16,0). After the actual owned cave-authenticated-exit earns5308 with2689 stillrunning, the normal exit transaction admits the existing owner-private introductory namespace on current986 native floor(-6,-8,0). Original2029/16087 takesZEROarguments, creates private client Ullu1300051 at(-6,-9,0), and ends player(-6,-8,0); exact invoke timeline40500ms. Normal5309 mission settlement follows only the earned native finish/deadline. Return986(-48,-13,0) is authentic27538/2599, not an invented public Ullu NPC or questwin. Global presentation once skips an already seen movie with immediate mechanical continuation. NativeSm6 and installed combat geometry positively contain stage cells."
+}

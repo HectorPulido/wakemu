@@ -1,4 +1,5 @@
 """Native12804 minimal-item transfer; client performs the visual move first."""
+
 from wakfu_server import native_catalog as protocol_catalog
 from wakfu_server.paths import DATA_ROOT
 import struct
@@ -215,7 +216,30 @@ def transfer(store, account_id, generation, character_id, body):
                 template = definition.get("binding_template", {})
                 scope = template.get("enum")
                 binding = bindings.get(unit["uid"], {})
+                if binding.get("binding_type") is not None:
+                    from .item_binding import validate_override
+
+                    override = validate_override(binding["binding_type"])
+                    scope = (
+                        "NOT_BOUND"
+                        if override == 0
+                        else (
+                            "BOUND_ON_PICKUP_TO_ACCOUNT"
+                            if override in (4, 8)
+                            else (
+                                "BOUND_ON_EQUIP_TO_ACCOUNT"
+                                if override in (3, 7)
+                                else (
+                                    "BOUND_ON_PICKUP_TO_CHARACTER"
+                                    if override in (2, 6)
+                                    else "BOUND_ON_EQUIP_TO_CHARACTER"
+                                )
+                            )
+                        )
+                    )
                 initial_bound = template.get("default_eKo")
+                if binding.get("binding_type") is not None:
+                    initial_bound = False
                 persisted_bound = binding.get("bound", False)
                 if (
                     type(initial_bound) is not bool
@@ -399,8 +423,8 @@ def transfer(store, account_id, generation, character_id, body):
 
                 copy_appearance(db, item["uid"], clone)
                 db.execute(
-                    "INSERT INTO inventory_item_bindings(uid,bound,template_reference) "
-                    "SELECT %s,bound,template_reference FROM inventory_item_bindings WHERE uid=%s",
+                    "INSERT INTO inventory_item_bindings(uid,bound,template_reference,binding_type) "
+                    "SELECT %s,bound,template_reference,binding_type FROM inventory_item_bindings WHERE uid=%s",
                     (clone, item["uid"]),
                 )
                 db.execute(

@@ -140,6 +140,14 @@ class WorldPublication:
             self.runtime.send(connection, "world", *npc_world.spawn(npc))
         for npc in positioned_npcs:
             self.runtime.send(connection, "world", *npc_placements.spawn(npc))
+        from wakfu_server import owned_physical_offers
+
+        with self.runtime.STORE.connection() as offer_db:
+            physical_offers = owned_physical_offers.spawn_packets(
+                offer_db, self.runtime.STORE, character
+            )
+        for packet in physical_offers:
+            self.runtime.send(connection, "world", *packet)
         from wakfu_server import heroes, hero_wire
 
         hero_roster = heroes.ensure_company_party(
@@ -208,6 +216,16 @@ class WorldPublication:
 
                     with self.runtime.STORE.connection() as db:
                         groups = visible_groups(db, groups, character["id"])
+                from wakfu_server.achievements import source_quest_encounters
+
+                if any(
+                    source_quest_encounters.candidate_monsters(group["members"])
+                    for group in groups
+                ):
+                    with self.runtime.STORE.connection() as db:
+                        groups = source_quest_encounters.visible_groups(
+                            db, groups, character["id"]
+                        )
                 for group in groups:
                     self.runtime.send(
                         connection,
@@ -255,6 +273,13 @@ class WorldPublication:
 
             with self.runtime.STORE.connection() as db:
                 owner = group_owners(db, [{"key": key, "members": members}]).get(key)
+        from wakfu_server.achievements import source_quest_encounters
+
+        if owner is None and source_quest_encounters.candidate_monsters(members):
+            with self.runtime.STORE.connection() as db:
+                owner = source_quest_encounters.group_owners(
+                    db, [{"key": key, "members": members}]
+                ).get(key)
         self.runtime.WORLD.emit_location(
             key[0],
             key[1],
@@ -434,6 +459,7 @@ class WorldPublication:
             dungeon_object_states,
             dungeon_runtime,
             generic_transports,
+            owned_noncombat_context,
         )
 
         with self.runtime.STORE.connection() as db:
@@ -444,15 +470,31 @@ class WorldPublication:
                 "SELECT current_room, status FROM dungeon_room_runs WHERE instance_id=%s",
                 (character["instance_id"],),
             ).fetchone()
-        if progress is None:
+            noncombat = owned_noncombat_context.authenticate_bootstrap(
+                db, self.runtime.STORE, character, configuration
+            )
+        if noncombat and progress is not None:
+            raise ValueError("Noncombat owned bootstrap has unexpected room progress")
+        if not noncombat and progress is None:
             raise ValueError("Dungeon bootstrap has no committed room progress")
         from wakfu_server import dungeon_native_flow, dungeon_optional_continuations
 
-        from wakfu_server import native_scene_start
+        from wakfu_server import native_scene_start, owned_story_npcs
 
+        # A full native bootstrap must publish instance NPCs before their
+        # continuation scenes. Its existing successful-write acknowledgement
+        # then unlocks interactions/scene arguments after a context refresh.
+        with self.runtime.STORE.connection() as npc_db:
+            messages = tuple(messages) + tuple(
+                owned_story_npcs.spawn_packets(
+                    npc_db, self.runtime.STORE, character, context_bootstrap=True
+                )
+            )
         continuation_packets = dungeon_optional_continuations.packets(
             configuration["topology"]
         ) + native_scene_start.packets(configuration["topology"])
+        if noncombat:
+            return tuple(messages) + continuation_packets
         if dungeon_native_flow.enabled(configuration["topology"]):
             return (
                 tuple(messages)

@@ -11,6 +11,93 @@ from wakfu_server import native_catalog
 
 
 class OwnedDeathEventsTests(unittest.TestCase):
+    def test_real_cire_5357_333863_damage_produces_qualified_death_receipt(self):
+        from copy import deepcopy
+        from wakfu_server import native_catalog
+        from wakfu_server.maps.owned_story_defeat_qualification import qualified
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+
+        fixture = damage_fixture.DamageHandlerTests()
+        fixture.setUp()
+        fight = fixture.fight
+        initialize_global_pv_collections(fight, tuple(fight.actors))
+        target, cire = fight.actors[7], fight.actors[-7]
+        fight.order = [cire.id, target.id]
+        fight.turn_index = 0
+        cire.turn_count = 1
+        fight._event("turn_started", actor_id=cire.id, actor_turn=1)
+        target.hp = 1
+        target.effect_stats[92] = 0
+        target.effect_stats[97] = 0
+        target.effect_stats.update({28: 0, 29: 0, 30: 0, 31: 0})
+        cire.effect_stats.update({21: 0, 22: 0, 23: 0, 24: 0})
+
+        from wakfu_server.paths import DATA_ROOT
+
+        effect = native_catalog.record(
+            DATA_ROOT / "native-npc-spell-effect-trees.json", "effects", "333863"
+        )
+        self.assertEqual(
+            (effect["effect_class"], effect["parameters"]), (917, [100.0, 0.0])
+        )
+        invocation = EffectInvocation(7530, 230, cire.id, target.id, target.position)
+        authority = object()
+        source = NativeEventSource(
+            uid=123,
+            generic_effect=333863,
+            value=100,
+            caster_id=cire.id,
+            target_id=target.id,
+            cell=target.position,
+            event_ids=(1013,),
+            channel=6,
+            manager_actor_id=target.id,
+            source_parent_uid=None,
+            suppresses_level_one=False,
+            suppresses_all=False,
+            suppressed=False,
+            native_events_verified=True,
+            effect_action_id=917,
+        )
+
+        class Events:
+            def phase(self, *_args, **_kwargs):
+                return None
+
+            def death(self, actor_id, **_kwargs):
+                return deliver_owned_death(
+                    fight,
+                    actor_id,
+                    source=source,
+                    replay=lambda *_args, **_kwargs: (),
+                    authority=authority,
+                )
+
+        fixture.handler.event_lifecycle = Events()
+        self.assertTrue(fixture.handler(effect, {}, invocation))
+        self.assertEqual(target.hp, 0)
+        self.assertEqual(fight.phase, "finished")
+        self.assertEqual(fight.winner, cire.team)
+
+        story_path = (
+            Path(__file__).parents[1]
+            / "wakfu_server/maps/owned_story_profiles/ereboria-cire-1366.configuration.json"
+        )
+        story = json.loads(story_path.read_text())["topology"]["owned_story_controller"]
+        originals = [{"id": cire.id, "ref": 5357}]
+        self.assertTrue(qualified(story, fight, target.id, originals, 1))
+
+        wrong_receipt = deepcopy(fight)
+        next(iter(wrong_receipt.native_death_event_deliveries.values()))[
+            "generic_effect"
+        ] = 999999
+        self.assertFalse(qualified(story, wrong_receipt, target.id, originals, 1))
+        ordinary_loss = deepcopy(fight)
+        ordinary_loss.events = [
+            event for event in ordinary_loss.events if event.get("kind") != "damage"
+        ]
+        self.assertFalse(qualified(story, ordinary_loss, target.id, originals, 1))
+
     def test_lethal_transition_preserves_source_before_finish_and_checkpoint_once(self):
         fixture = damage_fixture.DamageHandlerTests()
         fixture.setUp()

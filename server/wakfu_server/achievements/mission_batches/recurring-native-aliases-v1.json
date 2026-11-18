@@ -1,0 +1,1236 @@
+{
+  "schema": "wakemu.recurring-quest-batch-v1",
+  "native_quest_inventory_sha256": "d77d3bb5b47759e979409872e550e802c911093940625cecd837982f061135ef",
+  "source_policy": "Wakemu-native-objective+multilingual-boss+original-aKU+BOSS43+immutable-final-room",
+  "native_input_sources": {
+    "quest_export": {
+      "client/contents/bdata/1.jar": "a40b77575b015bee15fcfcaac700c6fa6f7417f52438121d61e86add825b6ad8",
+      "client/contents/bdata/115.jar": "533840407a60bcaabf19f3125655a1fe1cf4572942f20789a2b2f1ee6f9d02b5",
+      "client/contents/bdata/2.jar": "bf8c9304eab33876116b42533cb3927dcb709134e625cbe634b899696df98b76",
+      "client/contents/bdata/3.jar": "7c3a6a50e0cad375c99fa3b207d5ebaecd1cbcc71927ac2b75ea4f5ee52f4c8b",
+      "client/contents/i18n/i18n_en.jar": "a9a077c6805fbfc9caa28d1b398b1c1ec95e3df035f7f3853ace9d82e2d11830",
+      "client/contents/i18n/i18n_es.jar": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8",
+      "client/contents/i18n/i18n_fr.jar": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+      "client/contents/i18n/i18n_pt.jar": "e6f6a6ecbbd81a86c6235f6781e16a4f8b6c3c848b7239809baa80e461975020",
+      "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+      "sniffer/java/ExportNativeQuestDefinitions.java": "ec8b0b50fc2795ba2651a61d59af4f7ec169aec128012738915226849f495c57"
+    },
+    "dungeon_export": {
+      "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+      "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+    },
+    "translations": {
+      "client/contents/i18n/i18n_en.jar": "a9a077c6805fbfc9caa28d1b398b1c1ec95e3df035f7f3853ace9d82e2d11830",
+      "client/contents/i18n/i18n_fr.jar": "12cab5e8b0959cf4cbafa0b675a77da4305a3a45777454239c1cee53f0ba3530",
+      "client/contents/i18n/i18n_es.jar": "7a1e3247388f5e771e31f2ea1e4db7a2c7dc48d4108b71dae04789e7966ce7c8"
+    }
+  },
+  "qualified": [
+    {
+      "definition_id": 4125,
+      "version": 1,
+      "objective_id": 8612,
+      "category_id": 686,
+      "minimum_level": 141,
+      "required_distinct": 1,
+      "anchor_ms": 1475452800000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.modulox-native-adjusted-final-room-v1",
+      "boss_reference": 2570,
+      "dungeon_definition_id": 67,
+      "route_key": "native_dungeon_67",
+      "route_policy_version": 1,
+      "final_room_order": 3,
+      "plan_sha256": "3dac7d42e72140595aa5d800b2272b0a4880246140b1f140d6c1ddc4d8206a4b",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "ecc8ec8e9e6d65d9daf3be28544c993ba37caeee4a9984515a741f8f2e6df053",
+      "original_activation_criterion": "IsAchievementRunning(4125)",
+      "original_eligibility_criterion": "GetRealLevel() >= 141",
+      "original_objective_en": "Complete the Gwand Viziew Wabbit Dungeon at level 140",
+      "target_effective_level": 140,
+      "rewards": [
+        {
+          "aeV": 17,
+          "ckk": false,
+          "ckl": [
+            4000
+          ],
+          "d": 7732,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20752,
+            2
+          ],
+          "d": 7649,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": {
+        "category_id": 686,
+        "expected_members": 21,
+        "offer_node_id": 3972,
+        "offer_choice_id": 10020,
+        "offer_minimum_level": 141,
+        "offer_criterion": "GetRealLevel() >= 141\r\nand GetAchievementCategoryRunningCount(686) < 1\r\nand GetAchievementCategoryCount(686) == GetAchievementCategoryCanBeResetCount(686)",
+        "offer_source_sha256": "f5b5134f81c5f736d49409357ac9a97efda3720372751dc786b9d62001fa2ca4"
+      },
+      "proof": {
+        "native_definition_sha256": "ecc8ec8e9e6d65d9daf3be28544c993ba37caeee4a9984515a741f8f2e6df053",
+        "native_dungeon": {
+          "aHA": [
+            1398
+          ],
+          "aWb": 126,
+          "arM": 1384,
+          "azD": 6,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            104,
+            276
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.2.3.4.7",
+          "cnn": 3,
+          "cno": [
+            2565,
+            2566,
+            2567,
+            2568,
+            2570
+          ],
+          "d": 67,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Complete the Gwand Viziew Wabbit Dungeon at level 140",
+          "fr": "Terminer le Donjon \"Gwand Viziw Wabbit\" au niveau 140",
+          "es": "Terminar la Mazmorra de los Wabbits con nivel 140"
+        },
+        "title_localizations": {
+          "en": "Scoreboard: Gwand Viziew Wabbit",
+          "fr": "Tableau de chasse : Gwand Viziw Wabbit",
+          "es": "Trofeos de caza: Gwan Visiw Wabbit"
+        },
+        "literal_dungeon_languages": [],
+        "native_boss_reference": 2570,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Gwand Viziew Wabbit",
+          "fr": "Gwand Viziw Wabbit",
+          "es": "Gwan Visiw Wabbit"
+        },
+        "native_dungeon_names": {
+          "en": "Kween's Gawden",
+          "fr": "Jawdin de la Weine",
+          "es": "Jawdín de la Weina"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 4,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "unique-native-boss-to-aKU-membership-plus-actual-final-room"
+        ]
+      },
+      "proof_sha256": "315e587d18ad49a110ef4cc12ef12787bfe41cee4fd0fac6c29e087a4159a450",
+      "occurrences": [
+        {
+          "monster_index": 4,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4205,
+      "version": 1,
+      "objective_id": 8692,
+      "category_id": 697,
+      "minimum_level": 141,
+      "required_distinct": 1,
+      "anchor_ms": 1475452800000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.daily-hunter-native-objective-final-room-v1",
+      "boss_reference": 4060,
+      "dungeon_definition_id": 115,
+      "route_key": "native_dungeon_115",
+      "route_policy_version": 1,
+      "final_room_order": 4,
+      "plan_sha256": "bcf819c30611573f34da78c390f012728cecf850d4dcea2610e3b90d5bf9cc83",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "4d6fd168a94e1d120a8db78ad7a3881ac1407be3e4e252d4e1008ee65d8260da",
+      "original_activation_criterion": "",
+      "original_eligibility_criterion": "",
+      "original_objective_en": "Defeat High Priestess Sydonia in the Villainy Vineyards Dungeon",
+      "target_effective_level": null,
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            21007,
+            20
+          ],
+          "d": 7885,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            14288510
+          ],
+          "d": 7886,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": null,
+      "proof": {
+        "native_definition_sha256": "4d6fd168a94e1d120a8db78ad7a3881ac1407be3e4e252d4e1008ee65d8260da",
+        "native_dungeon": {
+          "aHA": [
+            1079
+          ],
+          "aWb": 141,
+          "arM": 323,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            174
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.4.rarity.2.3.4.5.7",
+          "cnn": 4,
+          "cno": [
+            4060,
+            4061,
+            4062,
+            4063,
+            4064
+          ],
+          "d": 115,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Defeat High Priestess Sydonia in the Villainy Vineyards Dungeon",
+          "fr": "Vaincre la Grande Prêtresse Sydonia du donjon \"Le Vignoble Ignoble\"",
+          "es": "Vencer a la Suma Sacerdotisa Sydonia en la mazmorra Vid Vil"
+        },
+        "title_localizations": {
+          "en": "Boss Hunt: High Priestess Sydonia",
+          "fr": "Chasse le Boss : Grande Prêtresse Sydonia",
+          "es": "Caza del jefe: Suma sacerdotisa Sydonia"
+        },
+        "literal_dungeon_languages": [
+          "en",
+          "fr",
+          "es"
+        ],
+        "native_boss_reference": 4060,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "High Priestess Sydonia",
+          "fr": "Grande Prêtresse Sydonia",
+          "es": "Suma sacerdotisa Sydonia"
+        },
+        "native_dungeon_names": {
+          "en": "The Villainy Vineyards",
+          "fr": "Le Vignoble Ignoble",
+          "es": "Vid Vil"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 0,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "named-native-boss-occurrence-in-completed-multiple-boss-final-room"
+        ]
+      },
+      "proof_sha256": "2f08f3915df20b3e45e3a011594ba527de4646dd4dd3a0599f48b2c069ef765b",
+      "occurrences": [
+        {
+          "monster_index": 0,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4206,
+      "version": 1,
+      "objective_id": 8693,
+      "category_id": 697,
+      "minimum_level": 141,
+      "required_distinct": 1,
+      "anchor_ms": 1475452800000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.daily-hunter-native-objective-final-room-v1",
+      "boss_reference": 2605,
+      "dungeon_definition_id": 74,
+      "route_key": "native_dungeon_74",
+      "route_policy_version": 1,
+      "final_room_order": 3,
+      "plan_sha256": "dfff948d7e2adc3249df7b9b5e3b94c1ca95db33f35f16397d749db7e20c75d4",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "68bd0ed06fe01c05a0e30711ca85f8a6dd167d8588623451d9b284ce5cd12817",
+      "original_activation_criterion": "",
+      "original_eligibility_criterion": "",
+      "original_objective_en": "Defeat Gweat GM Wabbit in the Abandoned Cawwot Stowewoom Dungeon",
+      "target_effective_level": null,
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            21007,
+            20
+          ],
+          "d": 7887,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            14288510
+          ],
+          "d": 7888,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": null,
+      "proof": {
+        "native_definition_sha256": "68bd0ed06fe01c05a0e30711ca85f8a6dd167d8588623451d9b284ce5cd12817",
+        "native_dungeon": {
+          "aHA": [
+            1396
+          ],
+          "aWb": 141,
+          "arM": 1390,
+          "azD": 14,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            105,
+            277
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.2.3.4.5.7",
+          "cnn": 3,
+          "cno": [
+            2604,
+            2605,
+            2606,
+            2607,
+            2608
+          ],
+          "d": 74,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Defeat Gweat GM Wabbit in the Abandoned Cawwot Stowewoom Dungeon",
+          "fr": "Vaincre le Gwand Wabbit GM du donjon \"Wesewve de Cawottes Abandonnée\"",
+          "es": "Vencer al Gwan Wabbit GM en la mazmorra Wesewva de Zanahowias Abandonada"
+        },
+        "title_localizations": {
+          "en": "Boss Hunt: Gweat GM Wabbit",
+          "fr": "Chasse le Boss : Gwand Wabbit GM",
+          "es": "Caza del jefe: Gwan Wabbit GM"
+        },
+        "literal_dungeon_languages": [],
+        "native_boss_reference": 2605,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Gweat GM Wabbit",
+          "fr": "Gwand Wabbit GM",
+          "es": "Gwan Wabbit GM"
+        },
+        "native_dungeon_names": {
+          "en": "Womewo's Labowatowy",
+          "fr": "Laboratoire de Womewo",
+          "es": "Laboratorio de Womewo"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 1,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "unique-native-boss-to-aKU-membership-plus-actual-final-room"
+        ]
+      },
+      "proof_sha256": "019c25c39225fc281d33ae47ea8619046cc7aa7e47abd526b9b5c18f1754b72b",
+      "occurrences": [
+        {
+          "monster_index": 1,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4469,
+      "version": 1,
+      "objective_id": 9161,
+      "category_id": 685,
+      "minimum_level": 96,
+      "required_distinct": 1,
+      "anchor_ms": 1475452800000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.modulox-native-adjusted-final-room-v1",
+      "boss_reference": 4763,
+      "dungeon_definition_id": 145,
+      "route_key": "native_dungeon_145",
+      "route_policy_version": 1,
+      "final_room_order": 3,
+      "plan_sha256": "68323fbccddd4cc92787a314f0142e584717d690b55a46da9df46ff9134e45eb",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "2af246a825cd51ce3a351a3b5df86e587b34e58bc3a11a34da8e1f76efcc0dd5",
+      "original_activation_criterion": "IsAchievementRunning(4469)",
+      "original_eligibility_criterion": "GetRealLevel() >= 96",
+      "original_objective_en": "Complete the Boarthroom Dungeon at level 80",
+      "target_effective_level": 80,
+      "rewards": [
+        {
+          "aeV": 17,
+          "ckk": false,
+          "ckl": [
+            2000
+          ],
+          "d": 8339,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20752,
+            2
+          ],
+          "d": 8340,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": {
+        "category_id": 685,
+        "expected_members": 23,
+        "offer_node_id": 3972,
+        "offer_choice_id": 10019,
+        "offer_minimum_level": 96,
+        "offer_criterion": "GetRealLevel() >= 96\r\nand GetAchievementCategoryRunningCount(685) < 1\r\nand GetAchievementCategoryCount(685) == GetAchievementCategoryCanBeResetCount(685)",
+        "offer_source_sha256": "f5b5134f81c5f736d49409357ac9a97efda3720372751dc786b9d62001fa2ca4"
+      },
+      "proof": {
+        "native_definition_sha256": "2af246a825cd51ce3a351a3b5df86e587b34e58bc3a11a34da8e1f76efcc0dd5",
+        "native_dungeon": {
+          "aHA": [
+            911
+          ],
+          "aWb": 66,
+          "arM": 1136,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            211
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.3.rarity.2.3.5",
+          "cnn": 3,
+          "cno": [
+            4760,
+            4761,
+            4762,
+            4763,
+            4766
+          ],
+          "d": 145,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Complete the Boarthroom Dungeon at level 80",
+          "fr": "Terminer le Donjon \"Le Petit Groin\" au niveau 80",
+          "es": "Terminar la mazmorra Balinería con nivel 80"
+        },
+        "title_localizations": {
+          "en": "Scoreboard: Royal Blibli",
+          "fr": "Tableau de chasse : Gligli Royal",
+          "es": "Trofeos de caza: Balí Real"
+        },
+        "literal_dungeon_languages": [],
+        "native_boss_reference": 4763,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Royal Blibli",
+          "fr": "Gligli Royal",
+          "es": "Balí Real"
+        },
+        "native_dungeon_names": {
+          "en": "Boarthroom Estate",
+          "fr": "Domaine du Petit Groin",
+          "es": "Hacienda de la Balinería"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 3,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "unique-native-boss-to-aKU-membership-plus-actual-final-room"
+        ]
+      },
+      "proof_sha256": "89cb598b1ac32457335843b3ef6c052d3a808ca3e81a0faad16faeffe97fc384",
+      "occurrences": [
+        {
+          "monster_index": 3,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4794,
+      "version": 1,
+      "objective_id": 9931,
+      "category_id": 810,
+      "minimum_level": 231,
+      "required_distinct": 1,
+      "anchor_ms": 1475452800000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.modulox-native-adjusted-final-room-v1",
+      "boss_reference": 4664,
+      "dungeon_definition_id": 134,
+      "route_key": "native_dungeon_134",
+      "route_policy_version": 1,
+      "final_room_order": 1,
+      "plan_sha256": "18f7eff8d1b38645365e9df37d67a634e1b9d34ae9feb603215a32947207e5b2",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "8289409ed8d47e416d3ee4e3e26c9e5e91b92bceddcef4d4a95e32c71cab6623",
+      "original_activation_criterion": "IsAchievementRunning(4794)",
+      "original_eligibility_criterion": "GetRealLevel() >= 231",
+      "original_objective_en": "Complete the Elite Mineral Tower Dungeon at level 200",
+      "target_effective_level": 200,
+      "rewards": [
+        {
+          "aeV": 17,
+          "ckk": false,
+          "ckl": [
+            4000
+          ],
+          "d": 8995,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20752,
+            2
+          ],
+          "d": 8996,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": {
+        "category_id": 810,
+        "expected_members": 24,
+        "offer_node_id": 3972,
+        "offer_choice_id": 11972,
+        "offer_minimum_level": 231,
+        "offer_criterion": "GetRealLevel() >= 231\r\nand GetAchievementCategoryRunningCount(810) < 1\r\nand GetAchievementCategoryCount(810) == GetAchievementCategoryCanBeResetCount(810)",
+        "offer_source_sha256": "f5b5134f81c5f736d49409357ac9a97efda3720372751dc786b9d62001fa2ca4"
+      },
+      "proof": {
+        "native_definition_sha256": "8289409ed8d47e416d3ee4e3e26c9e5e91b92bceddcef4d4a95e32c71cab6623",
+        "native_dungeon": {
+          "aHA": [
+            1204
+          ],
+          "aWb": 186,
+          "arM": 1201,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": true,
+          "cnj": false,
+          "cnk": [
+            234
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.1.rarity.2.3.4.5.7",
+          "cnn": 1,
+          "cno": [
+            4661,
+            4662,
+            4663,
+            4664
+          ],
+          "d": 134,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Complete the Elite Mineral Tower Dungeon at level 200",
+          "fr": "Terminer le Donjon \"Tour Minérale Elite\" au niveau 200",
+          "es": "Terminar la mazmorra Torre Mineral Élite con nivel 200"
+        },
+        "title_localizations": {
+          "en": "Scoreboard: Crystal-Heart Agony",
+          "fr": "Tableau de chasse : Agonie Coeur-Cristal",
+          "es": "Trofeos de caza: Agonía Corazón Cristalino"
+        },
+        "literal_dungeon_languages": [],
+        "native_boss_reference": 4664,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Crystal-Heart Agony",
+          "fr": "Agonie Coeur-Cristal",
+          "es": "Agonía Corazón Cristalino"
+        },
+        "native_dungeon_names": {
+          "en": "The Mineral Tower",
+          "fr": "La Tour Minérale",
+          "es": "La Torre Mineral"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 3,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "unique-native-boss-to-aKU-membership-plus-actual-final-room"
+        ]
+      },
+      "proof_sha256": "bee57d5e9601f3b75d30e21bcca9e78a2424481502f50a0f6d7587b27ca1cf8c",
+      "occurrences": [
+        {
+          "monster_index": 3,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4978,
+      "version": 1,
+      "objective_id": 10244,
+      "category_id": 853,
+      "minimum_level": 216,
+      "required_distinct": 1,
+      "anchor_ms": 1346457600000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.daily-hunter-native-objective-final-room-v1",
+      "boss_reference": 5277,
+      "dungeon_definition_id": 176,
+      "route_key": "native_dungeon_176",
+      "route_policy_version": 4,
+      "final_room_order": 2,
+      "plan_sha256": "f707f6853260777967cb9423456adb16d7bb5c3a1b46db68a09199d67f3dada3",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "b167d554a0adfe2b6a1d43bfb49d7bea2b8bb90ccb218182a0659626c97af3a5",
+      "original_activation_criterion": "",
+      "original_eligibility_criterion": "",
+      "original_objective_en": "Defeat Vaal'Enthia in the Phytomorph Dungeon",
+      "target_effective_level": null,
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            29023,
+            20
+          ],
+          "d": 9317,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            175561350
+          ],
+          "d": 9318,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": null,
+      "proof": {
+        "native_definition_sha256": "b167d554a0adfe2b6a1d43bfb49d7bea2b8bb90ccb218182a0659626c97af3a5",
+        "native_dungeon": {
+          "aHA": [
+            1308
+          ],
+          "aWb": 216,
+          "arM": 1305,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            248
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.2.rarity.2.3.4.5.7",
+          "cnn": 2,
+          "cno": [
+            5274,
+            5275,
+            5276,
+            5277,
+            5305
+          ],
+          "d": 176,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Defeat Vaal'Enthia in the Phytomorph Dungeon",
+          "fr": "Vaincre Vaal'Enthia du donjon \"Donjon Phytomorphes\"",
+          "es": "Vencer a Vaal'Enthia en la Mazmorra de los Fitoformes"
+        },
+        "title_localizations": {
+          "en": "Boss Hunt: Vaal'Enthia",
+          "fr": "Chasse le Boss : Vaal'Enthia",
+          "es": "Caza del jefe: Vaal'Enthia"
+        },
+        "literal_dungeon_languages": [
+          "en",
+          "fr",
+          "es"
+        ],
+        "native_boss_reference": 5277,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Vaal'Enthia, Demon Queen",
+          "fr": "Vaal'Enthia, Reine-démone",
+          "es": "Vaal'Enthia, reina demonio"
+        },
+        "native_dungeon_names": {
+          "en": "Phytomorph Dungeon",
+          "fr": "Donjon Phytomorphes",
+          "es": "Mazmorra de los Fitoformes"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 0,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "exact-native-name-head-before-comma-in-at-least-two-locales"
+        ]
+      },
+      "proof_sha256": "f56663f0456f566c18084c93ae2dafc7774db3367cec36aa96bb390ee008d9e5",
+      "occurrences": [
+        {
+          "monster_index": 0,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4979,
+      "version": 1,
+      "objective_id": 10245,
+      "category_id": 853,
+      "minimum_level": 216,
+      "required_distinct": 1,
+      "anchor_ms": 1346457600000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.daily-hunter-native-objective-final-room-v1",
+      "boss_reference": 5283,
+      "dungeon_definition_id": 177,
+      "route_key": "native_dungeon_177",
+      "route_policy_version": 4,
+      "final_room_order": 2,
+      "plan_sha256": "5bcb1c168412ad06234643643255b84c47f9c80d75d0e20ede5cbc96b187ac55",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "473b595bbcc10e40840910bb740cf79ff6fb9fb8105561b7016060f909d21f2b",
+      "original_activation_criterion": "",
+      "original_eligibility_criterion": "",
+      "original_objective_en": "Defeat Ar'Nan in the Voidivion Dungeon",
+      "target_effective_level": null,
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            29023,
+            20
+          ],
+          "d": 9319,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            175561350
+          ],
+          "d": 9320,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": null,
+      "proof": {
+        "native_definition_sha256": "473b595bbcc10e40840910bb740cf79ff6fb9fb8105561b7016060f909d21f2b",
+        "native_dungeon": {
+          "aHA": [
+            1313
+          ],
+          "aWb": 216,
+          "arM": 1309,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            252
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.2.rarity.2.3.4.5.7",
+          "cnn": 2,
+          "cno": [
+            5280,
+            5281,
+            5282,
+            5283,
+            5305
+          ],
+          "d": 177,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Defeat Ar'Nan in the Voidivion Dungeon",
+          "fr": "Vaincre Ar'Nan du donjon \"Donjon Vidéants\"",
+          "es": "Vencer a Ar'Nan en la Mazmorra de los Vaciantes"
+        },
+        "title_localizations": {
+          "en": "Boss Hunt: Ar'Nan",
+          "fr": "Chasse le Boss : Ar'Nan",
+          "es": "Caza del jefe: Ar'Nan"
+        },
+        "literal_dungeon_languages": [
+          "en",
+          "fr",
+          "es"
+        ],
+        "native_boss_reference": 5283,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Ar'Nan, Omen of the Void",
+          "fr": "Ar'Nan, Augure du néant",
+          "es": "Ar'Nan, augurio del vacío"
+        },
+        "native_dungeon_names": {
+          "en": "Voidivion Dungeon",
+          "fr": "Donjon Vidéants",
+          "es": "Mazmorra de los Vaciantes"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 0,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "exact-native-name-head-before-comma-in-at-least-two-locales"
+        ]
+      },
+      "proof_sha256": "d1997c33aa05b88651cc75095cf3d9c5b1580ad9bd8ef4a028492e2bd88a1ff6",
+      "occurrences": [
+        {
+          "monster_index": 0,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4980,
+      "version": 1,
+      "objective_id": 10246,
+      "category_id": 853,
+      "minimum_level": 216,
+      "required_distinct": 1,
+      "anchor_ms": 1346457600000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.daily-hunter-native-objective-final-room-v1",
+      "boss_reference": 5289,
+      "dungeon_definition_id": 178,
+      "route_key": "native_dungeon_178",
+      "route_policy_version": 4,
+      "final_room_order": 2,
+      "plan_sha256": "9bced4a2a99a3f5e1e8e56fa01b75253b7c0de6b4b9bce7d7d847d93b0531fdd",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "31d1bd2b3698de665b67e8023fbe998bca440861b2e9a9c30e4a51f1fe7fbf05",
+      "original_activation_criterion": "",
+      "original_eligibility_criterion": "",
+      "original_objective_en": "Defeat Crateros in the Horridemon Dungeon",
+      "target_effective_level": null,
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            29023,
+            20
+          ],
+          "d": 9321,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            175561350
+          ],
+          "d": 9322,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": null,
+      "proof": {
+        "native_definition_sha256": "31d1bd2b3698de665b67e8023fbe998bca440861b2e9a9c30e4a51f1fe7fbf05",
+        "native_dungeon": {
+          "aHA": [
+            1328
+          ],
+          "aWb": 216,
+          "arM": 1326,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            249,
+            250,
+            251,
+            253,
+            254
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.2.rarity.2.3.4.5.7",
+          "cnn": 2,
+          "cno": [
+            5286,
+            5287,
+            5288,
+            5289,
+            5305
+          ],
+          "d": 178,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Defeat Crateros in the Horridemon Dungeon",
+          "fr": "Vaincre Cratéros du donjon \"Donjon Démhorrible\"",
+          "es": "Vencer a Crateros en la Mazmorra de los Demorribles"
+        },
+        "title_localizations": {
+          "en": "Boss Hunt: Crateros",
+          "fr": "Chasse le Boss : Cratéros",
+          "es": "Caza del jefe: Crateros"
+        },
+        "literal_dungeon_languages": [
+          "en",
+          "es"
+        ],
+        "native_boss_reference": 5289,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "Crateros, Ending Executioner",
+          "fr": "Cratéros, Bourreau de la fin",
+          "es": "Crateros, verdugo del fin"
+        },
+        "native_dungeon_names": {
+          "en": "Horridemon Dungeon",
+          "fr": "Donjon Démhorribles",
+          "es": "Mazmorra de los Demorribles"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 0,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "exact-native-name-head-before-comma-in-at-least-two-locales"
+        ]
+      },
+      "proof_sha256": "dc9fe80013b8d814628466f9fe79df8c300d97ce625cab452ae08bd11d99696f",
+      "occurrences": [
+        {
+          "monster_index": 0,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "definition_id": 4982,
+      "version": 1,
+      "objective_id": 10248,
+      "category_id": 853,
+      "minimum_level": 216,
+      "required_distinct": 1,
+      "anchor_ms": 1346457600000,
+      "period_ms": 86400000,
+      "cooldown_ms": 0,
+      "interpretation_policy": "wakemu.daily-hunter-native-objective-final-room-v1",
+      "boss_reference": 5301,
+      "dungeon_definition_id": 180,
+      "route_key": "native_dungeon_180",
+      "route_policy_version": 4,
+      "final_room_order": 2,
+      "plan_sha256": "34a78a0367480b87032bb839ab201e495c434dff78206d8c1e892063b41d0b85",
+      "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+      "monsters_path": "monsters.json",
+      "monsters_sha256": "5480cb2cf3611cbbdd268c66e467f3404645dcdeb98a7b9fbb2cc620f018acc4",
+      "native_definition_sha256": "5f67e25833e6fd3fd0e9bc35954fa594e071f50f20187aa84f0f1cd62a7b8121",
+      "original_activation_criterion": "",
+      "original_eligibility_criterion": "",
+      "original_objective_en": "Defeat K'abah'al in the Destroyer Dungeon",
+      "target_effective_level": null,
+      "rewards": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            29023,
+            20
+          ],
+          "d": 9325,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            175561350
+          ],
+          "d": 9326,
+          "native_class": "aJP"
+        }
+      ],
+      "offer": null,
+      "proof": {
+        "native_definition_sha256": "5f67e25833e6fd3fd0e9bc35954fa594e071f50f20187aa84f0f1cd62a7b8121",
+        "native_dungeon": {
+          "aHA": [
+            1341
+          ],
+          "aWb": 216,
+          "arM": 1338,
+          "azD": 0,
+          "cng": 1,
+          "cnh": true,
+          "cni": false,
+          "cnj": false,
+          "cnk": [
+            256,
+            258
+          ],
+          "cnl": 0,
+          "cnm": "stasis.dungeon.tooltip.bonus.type.2.rarity.2.3.4.5.7",
+          "cnn": 2,
+          "cno": [
+            5298,
+            5299,
+            5300,
+            5301,
+            5305
+          ],
+          "d": 180,
+          "native_class": "aKU"
+        },
+        "native_dungeon_source_sha256": {
+          "client/contents/bdata/119.jar": "87cd86a08bb13916cf89ac685845460eb60810fe279dd0ebf233ddc61d06b669",
+          "client/lib/wakfu-client.jar": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd"
+        },
+        "objective_localizations": {
+          "en": "Defeat K'abah'al in the Destroyer Dungeon",
+          "fr": "Vaincre K'abah'al du donjon \"Donjon Ravageurs\"",
+          "es": "Vencer a K'abah'al en la Mazmorra de los Devastadores"
+        },
+        "title_localizations": {
+          "en": "Boss Hunt: K'abah'al",
+          "fr": "Chasse le Boss : K'abah'al",
+          "es": "Caza del jefe: K'abah'al"
+        },
+        "literal_dungeon_languages": [
+          "en",
+          "fr",
+          "es"
+        ],
+        "native_boss_reference": 5301,
+        "native_boss_property": 43,
+        "native_monster_names": {
+          "en": "K'abah'al, Guardian of the Route of the Dead",
+          "fr": "K'abah'al, Gardien de la route des morts",
+          "es": "K'abah'al, guardián del camino de los muertos"
+        },
+        "native_dungeon_names": {
+          "en": "Destroyer Dungeon",
+          "fr": "Donjon Ravageurs",
+          "es": "Mazmorra de los Devastadores"
+        },
+        "target_occurrences": [
+          {
+            "monster_index": 0,
+            "planned_role": "boss",
+            "count": 1
+          }
+        ],
+        "reviewed_binding_extensions": [
+          "exact-native-name-head-before-comma-in-at-least-two-locales"
+        ]
+      },
+      "proof_sha256": "feedafd683f28b0855671f44a921b2232385cbf7e9e6d38e1d3c747dd8e8074c",
+      "occurrences": [
+        {
+          "monster_index": 0,
+          "planned_role": "boss",
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "pending": [
+    {
+      "quest_id": 4065,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    },
+    {
+      "quest_id": 4127,
+      "reason": "active_final_room_not_unique_strict_boss",
+      "route_count": 0,
+      "boss_reference": 4060,
+      "dungeon_definition_id": 115
+    },
+    {
+      "quest_id": 4143,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    },
+    {
+      "quest_id": 4165,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    },
+    {
+      "quest_id": 5272,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    },
+    {
+      "quest_id": 5273,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    },
+    {
+      "quest_id": 5399,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    },
+    {
+      "quest_id": 5400,
+      "reason": "native_dungeon_boss_pair_not_unique",
+      "pair_count": 0
+    }
+  ],
+  "counts": {
+    "qualified": 9,
+    "daily": 6,
+    "modulox": 3,
+    "pending": 8
+  }
+}

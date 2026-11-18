@@ -1,0 +1,21 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "kelba-port-946",
+  "version": 1,
+  "map_id": 946,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "map_id": 943,
+    "object_id": 25104,
+    "destination_id": 2195
+  },
+  "native_entry_criterion": "IsAchievementRunning(2536)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [],
+  "controller_file": "kelba-port-946.json",
+  "exploration_file": "kelba-port-946.exploration.json",
+  "provenance": "Reviewed reconstruction from actual native1961, public25104/2195 route and originalSm6 map946. This port is a zero-combat narrative context. Hadibal placement is reviewed on native floor near the literal player9,2 animation endpoint, not an official capture. Only authenticated native action61 and the genuine departure timer may qualify original5035. Questless and completed visits retain mechanical return without cinematic replay."
+}

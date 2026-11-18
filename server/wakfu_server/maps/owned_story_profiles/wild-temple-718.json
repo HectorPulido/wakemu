@@ -1,0 +1,852 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-temple-718",
+  "map_id": 718,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1684,
+    "objective_id": null,
+    "continuation_quest_id": 1684
+  },
+  "provenance": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape.",
+  "native_sources": {
+    "path": "wild-temple-718.native.v1.json",
+    "sha256": "e5622b3eb39973105e0eb999292362e96d6667682c766049ffde4e3ec3606a1d"
+  },
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 20663,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20696,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20697,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20665,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20667,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20682,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20683,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20684,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 21332,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 21333,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20672,
+      "state": 0,
+      "visible": false,
+      "usable": false,
+      "blocks_movement": false
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20675,
+      "state": 0,
+      "visible": false,
+      "usable": false,
+      "blocks_movement": false
+    }
+  ],
+  "steps": [
+    {
+      "id": "temple-entered",
+      "kind": "world_ready",
+      "reference": 718,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13176
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "water-safe-floor-crossed",
+      "kind": "trial_success",
+      "reference": 71801,
+      "requires": [
+        "temple-entered"
+      ],
+      "effects": [],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "air-entry-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "temple-entered"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13195
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20672,
+          "state": 1,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13196
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "air-prison-key-chest",
+      "kind": "interactive",
+      "reference": 20672,
+      "requires": [
+        "air-entry-victory"
+      ],
+      "effects": [
+        {
+          "kind": "reviewed_item_grant",
+          "source_id": "wild-temple-air-prison-key"
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13194
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20672,
+          "state": 1,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "air-prison-opened",
+      "kind": "interactive",
+      "reference": 20662,
+      "requires": [
+        "air-prison-key-chest"
+      ],
+      "effects": [
+        {
+          "kind": "native_item_gate",
+          "reference": 17855,
+          "quantity": 1,
+          "consume": true
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13197
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "air-archaeologist-rescued",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "air-prison-opened"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13220
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "air-gem-earned",
+      "kind": "npc_spoken",
+      "reference": 2813,
+      "requires": [
+        "air-archaeologist-rescued"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13240
+        },
+        {
+          "kind": "native_state",
+          "state_id": 2384,
+          "active": true
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "earth-passage-one",
+      "kind": "native_travel",
+      "reference": 20590,
+      "requires": [
+        "temple-entered"
+      ],
+      "effects": [],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "earth-passage-two",
+      "kind": "native_travel",
+      "reference": 20595,
+      "requires": [
+        "earth-passage-one"
+      ],
+      "effects": [],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "earth-passage-three",
+      "kind": "native_travel",
+      "reference": 20597,
+      "requires": [
+        "earth-passage-two"
+      ],
+      "effects": [],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "earth-archaeologist-rescued",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "earth-passage-three"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13221
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "earth-gem-earned",
+      "kind": "npc_spoken",
+      "reference": 2814,
+      "requires": [
+        "earth-archaeologist-rescued"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13241
+        },
+        {
+          "kind": "native_state",
+          "state_id": 2385,
+          "active": true
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "fire-archaeologist-rescued",
+      "kind": "room_victory",
+      "reference": 4,
+      "requires": [
+        "temple-entered"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13219
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13216
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20682,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "fire-gem-earned",
+      "kind": "npc_spoken",
+      "reference": 2794,
+      "requires": [
+        "fire-archaeologist-rescued"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13242
+        },
+        {
+          "kind": "native_state",
+          "state_id": 2386,
+          "active": true
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "water-gem-earned",
+      "kind": "npc_spoken",
+      "reference": 2815,
+      "requires": [
+        "water-safe-floor-crossed"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13243
+        },
+        {
+          "kind": "native_state",
+          "state_id": 2387,
+          "active": true
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "north-statue-filled",
+      "kind": "interactive",
+      "reference": 20669,
+      "requires": [
+        "air-gem-earned",
+        "earth-gem-earned"
+      ],
+      "effects": [
+        {
+          "kind": "native_state",
+          "state_id": 2384,
+          "active": false
+        },
+        {
+          "kind": "native_state",
+          "state_id": 2385,
+          "active": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13198
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13199
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "south-statue-filled",
+      "kind": "interactive",
+      "reference": 20668,
+      "requires": [
+        "fire-gem-earned",
+        "water-gem-earned"
+      ],
+      "effects": [
+        {
+          "kind": "native_state",
+          "state_id": 2386,
+          "active": false
+        },
+        {
+          "kind": "native_state",
+          "state_id": 2387,
+          "active": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13200
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13201
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "four-gems-passage-opened",
+      "kind": "world_ready",
+      "reference": 718,
+      "requires": [
+        "north-statue-filled",
+        "south-statue-filled"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 20663,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20696,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20697,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 16912
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "gem-guardian-defeated",
+      "kind": "room_victory",
+      "reference": 5,
+      "requires": [
+        "four-gems-passage-opened"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13203
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20675,
+          "state": 1,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13204
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "boss-key-collected",
+      "kind": "interactive",
+      "reference": 20675,
+      "requires": [
+        "gem-guardian-defeated"
+      ],
+      "effects": [
+        {
+          "kind": "native_state",
+          "state_id": 2043,
+          "active": true
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13205
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20675,
+          "state": 1,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "artifact-passage-opened",
+      "kind": "interactive",
+      "reference": 20681,
+      "requires": [
+        "boss-key-collected"
+      ],
+      "effects": [
+        {
+          "kind": "native_state",
+          "state_id": 2043,
+          "active": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13207
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20665,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20667,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 1684,
+          "objective_id": 3164
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "first-temple-guardian-defeated",
+      "kind": "room_victory",
+      "reference": 6,
+      "requires": [
+        "artifact-passage-opened"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13218
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20683,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "relic-guardian-defeated",
+      "kind": "room_victory",
+      "reference": 7,
+      "requires": [
+        "first-temple-guardian-defeated"
+      ],
+      "effects": [],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "artifact-taken",
+      "kind": "dynamic_pickup",
+      "reference": 17885,
+      "requires": [
+        "relic-guardian-defeated"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1684,
+          "objective_id": 3165
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13217
+        },
+        {
+          "kind": "element_state",
+          "object_id": 20684,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "corridor-started",
+      "kind": "zone_trigger",
+      "reference": 20702,
+      "requires": [
+        "artifact-taken"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 21332,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 21333,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13250
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13232
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    },
+    {
+      "id": "corridor-escaped",
+      "kind": "room_victory",
+      "reference": 8,
+      "requires": [
+        "corridor-started"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13234
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1654,
+          "event": 13259
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 1684,
+          "objective_id": 3166
+        }
+      ],
+      "evidence": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+    }
+  ],
+  "item_gates": [
+    {
+      "reference": 17855,
+      "quantity": 1,
+      "consume": true,
+      "evidence": "Actual native17855 prison key from physical20672 chest after genuine Air guardian; original server key settlement is explicitly reconstructed, never a fake loot table."
+    }
+  ],
+  "native_links": [
+    {
+      "source_id": 20590,
+      "destination_id": 1438,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20591,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20592,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20593,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20594,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20595,
+      "destination_id": 1439,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20596,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20597,
+      "destination_id": 1440,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20598,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20601,
+      "destination_id": 1429,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20618,
+      "destination_id": 1437,
+      "requires": [
+        "temple-entered"
+      ]
+    },
+    {
+      "source_id": 20685,
+      "destination_id": 1445,
+      "requires": [
+        "corridor-escaped"
+      ]
+    },
+    {
+      "source_id": 20686,
+      "destination_id": 1428,
+      "requires": [
+        "temple-entered"
+      ]
+    }
+  ],
+  "terminal_returns": {
+    "schema": "owned-story-step-return-v1",
+    "after_steps": [
+      "corridor-escaped"
+    ],
+    "source_map_id": 718,
+    "source_id": 20685,
+    "source_sha256": "ef9f5a5424f250894436cd54e98f864a71e53de730c5e1ebec8382cb49d1eab6",
+    "destination_id": 1445,
+    "evidence": "Only typed paid native combat escape3166 may use the actual free Corridor20685/1445 departure to711(-36,-138,-80). Ordinary wins and losses do not create this terminal step.",
+    "defeat_room_orders": [
+      8
+    ],
+    "loss_events": {
+      "8": {
+        "scenario": 1654,
+        "event": 19839
+      }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Native bidirectional Jang physical access remains available independent of quest assignment; source and target are actual qualified same-speaker NPC contexts.",
+  "speakers": [
+    {
+      "actor_id": -2251799934953364,
+      "action_id": 729,
+      "quest_ids": [
+        2773
+      ],
+      "reviewed_site_placement": {
+        "source_id": 25675,
+        "geometry_sha256": "8689ab7bbc5a1492fef0ba1e64e29e51bc83a9ffb2c36689e5eceb664889c05c",
+        "evidence": "Original nativeSchool exterior and exact native return3364/8309 world context; actor and anchor are actual Sm6floor at the nativeReady center."
+      },
+      "placement": {
+        "quest_id": 2773,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934953364,
+          "reference_id": 3934,
+          "map_id": 1017,
+          "instance_id": 0,
+          "x": 0,
+          "y": 0,
+          "z": -77,
+          "direction": 3,
+          "dialogue_root": 3364,
+          "action_ids": [
+            729
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED SITE-DERIVED RECONSTRUCTION of the native Jang3934/action729 return greeting3364 in its exact instance1017 and ready-choice8309 center region. Original world-player Sm6/0/4 path from gate arrival reaches center0,0,-77 and adjacent anchor0,-1,-77. Position and paired public journey are explicitly reviewed; no captured original actor-coordinate or fabricated physical teleporter claim."
+        },
+        "interaction_anchor": {
+          "x": 0,
+          "y": -1,
+          "z": -77
+        },
+        "interaction_anchor_evidence": "Native world-player Sm6(height6,movement0,jump4) geometry8689ab7bbc5a1492fef0ba1e64e29e51bc83a9ffb2c36689e5eceb664889c05c has an actual directed path from original1017gatearrival0,-59,-44 to center0,0,-77 and adjacent anchor0,-1,-77. Native8309 strict XY bounds stay unchanged.",
+        "graph": []
+      },
+      "objectives": [],
+      "graph": [
+        [
+          3364,
+          8309,
+          0
+        ],
+        [
+          3364,
+          8310,
+          0
+        ]
+      ],
+      "choice_paired_arrivals": [
+        {
+          "node_id": 3364,
+          "choice_id": 8309,
+          "target_actor_id": -2251799934952773,
+          "target_placement_sha256": "2283728cd61df09185a6d245ac343562e93d8a910a94886620e21ac71724aa3d",
+          "direction": 3,
+          "evidence": "Accepted original Jang return choice pairs with the same native3934/action729 already-published Astrub counterpart. Destination is derived only from its pinned public interaction anchor79,46,3 under normal StoreCAS and position-fenced delivery. No arbitrary destination coordinate or fake portal packet."
+        }
+      ]
+    }
+  ]
+}

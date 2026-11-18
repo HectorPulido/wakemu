@@ -1,0 +1,344 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "aHe": "",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 5047,
+      "cjG": 860,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 36",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 19,
+              "ckh": -110,
+              "cki": -48,
+              "ckj": 1359,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10479,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10479)",
+          "ckd": [
+            {
+              "ckg": 19,
+              "ckh": -110,
+              "cki": -48,
+              "ckj": 1359,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10414,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10414)",
+          "ckd": [
+            {
+              "ckg": -16,
+              "ckh": -171,
+              "cki": -50,
+              "ckj": 1359,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10415,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10415)",
+          "ckd": [
+            {
+              "ckg": 15,
+              "ckh": -36,
+              "cki": -42,
+              "ckj": 1359,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10416,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            181644
+          ],
+          "d": 9563,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20968,
+            16
+          ],
+          "d": 9564,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 36,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.860",
+      "d": 5051,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "ereboria-5051-deathburn-position-encounter",
+      "quest_id": 5051,
+      "objective_id": 10414,
+      "prelude_objective_id": 10479,
+      "mode": "encounter",
+      "source": {
+        "chunk": "1_-6",
+        "id": 33740,
+        "payload_hex": "02000000000b010000000d000001054f00000016ffffff95ffce00010101010000000700000013ffffff8fffd200000013ffffff90ffd100000013ffffff91ffd000000013ffffff92ffd000000013ffffff93ffd000000013ffffff94ffd200000013ffffff95ffd3000000000000000000",
+        "x": 22.0,
+        "y": -107.0,
+        "map_id": 1359,
+        "z": -50.0,
+        "auto": false,
+        "type": "PositionTrigger"
+      },
+      "action": {
+        "native_class": "nativePositionTrigger",
+        "wire_action": 5,
+        "parameter": 0,
+        "criterion": "",
+        "effects": [
+          {
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(5051) and IsAchievementObjectiveComplete(10479) and not IsAchievementObjectiveComplete(10414)",
+            "parameters": [
+              "2519"
+            ]
+          }
+        ]
+      },
+      "activation_cells": [
+        [
+          19,
+          -113,
+          -46
+        ],
+        [
+          19,
+          -112,
+          -47
+        ],
+        [
+          19,
+          -111,
+          -48
+        ],
+        [
+          19,
+          -110,
+          -48
+        ],
+        [
+          19,
+          -109,
+          -48
+        ],
+        [
+          19,
+          -108,
+          -46
+        ],
+        [
+          19,
+          -107,
+          -45
+        ]
+      ],
+      "approaches": [],
+      "native_occupation_ms": 0,
+      "roster": [
+        {
+          "reference": 5379,
+          "count": 2
+        },
+        {
+          "reference": 5381,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 2519,
+        "begin_event": 22145,
+        "win_event": 22146,
+        "loss_event": 22148,
+        "actor_slots": 8,
+        "opening": {
+          "event": 22144,
+          "duration_ms": 13500,
+          "owner_position": [
+            19,
+            -110,
+            -48
+          ],
+          "script_sha256": "85314ab7ced72e42cc509fb869e403aac573794fbe3544e8f5b175fca0aeef85",
+          "script_source": "ereboria-2519.native.v1.json",
+          "evidence": "Native2519/22144 movie ends at(19,-110,-48) after13500ms. Event22145 is the native eight-slot fight begin callback;22146 is the native fight-ended notification and22148 is the loss branch. The client script depicts actual attackers5379 and5381. The original server group counts are not recovered; the candidate reconstructs a minimal real three-enemy formation (5379x2,5381x1), never an automatic victory."
+        }
+      },
+      "native_definition_sha256": "473dcb8fbc6b4d18b683f760adb86b4d558ffc147e747cdcade0d6f8e3ed4aa3",
+      "evidence": "Native WALKON source33740/map1359 literal seven-cell polygon, native 5051 objective10479 marker and original scenario2519 events. Cross the trigger through authenticated approved movement; then complete only a normal owner-bound fight against three real native Deathburns. Original scenario slot count is eight, but original formation counts were not recovered; candidate uses a marked minimal 3-enemy reconstruction. Only actual full enemy deaths and player victory credit10414."
+    },
+    {
+      "id": "ereboria-5051-parent-search-source",
+      "quest_id": 5051,
+      "objective_id": 10415,
+      "mode": "gather",
+      "source": {
+        "chunk": "-1_-10",
+        "id": 33743,
+        "payload_hex": "02000000000b010000000d000001054ffffffff0ffffff55ffce00010101030006000000043135313200000000000000",
+        "x": -16.0,
+        "y": -171.0,
+        "map_id": 1359,
+        "z": -50.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "descriptor_id": 1512,
+        "native_parameters": "1512"
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1932,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3410,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(5051)\r\nand IsAchievementObjectiveComplete(10414)\r\nand not IsAchievementObjectiveComplete(10415)",
+            "parameters": []
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1881,
+        "clx": 304,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1932,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3410,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(5051)\r\nand IsAchievementObjectiveComplete(10414)\r\nand not IsAchievementObjectiveComplete(10415)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1512,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1881,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1932,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3410,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(5051)\r\nand IsAchievementObjectiveComplete(10414)\r\nand not IsAchievementObjectiveComplete(10415)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -15,
+          -171,
+          -50
+        ]
+      ],
+      "native_occupation_ms": 0,
+      "roster": [],
+      "scenario": null,
+      "native_definition_sha256": "473dcb8fbc6b4d18b683f760adb86b4d558ffc147e747cdcade0d6f8e3ed4aa3",
+      "native_feedback": [
+        3410
+      ],
+      "evidence": "Native map1359 bone-pile object33743 is at(-16,-171,-50), adjacent to native walkable cell(-15,-171,-50). Its original descriptor1512/action1932/effect3410 is guarded by active5051, completed10414 and not-yet-completed10415. Only the actual in-range source interaction advances the parent-search clue."
+    }
+  ],
+  "provenance": "Research-only candidate: source object33740 and polygon from native source export; events and sequence from original client scenario2519. Combat counts are an explicitly reconstructed playable minimum of the depicted authentic breeds, not claimed to be the original server formation. No ordinary world kills or cinematic acknowledgements earn10414."
+}

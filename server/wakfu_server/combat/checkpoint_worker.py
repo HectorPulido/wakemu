@@ -166,6 +166,9 @@ def _detach_active_projection(shared):
             "native_summon_registrations",
             "native_companion_sources",
             "native_consumable_initializations",
+            "native_order_trial",
+            "native_dj_dance",
+            "native_dj_setup_pending",
             "rift_monsters",
         )
         fields = {

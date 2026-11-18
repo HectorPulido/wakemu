@@ -110,11 +110,14 @@ def install_initial_properties(actor, properties):
 
 
 def constructor_stat_context(fight, invocation):
-    """Only actual detached SELF constructors may execute without a turn."""
+    """Authorize detached SELF constructors or the checked scene SELF publisher."""
     from .combat_summon_initialization import detached_actor
+    from .combat_scene_controlled_states import placement_stat_context
 
     actor = detached_actor(fight, invocation.caster_id)
-    return actor is not None and invocation.target_id == actor.id
+    return (
+        actor is not None and invocation.target_id == actor.id
+    ) or placement_stat_context(fight, invocation)
 
 
 def constructor_cell_group_context(fight, effect, invocation):
@@ -134,7 +137,7 @@ def constructor_cell_group_context(fight, effect, invocation):
     )
 
 
-def _runtime(monsters, actor_id):
+def _runtime(monsters, actor_id, *, characters=None):
     import random
     from .combat_server_spell import (
         OrdinaryActorAuthority,
@@ -150,11 +153,12 @@ def _runtime(monsters, actor_id):
     from .combat_relative_probability import RelativeGroupAuthority
     from .combat_npc_spellbook import ordinary_npc_spellbook
 
+    characters = {} if characters is None else dict(characters)
     actors = OrdinaryActorAuthority(
-        characters={},
+        characters=characters,
         monsters=monsters,
-        decks={},
-        excluded_decks={},
+        decks={identity: frozenset() for identity in characters},
+        excluded_decks={identity: frozenset() for identity in characters},
         npc_spellbook=ordinary_npc_spellbook,
     )
     from .combat_summon import RegisteredSummonAuthority

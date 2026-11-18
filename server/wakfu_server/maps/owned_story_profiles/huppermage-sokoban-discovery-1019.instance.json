@@ -1,0 +1,94 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "huppermage-sokoban-discovery-1019",
+  "version": 1,
+  "map_id": 1019,
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 3.0,
+      "y": 45.0,
+      "z": 0.0,
+      "id": 26322,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_2",
+      "map_id": 1019,
+      "payload_hex": "02000000000b010000000d00000103fb000000030000002d000000010101010005000000043130313200000000000101",
+      "native_parameters": "1012",
+      "descriptor_id": 1012
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 1012,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1253,
+          "clx": 306,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1284,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2518,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 2518,
+    "approaches": [
+      [
+        4,
+        45,
+        0
+      ],
+      [
+        3,
+        44,
+        0
+      ]
+    ],
+    "scripted_trial": {
+      "schema": "owned-native-script-entry-v1",
+      "map_id": 1019,
+      "arrival": [
+        3,
+        47,
+        -1
+      ],
+      "direction": 7,
+      "evidence": "Reviewed missingserver bridge: original generic script2518 starts its matching board/private fight and original external4063 playerstate. Source invocation is native; private context and initial poses are explicit reconstruction."
+    },
+    "evidence": "Discovery formation reconstructed from the guide screenshot. Intermediate/expert formations are explicitly reviewed solvable reconstructions on the unchanged original depressed board terrain; exact missing server placements are not claimed. Original3889 boxes/4062 innate and player4063\u2192933/3891 book retain originalPush5589 andUndo5620. Only all original boxes occupying every goal followed by original4062 removal and native173367 deaths completes the trial; clicks, guide acknowledgments and unrelated deaths cannot substitute."
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25685
+  ],
+  "controller_file": "huppermage-sokoban-discovery-1019.json",
+  "encounters_file": "huppermage-sokoban-discovery-1019-encounters.json",
+  "exploration_file": "huppermage-sokoban-1019.exploration.json",
+  "provenance": "Discovery formation reconstructed from the guide screenshot. Intermediate/expert formations are explicitly reviewed solvable reconstructions on the unchanged original depressed board terrain; exact missing server placements are not claimed. Original3889 boxes/4062 innate and player4063\u2192933/3891 book retain originalPush5589 andUndo5620. Only all original boxes occupying every goal followed by original4062 removal and native173367 deaths completes the trial; clicks, guide acknowledgments and unrelated deaths cannot substitute."
+}

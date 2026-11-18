@@ -1,0 +1,24 @@
+{
+  "schema": "owned-story-instance-v1",
+  "content_policy": "owned-object-trials-v1",
+  "id": "huppermage-infiltration-1028",
+  "version": 1,
+  "map_id": 1028,
+  "entry": {
+    "map_id": 1027,
+    "object_id": 26189,
+    "destination_id": 2366
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    26209,
+    26223
+  ],
+  "controller_file": "huppermage-infiltration-1028.json",
+  "exploration_file": "huppermage-infiltration-1028.exploration.json",
+  "provenance": "Reviewed world infiltration reconstruction: actual1028 native Sm6 floor/edges; original2082 five cinematic patrol waypoint loops are expanded one native edge per accepted owner cell. This deliberately declared world turn schedule is not claimed original combat timing. Vision is a reviewed forward2-cell cone clipped to native floors; guide-backed proximity<3 for2consecutive turns,2rear strikes and nearby<3 guard alert are preserved. Actual native13130 Attack at the current source-owned guard UID/pose and rear floor supplies each hit; no dialogue or ordinary combat victory grants5650."
+}

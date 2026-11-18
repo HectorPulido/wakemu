@@ -103,6 +103,19 @@ def begin(
 ):
     if (actor_id, action_id) != (ACTOR, ACTION):
         raise ValueError("Unknown hunter NPC action")
+    from wakfu_server import quest_npc
+
+    overlay = quest_npc.try_native_overlay(
+        store,
+        account_id,
+        generation,
+        character,
+        actor_id,
+        action_id,
+        character_provider=character_provider,
+    )
+    if overlay is not None:
+        return overlay
     with store.connection() as db:
         db.execute("SELECT id FROM accounts WHERE id=%s FOR UPDATE", (account_id,))
         store.lock_character(db, account_id, generation, character["id"], selected=True)

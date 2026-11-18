@@ -78,7 +78,12 @@ class NativeMinimumResourceHandler:
         from .combat_npc_initialization import constructor_stat_context
 
         actor = registered_or_detached_actor(self.fight, invocation.target_id)
-        source = registered_or_detached_actor(self.fight, invocation.caster_id)
+        from .combat_state_managers import registered_source_pv
+
+        source = registered_source_pv(self.fight, invocation.caster_id)
+        area = actor is None
+        if area:
+            actor, _, _ = _area_hp_operand(self.fight, invocation.target_id, stat)
         constructor = constructor_stat_context(self.fight, invocation)
         if (
             actor is None
@@ -103,7 +108,11 @@ class NativeMinimumResourceHandler:
             percent,
             low,
             high,
-        ) = minimum_snapshot(actor, stat)
+        ) = (
+            _area_minimum_snapshot(self.fight, actor.id, stat)
+            if area
+            else minimum_snapshot(actor, stat)
+        )
         amount = parameter_value(effect["parameters"], 0, invocation.level)
         if (
             len(effect["parameters"]) == 4
@@ -134,7 +143,10 @@ class NativeMinimumResourceHandler:
             uid=uid,
             running_effect_payload=payload,
         )
-        write_minimum(actor, stat, amount, raw, new_min, after)
+        if area:
+            _write_area_minimum(self.fight, actor.id, stat, raw)
+        else:
+            write_minimum(actor, stat, amount, raw, new_min, after)
         if ctx.retained:
             self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                 uid=uid,
@@ -157,9 +169,14 @@ def remove_minimum_resource(handler, uid):
     stat = entry["stat_id"]
     if FAMILIES.get(entry["effect_class"]) != stat:
         raise ValueError("Native eWV retained characteristic identity mismatch")
-    actor = handler.fight.actors[entry["target_id"]]
-    current, raw_max, maximum, minimum, raw_min, percent, low, high = minimum_snapshot(
-        actor, stat
+    actor = handler.fight.actors.get(entry["target_id"])
+    area = actor is None
+    if area:
+        actor, _, _ = _area_hp_operand(handler.fight, entry["target_id"], stat)
+    current, raw_max, maximum, minimum, raw_min, percent, low, high = (
+        _area_minimum_snapshot(handler.fight, actor.id, stat)
+        if area
+        else minimum_snapshot(actor, stat)
     )
     after, raw, new_min, _ = transition(
         current, raw_max, raw_min, low, high, -entry["actual"], fresh=False
@@ -172,6 +189,52 @@ def remove_minimum_resource(handler, uid):
         uid=uid,
         running_effect_payload=bytes.fromhex(entry["payload"]),
     )
-    write_minimum(actor, stat, _int32(minimum - entry["actual"]), raw, new_min, after)
+    if area:
+        _write_area_minimum(handler.fight, actor.id, stat, raw)
+    else:
+        write_minimum(
+            actor, stat, _int32(minimum - entry["actual"]), raw, new_min, after
+        )
     del handler.fight.owned_stat_effects[uid]
     handler.packets.append((13560, packet))
+
+
+def _area_hp_operand(fight, identity, stat):
+    """Resolve only the real HP PA supplied by an actual faW constructor."""
+    if stat != 1:
+        raise ValueError("Unsupported native area minimum characteristic")
+    from .combat_state_managers import registered_area_pv, retained_area_pv_row
+    from .combat_effect_area import native_effect_areas
+    from .combat_fake_fighter_resources import fake_fighter_hp_state
+
+    pv = registered_area_pv(fight, identity)
+    row = retained_area_pv_row(fight, identity)
+    if pv is None or row is None or row.get("native_area_contract") != "faW":
+        raise ValueError("Missing actual faW HP minimum owner")
+    state = fake_fighter_hp_state(row, native_effect_areas()[str(row["reference"])])
+    return pv, row, state
+
+
+def _area_minimum_snapshot(fight, identity, stat):
+    _, _, hp = _area_hp_operand(fight, identity, stat)
+    base = hp["constructor"]
+    return (
+        hp["current"],
+        hp["raw_maximum"],
+        hp["maximum"],
+        hp["minimum"],
+        hp["raw_minimum"],
+        hp["percentage"],
+        base["absolute_minimum"],
+        base["absolute_maximum"],
+    )
+
+
+def _write_area_minimum(fight, identity, stat, raw):
+    from .combat_area_hp_pa import _persist
+
+    _, row, hp = _area_hp_operand(fight, identity, stat)
+    hp["raw_minimum"] = raw
+    if not hp["frozen"]:
+        hp["raw_current"] = max(hp["raw_current"], raw)
+    _persist(row, hp, "native_faw_hp_current")

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "kelba-convoy-followups",
+  "evidence": [
+    "Reviewed native continuation of the completed Hadibal market briefing: actual2535 completion admits port package2536, and actual2536 completion admits the special two-wave convoy2537. Native level65 and completed-predecessor earning criteria remain unchanged.",
+    "Finite character-ready recovery admits only the same earned chapters for existing owners who completed their predecessor before this publication. It does not infer completion from visibility or proximity, and never replaces port/convoy physical outcomes."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {"id":"kelba-earned-market-to-port","quest_id":2536,"event":{"kind":"quest_completed","reference":2535},"requires_completed":[2535]},
+    {"id":"kelba-earned-port-to-convoy","quest_id":2537,"event":{"kind":"quest_completed","reference":2536},"requires_completed":[2536]},
+    {"id":"kelba-earned-port-recovery","quest_id":2536,"event":{"kind":"character_ready","reference":0},"requires_completed":[2535],"minimum_level":65,"admission_evidence":"Native2536 requires level65 and actualcompleted2535. Explicit finite recovery of the same reviewed earned followup for owners predating this content publication; no physical objective is granted."},
+    {"id":"kelba-earned-convoy-recovery","quest_id":2537,"event":{"kind":"character_ready","reference":0},"requires_completed":[2536],"minimum_level":65,"admission_evidence":"Native2537 requires level65 and actualcompleted2536. Explicit finite recovery of the same reviewed earned followup; real convoy victories and final Black Crow callback remain mandatory."}
+  ]
+}

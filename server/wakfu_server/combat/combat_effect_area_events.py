@@ -256,6 +256,7 @@ class NativeAreaEventRuntime:
     def _root_invocation(self, row, reference, target, *, trigger=None):
         border = row.get("native_area_contract") == "faP"
         environment = row.get("native_environment_source") is not None
+        removal_center = self._reviewed_hp_removal_center(row, target)
         return EffectInvocation(
             reference,
             row["level"],
@@ -268,7 +269,7 @@ class NativeAreaEventRuntime:
             or row.get("native_area_contract") == "fbc"
             or self._requires_area_source(reference)
             else row["owner_id"],
-            None if target is None else target.id,
+            None if target is None or removal_center else target.id,
             tuple(row["cell"])
             if row.get("native_area_contract") == "fbc"
             else tuple(target.position),
@@ -288,9 +289,32 @@ class NativeAreaEventRuntime:
             # sharing its cell (notably a carried actor and its carrier).
             # Native aZX/cym still decide whether the root reselects.
             native_explicit_target=(
-                border or environment or row.get("native_area_contract") == "faM"
+                not removal_center
+                and (border or environment or row.get("native_area_contract") == "faM")
             ),
             native_trigger_context=trigger,
+        )
+
+    def _reviewed_hp_removal_center(self, row, target):
+        """Reviewed scene death publisher supplies the actual dead area's center.
+
+        Its original appliers retain their area selection and breed criteria.
+        This is not an original serialized server death-to-recipient binding.
+        """
+        from .combat_neutral_faw_hp import REMOVAL_SCHEMA
+
+        return (
+            row.get("native_qq_bhi") is True
+            and target is not None
+            and target.id == row.get("uid")
+            and any(
+                source.get("uid") == row.get("uid")
+                and source.get("neutral_faw_constructor", {}).get("schema")
+                == REMOVAL_SCHEMA
+                for source in getattr(
+                    self.fight, "native_environment_glyph_constructors", ()
+                )
+            )
         )
 
     def _artifact_criterion_probe(self, row, definition, target):
@@ -432,6 +456,11 @@ class NativeAreaEventRuntime:
                 from .combat_artifact_assignment import state_observations
 
                 before_states = state_observations(self.fight)
+            order_batch = None
+            if getattr(self.fight, "native_order_trial", None) is not None:
+                from .native_order_trial_events import begin_area_batch
+
+                order_batch = begin_area_batch(self.fight, row, target)
             for reference in definition["effect_ids"]:
                 invocation = self._root_invocation(
                     row, reference, target, trigger=trigger
@@ -469,6 +498,10 @@ class NativeAreaEventRuntime:
                         raise ValueError("Missing original artifact effect definition")
                     # Native843 only retires Qq; its success is not a grant.
                     artifact_applied |= effect["effect_class"] != 843
+            if order_batch is not None:
+                from .native_order_trial_events import finish_area_batch
+
+                finish_area_batch(self.dispatcher, row, target, order_batch)
         finally:
             row["executing"] = previous_executing
             from .combat_state_managers import prune_retired_state_managers
@@ -599,7 +632,18 @@ class NativeAreaEventRuntime:
             ):
                 raise ValueError("Missing initial native area removal authority")
             verify_environment_glyph(self.fight, row)
-            remove_owned_hour_area(self.fight, row["uid"], callbacks=self)
+            from .combat_state_managers import registered_area_pv
+
+            target = registered_area_pv(self.fight, row["uid"])
+            removal_target = (
+                row["uid"] if self._reviewed_hp_removal_center(row, target) else None
+            )
+            remove_owned_hour_area(
+                self.fight,
+                row["uid"],
+                callbacks=self,
+                removal_target_id=removal_target,
+            )
             return True
         uid = row["effect_uid"]
         owned = getattr(self.fight, "native_owned_area_effects", {})
@@ -669,6 +713,9 @@ class NativeAreaEventRuntime:
 
         if area_is_unobserved(row["uid"]):
             return ()
+        from .combat_scene_boundary_failure import prepare_contact, settle_contact
+
+        boundary_contact = prepare_contact(self.fight, row, target, event_id)
         if artifact_origin == "contact" and self.artifact_contact_eligible is not None:
             if not callable(self.artifact_contact_eligible) or target is None:
                 raise ValueError("Invalid artifact contact admission callback")
@@ -730,6 +777,7 @@ class NativeAreaEventRuntime:
             result.append(self._exit(row, target))
         if removal_mask_matches(definition, (event_id,)):
             result.append(self._remove_on_masks(row, definition, (event_id,)))
+        settle_contact(self.fight, boundary_contact)
         return tuple(result)
 
     def created(self, row):
@@ -817,6 +865,10 @@ class NativeAreaEventRuntime:
             self.microbot_rail_removed(row["uid"])
         result = []
         target = None if target_id is None else self.fight.actors.get(target_id)
+        if target_id is not None and target is None:
+            from .combat_state_managers import registered_area_pv
+
+            target = registered_area_pv(self.fight, target_id)
         if target_id is not None and target is None:
             raise ValueError("Missing actual Qs removal-event target")
         if 10011 in definition["entry_masks"]:

@@ -1,4 +1,5 @@
 """Per-UID mutable state while a physical item is a bag or placed furniture."""
+
 from psycopg.types.json import Jsonb
 
 from . import item_custody_metadata
@@ -62,9 +63,9 @@ def restore(db, *, uid, account_id, character_id, reference, kind):
     metadata = _unjson(row["metadata"])
     binding = metadata.get("inventory_item_bindings", {})
     if row["source_character_id"] != character_id:
-        from .item_binding import _template
+        from .item_binding import effective_template
 
-        native_binding = _template(reference)[0]
+        native_binding = effective_template(reference, binding)[0]
         if native_binding == "BOUND_ON_PICKUP_TO_CHARACTER" or (
             binding.get("bound") is True
             and native_binding != "BOUND_ON_PICKUP_TO_ACCOUNT"

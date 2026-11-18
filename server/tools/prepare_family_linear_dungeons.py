@@ -64,7 +64,7 @@ def family_roster(native, room_count, boss, *, quantity=8, exclude=()):
 
 
 def progressive_family_roster(
-    native, room_count, boss_refs, *, capacity=8, exclude=(), eligible_refs=None
+    native, room_count, boss_refs, *, capacity=None, exclude=(), eligible_refs=None
 ):
     """Build strictly increasing native-minimum threat, with final bosses only.
 
@@ -76,6 +76,8 @@ def progressive_family_roster(
         raise ValueError("Native role eligibility evidence is required")
     if type(room_count) is not int or not 1 <= room_count <= 100:
         raise ValueError("Invalid room count")
+    if capacity is None:
+        capacity = 10 if room_count >= 4 else 8
     if type(capacity) is not int or not 1 <= capacity <= 121:
         raise ValueError("Invalid common formation capacity")
     bosses = set(boss_refs)
@@ -92,7 +94,9 @@ def progressive_family_roster(
         raise ValueError("No eligible ordinary family for preliminary encounters")
     rooms, metrics = [], []
     for order in range(1, room_count + 1):
-        quantity = max(1, math.ceil(capacity * order / room_count))
+        from wakfu_server.dungeon_local_roster_policy import generated_quantity
+
+        quantity = generated_quantity(order, room_count, capacity)
         final = order == room_count
         quantity = max(quantity, len(bosses) if final else 1)
         ordinary_count = quantity - (len(bosses) if final else 0)
@@ -174,7 +178,8 @@ def audit_configuration_progression(config, catalog):
     topology_orders = [r["order"] for r in config.get("topology", {}).get("rooms", [])]
     if [r.get("order") for r in rooms] != topology_orders or not rooms:
         violations.append("combat_room_topology_mismatch")
-    if config.get("level_policy", {}).get("mode") != "native_minimum":
+    mode = config.get("level_policy", {}).get("mode")
+    if mode not in ("native_minimum", "native_stage_progression"):
         violations.append("actual_spawn_level_policy_not_proved")
     selected = set(
         plan.get("roster_policy_evidence", {}).get(
@@ -186,6 +191,13 @@ def audit_configuration_progression(config, catalog):
     previous = None
     for room in rooms:
         order, threat, quantity = room.get("order"), 0, 0
+        from wakfu_server.dungeon_runtime_config import level_selector
+
+        try:
+            select_level = level_selector(config, room_order=order)
+        except ValueError:
+            violations.append(f"room_{order}:actual_spawn_level_policy_not_proved")
+            select_level = None
         if not room.get("monsters"):
             violations.append(f"room_{order}:missing_combat_roster")
         for monster in room.get("monsters", []):
@@ -214,7 +226,18 @@ def audit_configuration_progression(config, catalog):
             elif monster.get("role") == "boss":
                 violations.append(f"room_{order}:declared_boss_not_native_boss:{ref}")
             quantity += count
-            threat += count * native["min_level"]
+            level = (
+                native["min_level"]
+                if select_level is None
+                else select_level(
+                    native,
+                    dict(
+                        min_level=monster["native_min_level"],
+                        max_level=monster["native_max_level"],
+                    ),
+                )
+            )
+            threat += count * level
         metrics.append(
             dict(order=order, quantity=quantity, actual_spawn_level_sum=threat)
         )
@@ -238,14 +261,14 @@ def audit_configuration_progression(config, catalog):
         status="passed" if not violations else "blocked",
         violations=violations,
         metric="sum(count * actual_spawn_level)",
-        actual_spawn_level_policy="native_minimum",
+        actual_spawn_level_policy=mode,
         interpretation="Composition progression proxy; boss mechanics and overall difficulty not certified",
         rooms=metrics,
     )
 
 
 def progressive_configuration(
-    config, native, boss_refs, catalog, *, capacity=8, exclude=(), version=None
+    config, native, boss_refs, catalog, *, capacity=None, exclude=(), version=None
 ):
     """Create a fresh immutable candidate while retaining literal native topology."""
     from native_family_configuration_base import base
@@ -279,7 +302,8 @@ def progressive_configuration(
         copy.deepcopy(config["topology"]),
         config["route"],
         version=version if version is not None else config["version"] + 1,
-        provenance="User-authorized strictly increasing native-minimum composition proxy; native-role-filtered ordinary family; final-only actual bosses",
+        provenance="User-authorized strictly increasing configured-native-grade composition proxy; native-role-filtered ordinary family; final-only actual bosses",
+        level_policy=copy.deepcopy(config.get("level_policy")),
     )
     audit = audit_configuration_progression(result, catalog)
     if audit["status"] != "passed":

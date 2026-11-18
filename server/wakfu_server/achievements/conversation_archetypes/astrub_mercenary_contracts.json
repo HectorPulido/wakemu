@@ -1,0 +1,120 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "UNPUBLISHED MERCENARY-BOARD DRAFT: native2140 four contribution acknowledgements on existing reviewed actors, exact running/objective predicates. Narrative response edges reconstructed from corresponding native contribution text. No player item/kama payment, no invented tax loot and no admission from visibility; activation remains blocked until actual typed contract-board acceptance is qualified.",
+  "speakers": [
+    {
+      "actor_id": -2251799934992019,
+      "action_id": 431,
+      "quest_ids": [
+        2140
+      ],
+      "objectives": [
+        {
+          "quest_id": 2140,
+          "objective_id": 4232,
+          "node_id": 2301,
+          "choice_id": 6833,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2301,
+          6833,
+          2817
+        ],
+        [
+          2817,
+          6841,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992017,
+      "action_id": 430,
+      "quest_ids": [
+        2140
+      ],
+      "objectives": [
+        {
+          "quest_id": 2140,
+          "objective_id": 4233,
+          "node_id": 2299,
+          "choice_id": 6834,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2299,
+          6834,
+          2818
+        ],
+        [
+          2818,
+          6842,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992158,
+      "action_id": 594,
+      "quest_ids": [
+        2140
+      ],
+      "objectives": [
+        {
+          "quest_id": 2140,
+          "objective_id": 4234,
+          "node_id": 2814,
+          "choice_id": 6836,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2814,
+          6836,
+          2819
+        ],
+        [
+          2819,
+          6843,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992016,
+      "action_id": 429,
+      "quest_ids": [
+        2140
+      ],
+      "objectives": [
+        {
+          "quest_id": 2140,
+          "objective_id": 4336,
+          "node_id": 2297,
+          "choice_id": 6835,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2297,
+          6835,
+          2820
+        ],
+        [
+          2820,
+          6844,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": [],
+  "admission_status": "pending_native_contract_board_join"
+}

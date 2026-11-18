@@ -1,0 +1,68 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "PRIVATE minimal finite native NPC acknowledgment; no activation, item/payment, physical progression or future quest is inferred. Native King2470/action323/root2080; exact single running1262 acknowledgment5043 earns2391. Root2080 remains an unconditional native greeting with type10 exit5042 after completion. Later1266/1269 choices are deliberately not published.",
+  "speakers": [
+    {
+      "actor_id": -2251799934991262,
+      "action_id": 323,
+      "quest_ids": [
+        1262
+      ],
+      "native_marker": {
+        "quest_id": 1262,
+        "objective_id": 2391
+      },
+      "placement": {
+        "quest_id": 1262,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934991262,
+          "reference_id": 2470,
+          "map_id": 458,
+          "instance_id": 0,
+          "x": -1,
+          "y": -109,
+          "z": 34,
+          "direction": 3,
+          "dialogue_root": 2080,
+          "action_ids": [
+            323
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION. Native King2470/action323/root2080; exact single running1262 acknowledgment5043 earns2391. Root2080 remains an unconditional native greeting with type10 exit5042 after completion. Later1266/1269 choices are deliberately not published. Native quest navigation marker and actual connected Sm6 anchor supply reviewed placement, not a captured original actor/action/position join."
+        },
+        "interaction_anchor": {
+          "x": -2,
+          "y": -109,
+          "z": 34
+        },
+        "interaction_anchor_evidence": "Actual Sm6/0/4 map458 evidence bilbyza458-sm6.json, file SHA1c9d91898edf77035b670f9f6a5149d14af545569a338acfdf72aa71123d05ef, topology SHA14eeb68ccb22566f29bd4e4b89e0aec4233e721ea2836ed050a0e04906a7afcd. Native marker cell(-1, -109, 34) exists but has zero incident walking edges; adjacent anchor(-2, -109, 34) is real and has native incoming/outgoing connections. Do not invent a movement edge through the blocked NPC tile.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 1262,
+          "objective_id": 2391,
+          "node_id": 2080,
+          "choice_id": 5043,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          2080,
+          5043,
+          0
+        ],
+        [
+          2080,
+          5042,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": []
+}

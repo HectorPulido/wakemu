@@ -1,0 +1,15 @@
+{
+  "schema": "combat_mission_bindings_v1",
+  "revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "quest_id": 2710,
+      "objective_id": 5359,
+      "kind": "victory",
+      "minimum_level": 23,
+      "count": 1,
+      "acceptance": "explicit",
+      "evidence": "Reviewed original2710 objective5359 English/guide label Reach level23 and win a fight. Requires already running2710, actual character level>=23 and a fresh server-authenticated original-enemy PvE victory through the existing durable combat mission receipt. No character_ready, historical victory backfill, administrative level/assignment/win or ordinary lair visit substitutes for the real level-qualified fight."
+    }
+  ]
+}

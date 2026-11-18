@@ -430,6 +430,20 @@ def use(
             output_reference=rule.get("output_ref"),
             source_uid=source_uid,
         )
+        from uuid import uuid4
+        from wakfu_server.achievements import mission_toolkit
+
+        mission_packets.extend(
+            mission_toolkit.settle(
+                db,
+                store,
+                result["character"],
+                token="item-action:" + uuid4().hex,
+                kind="item_action_completed",
+                reference=action_id,
+                quantity=1,
+            )
+        )
         return dict(
             character=result["character"],
             packets=packets + result["packets"] + mission_packets,

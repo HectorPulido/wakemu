@@ -1,0 +1,73 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "huppermage-sokoban-expert-1019",
+  "map_id": 1019,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2783,
+    "objective_id": null,
+    "continuation_quest_id": 2783
+  },
+  "provenance": "Discovery formation reconstructed from the guide screenshot. Intermediate/expert formations are explicitly reviewed solvable reconstructions on the unchanged original depressed board terrain; exact missing server placements are not claimed. Original3889 boxes/4062 innate and player4063\u2192933/3891 book retain originalPush5589 andUndo5620. Only all original boxes occupying every goal followed by original4062 removal and native173367 deaths completes the trial; clicks, guide acknowledgments and unrelated deaths cannot substitute.",
+  "native_sources": {
+    "path": "huppermage-sokoban-1019.native.v1.json",
+    "sha256": "5d6d82541a68827cd0eaed74c4a6900d5127a0c66d4121db7f0360c710f290a3"
+  },
+  "initial_elements": [],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "box-ready"
+    ],
+    "evidence": "Actual original native1012/1284 scriptinvocation2518 and loaded sole-owner board qualify native puzzle construction, never victory."
+  },
+  "terminal_returns": {
+    "schema": "owned-story-terminal-return-v1",
+    "room_order": 1,
+    "victory": {
+      "kind": "recorded_entry"
+    },
+    "defeat": {
+      "kind": "recorded_entry"
+    },
+    "evidence": "Both authentic native puzzle outcomes restore the actual accepted physical board source through normal membership/CAS/outbox."
+  },
+  "steps": [
+    {
+      "id": "box-ready",
+      "kind": "world_ready",
+      "reference": 1019,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2073,
+          "event": 16734
+        }
+      ],
+      "evidence": "Identical original standalone Sokoban tutorial is delivered oncepercharacter across the three trials."
+    },
+    {
+      "id": "box-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "box-ready"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2073,
+          "event": 16742
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2783,
+          "objective_id": 5585
+        }
+      ],
+      "evidence": "Authenticated original native goal-death receipt, not unrelated deaths or sourceinteraction, qualifies objective."
+    }
+  ]
+}

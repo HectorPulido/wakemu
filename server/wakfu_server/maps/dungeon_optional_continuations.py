@@ -4,6 +4,7 @@ Projection leaves the pinned configuration, encounter rooms and activation
 receipt unchanged. The existing optional encounter result is its durable
 publication outbox; packets never award loot, consume a source or move actors.
 """
+
 from functools import lru_cache
 from pathlib import Path
 import hashlib
@@ -40,9 +41,18 @@ def _native_binding(key, rule_hash, release):
     from wakfu_server.paths import DATA_ROOT
 
     matches = [r for r in rules() if r["key"] == key and digest(r) == rule_hash]
-    if len(matches) != 1 or release != matches[0]["qualified_native_release"]:
+    if len(matches) != 1:
         raise ValueError("Optional continuation native source changed")
     rule = matches[0]
+
+    if release != native_catalog.release():
+        raise ValueError("Native publication changed during source validation")
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    require_source_revision(
+        rule["qualified_native_release"],
+        ("native-map-objects.json", "native-interactive-states.json"),
+    )
     door = rule["door"]
     source = native_catalog.record(
         DATA_ROOT / "native-map-objects.json", "$", str(door["source_id"])

@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import struct
 
-_POLICY_SHA256 = "f5a73216536283a752b68b3fd9041b23a55c3288bd93307b61b4551d8515717d"
+_POLICY_SHA256 = "586ff5b577f5f76c210741f1a12b733497af35dfef8e4d6eefc815dd534598ba"
 _AUTHORITY = "authorized_wakemu_native_encounter_action_reconstruction"
 
 

@@ -1,0 +1,936 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "aHe": "",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 5044,
+      "cjG": 859,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 36",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -26,
+              "ckh": 128,
+              "cki": -51,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10388,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10388)",
+          "ckd": [
+            {
+              "ckg": -29,
+              "ckh": 141,
+              "cki": -47,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10420,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10420)",
+          "ckd": [
+            {
+              "ckg": -25,
+              "ckh": 136,
+              "cki": -51,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10421,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10421)",
+          "ckd": [
+            {
+              "ckg": -34,
+              "ckh": 133,
+              "cki": -51,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10422,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10422)",
+          "ckd": [
+            {
+              "ckg": -34,
+              "ckh": 133,
+              "cki": -51,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10389,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10389)",
+          "ckd": [
+            {
+              "ckg": -74,
+              "ckh": 18,
+              "cki": -51,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10390,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            181644
+          ],
+          "d": 9555,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20968,
+            16
+          ],
+          "d": 9558,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 36,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.859",
+      "d": 5045,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "",
+      "aeV": 3,
+      "aqb": false,
+      "bwX": 5044,
+      "cjG": 859,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 36",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -155,
+              "ckh": 31,
+              "cki": -47,
+              "ckj": 1033,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10394,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10394)",
+          "ckd": [
+            {
+              "ckg": -10,
+              "ckh": -67,
+              "cki": -15,
+              "ckj": 1369,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10399,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(10399)",
+          "ckd": [
+            {
+              "ckg": -74,
+              "ckh": 18,
+              "cki": -51,
+              "ckj": 1358,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 10398,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            110757
+          ],
+          "d": 9556,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20968,
+            20
+          ],
+          "d": 9557,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            15000
+          ],
+          "d": 9653,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 36,
+      "cjQ": 6,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 2,
+      "cka": "ach.859",
+      "d": 5046,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "ereboria-5045-10388",
+      "quest_id": 5045,
+      "objective_id": 10388,
+      "source": {
+        "chunk": "-2_7",
+        "id": 33688,
+        "payload_hex": "02000000000b010000000d000001054effffffe600000080ffcd0001010101000a000000043134393700000000000000",
+        "x": -26.0,
+        "y": 128.0,
+        "map_id": 1358,
+        "z": -51.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "1497",
+        "descriptor_id": 1497
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1497,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1865,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1916,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3384,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(5045)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1865,
+        "clx": 304,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1916,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3384,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(5045)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1916,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3384,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(5045)",
+            "parameters": []
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -27,
+          128,
+          -51
+        ],
+        [
+          -26,
+          129,
+          -51
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 0,
+      "native_definition_sha256": "e66caa8ff52862c0a4617e6d6feaac4cb956d4f25ae52fd9363477264f9e0fed",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact installed source/action/effects and native objective prerequisites; original clue/read callback reconstructed from native labels and strict sequence. Never credits victory from a read or movie.",
+      "timing_basis": "Original nativecog; movie native16000ms plus250ms delivery grace only when actually presented.",
+      "native_feedback": [
+        3384
+      ]
+    },
+    {
+      "id": "ereboria-5045-10420",
+      "quest_id": 5045,
+      "objective_id": 10420,
+      "source": {
+        "chunk": "-2_7",
+        "id": 33691,
+        "payload_hex": "02000000000b010000000d000001054effffffe30000008dffd10001010101000a000000043135303000000000000000",
+        "x": -29.0,
+        "y": 141.0,
+        "map_id": 1358,
+        "z": -47.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "1500",
+        "descriptor_id": 1500
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1500,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1868,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1919,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3387,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(5045)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1868,
+        "clx": 304,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1919,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3387,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(5045)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1919,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3387,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(5045)",
+            "parameters": []
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -30,
+          141,
+          -51
+        ],
+        [
+          -29,
+          142,
+          -51
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 0,
+      "native_definition_sha256": "e66caa8ff52862c0a4617e6d6feaac4cb956d4f25ae52fd9363477264f9e0fed",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact installed source/action/effects and native objective prerequisites; original clue/read callback reconstructed from native labels and strict sequence. Never credits victory from a read or movie.",
+      "timing_basis": "Original nativecog; movie native16000ms plus250ms delivery grace only when actually presented.",
+      "native_feedback": [
+        3387
+      ]
+    },
+    {
+      "id": "ereboria-5045-10421",
+      "quest_id": 5045,
+      "objective_id": 10421,
+      "source": {
+        "chunk": "-2_7",
+        "id": 33690,
+        "payload_hex": "02000000000b010000000d000001054effffffe700000088ffcd0001010101000e000000043134393900000000000000",
+        "x": -25.0,
+        "y": 136.0,
+        "map_id": 1358,
+        "z": -51.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "1499",
+        "descriptor_id": 1499
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1499,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1867,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1918,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3386,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(5045)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1867,
+        "clx": 304,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1918,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3386,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(5045)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1918,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3386,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(5045)",
+            "parameters": []
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -26,
+          136,
+          -51
+        ],
+        [
+          -25,
+          135,
+          -51
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 0,
+      "native_definition_sha256": "e66caa8ff52862c0a4617e6d6feaac4cb956d4f25ae52fd9363477264f9e0fed",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact installed source/action/effects and native objective prerequisites; original clue/read callback reconstructed from native labels and strict sequence. Never credits victory from a read or movie.",
+      "timing_basis": "Original nativecog; movie native16000ms plus250ms delivery grace only when actually presented.",
+      "native_feedback": [
+        3386
+      ]
+    },
+    {
+      "id": "ereboria-5045-10389",
+      "quest_id": 5045,
+      "objective_id": 10389,
+      "source": {
+        "chunk": "-2_7",
+        "id": 33689,
+        "payload_hex": "02000000000b010000000d000001054effffffde00000085ffcd00010101010008000000043134393800000000000000",
+        "x": -34.0,
+        "y": 133.0,
+        "map_id": 1358,
+        "z": -51.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "1498",
+        "descriptor_id": 1498
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1498,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1866,
+            "clx": 304,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1917,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3385,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(5045)",
+                    "parameters": []
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3389,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(5045)\r\nand IsAchievementObjectiveComplete(10421)\r\nand not IsAchievementObjectiveComplete(10389)",
+                    "parameters": [
+                      "2515"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1866,
+        "clx": 304,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1917,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3385,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(5045)",
+                "parameters": []
+              },
+              {
+                "native_class": "aLm",
+                "action_reference": 3389,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(5045)\r\nand IsAchievementObjectiveComplete(10421)\r\nand not IsAchievementObjectiveComplete(10389)",
+                "parameters": [
+                  "2515"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1917,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3385,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(5045)",
+            "parameters": []
+          },
+          {
+            "native_class": "aLm",
+            "action_reference": 3389,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(5045)\r\nand IsAchievementObjectiveComplete(10421)\r\nand not IsAchievementObjectiveComplete(10389)",
+            "parameters": [
+              "2515"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -35,
+          133,
+          -51
+        ],
+        [
+          -34,
+          132,
+          -51
+        ],
+        [
+          -34,
+          134,
+          -51
+        ],
+        [
+          -33,
+          133,
+          -51
+        ]
+      ],
+      "mode": "encounter",
+      "native_occupation_ms": 0,
+      "native_definition_sha256": "e66caa8ff52862c0a4617e6d6feaac4cb956d4f25ae52fd9363477264f9e0fed",
+      "roster": [
+        {
+          "reference": 5374,
+          "count": 2
+        },
+        {
+          "reference": 5373,
+          "count": 2
+        },
+        {
+          "reference": 5375,
+          "count": 2
+        }
+      ],
+      "scenario": {
+        "id": 2515,
+        "begin_event": 22117,
+        "win_event": 22118,
+        "loss_event": 22119,
+        "actor_slots": 6,
+        "opening": {
+          "event": 22110,
+          "duration_ms": 16000,
+          "owner_position": [
+            -42,
+            126,
+            -51
+          ],
+          "script_sha256": "cd0bab1084753ff0229789e97416d9a60c7090a1a87e40598ee75c25acf42751",
+          "script_source": "ereboria-pirate-2515.native.v1.json",
+          "evidence": "Original2515/22110 moves the leader to(-42,126,-51), ends via skipCinematic22110 after16000ms and depicts native5374/5373/5375 pirates. Commit the native endpoint after this movie completes, before genuine six-actor combat."
+        }
+      },
+      "evidence": "Exact installed source/action/effects and native objective prerequisites; original clue/read callback reconstructed from native labels and strict sequence. Never credits victory from a read or movie.",
+      "timing_basis": "Original nativecog; movie native16000ms plus250ms delivery grace only when actually presented.",
+      "native_feedback": [
+        3385
+      ],
+      "prelude_objective_id": 10422
+    },
+    {
+      "id": "ereboria-5046-10399",
+      "quest_id": 5046,
+      "objective_id": 10399,
+      "source": {
+        "chunk": "-1_-4",
+        "id": 33716,
+        "payload_hex": "02000000000b010000000d0000010559fffffff6ffffffbcfff300010101030001000000043135303100000000000000",
+        "x": -10.0,
+        "y": -68.0,
+        "map_id": 1369,
+        "z": -13.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "1501",
+        "descriptor_id": 1501
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 1501,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1869,
+            "clx": 323,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1920,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 3390,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(5046)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1869,
+        "clx": 323,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1920,
+            "criterion": "",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 3390,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(5046)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1920,
+        "criterion": "",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 3390,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(5046)",
+            "parameters": []
+          }
+        ]
+      },
+      "approaches": [
+        [
+          -10,
+          -67,
+          -15
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 0,
+      "native_definition_sha256": "53506003eb96f69034714a93501696cb484f3ee6ef3afde33d2f0bfa50baede9",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Exact installed source/action/effects and native objective prerequisites; original clue/read callback reconstructed from native labels and strict sequence. Never credits victory from a read or movie.",
+      "timing_basis": "Original nativecog; movie native16000ms plus250ms delivery grace only when actually presented.",
+      "native_feedback": [
+        3390
+      ],
+      "owned_dungeon": {
+        "definition_id": 184,
+        "entry_map_id": 1358,
+        "entry_source_id": 33426,
+        "destination_id": 4498,
+        "source_sha256": "742ebc1b029f45bdafa14cb1c1d924ffc555856494d30accf089f4751a26d1b4"
+      }
+    }
+  ],
+  "provenance": "Reviewed continuation of native Ereboria pirate chapters. Original clue objects and scenario2515 preserve native scripts and real native pirate programs. Six original actor slots are native; two of each depicted pirate species is explicitly reconstructed formation, not captured original placement. Pohl dungeon remains existing native184."
+}

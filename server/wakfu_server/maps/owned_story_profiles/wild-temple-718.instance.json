@@ -1,0 +1,25 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-temple-718",
+  "version": 1,
+  "map_id": 718,
+  "entry": {
+    "map_id": 717,
+    "object_id": 20568,
+    "destination_id": 1426
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20686,
+    20685
+  ],
+  "controller_file": "wild-temple-718.json",
+  "exploration_file": "wild-temple-718.exploration.json",
+  "encounters_file": "wild-temple-718-encounters.json",
+  "object_trials": "wild-temple-718-trials",
+  "provenance": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape."
+}

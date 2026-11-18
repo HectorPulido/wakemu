@@ -3,6 +3,7 @@
 Only mutable item state is copied. Operation receipts stay with their original
 owner. The native binding/admission policies remain the caller's responsibility.
 """
+
 from copy import deepcopy
 from psycopg import sql
 
@@ -37,7 +38,7 @@ _COLUMNS = {
     "inventory_item_shards": ("uid", "shard_state"),
     "inventory_mounts": _ANIMAL_COLUMNS,
     "inventory_pets": _ANIMAL_COLUMNS,
-    "inventory_item_bindings": ("uid", "bound", "template_reference"),
+    "inventory_item_bindings": ("uid", "bound", "template_reference", "binding_type"),
     "inventory_item_recycling_state": ("uid", "unidentified", "socketed"),
     "inventory_item_appearances": ("uid", "appearance_ref"),
     "inventory_item_companions": ("uid", "xp"),
@@ -46,15 +47,25 @@ _COLUMNS = {
 
 
 def _validate(table, row):
+    columns = set(_COLUMNS.get(table, ()))
+    legacy_binding = (
+        table == "inventory_item_bindings"
+        and isinstance(row, dict)
+        and set(row) == columns - {"binding_type"}
+    )
     if (
         table not in TABLE_KEYS
         or not isinstance(row, dict)
-        or set(row) != set(_COLUMNS[table])
+        or (set(row) != columns and not legacy_binding)
     ):
         raise ValueError("Unsupported durable item custody metadata")
     uid = row[TABLE_KEYS[table]]
     if type(uid) is not int or not 0 < uid < 2**63:
         raise ValueError("Invalid item custody metadata identity")
+    if table == "inventory_item_bindings" and row.get("binding_type") is not None:
+        from .item_binding import validate_override
+
+        validate_override(row["binding_type"])
 
 
 def snapshot_many(db, uids):
@@ -74,6 +85,8 @@ def snapshot_many(db, uids):
                 for name, value in row.items()
             }
             _validate(table, row)
+            if table == "inventory_item_bindings" and row.get("binding_type") is None:
+                row.pop("binding_type", None)
             result[row[key]][table] = row
     return result
 
@@ -111,5 +124,5 @@ def restore(db, metadata):
                 sql.SQL(",").join(map(sql.Identifier, columns)),
                 sql.SQL(",").join(sql.Placeholder() for _ in columns),
             ),
-            tuple(row[column] for column in columns),
+            tuple(row.get(column) for column in columns),
         )

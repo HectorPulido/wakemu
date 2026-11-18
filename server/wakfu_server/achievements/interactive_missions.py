@@ -4,8 +4,8 @@ Bindings are reconstructed policy; importing client text alone never enables one
 """
 import struct
 
-from . import mission_progress, rewards, storage, wire
-from .service import _owner, drain_rewards
+from . import mission_progress, storage
+from .service import _owner
 
 
 def binding_exists(store, map_id, body):
@@ -61,17 +61,52 @@ def interact(store, account_id, generation, location, body, *, loaded, blocked):
         if location.get("instance_id", 0) != 0:
             raise ValueError("Mission interaction requires the configured map instance")
         interaction = world_static.interaction(location, body)
+        approaches = rule.get("approach_cells", [])
+        if (
+            not isinstance(approaches, list)
+            or len(approaches) % 3
+            or any(type(value) is not int for value in approaches)
+        ):
+            raise ValueError("Invalid native quest interaction approaches")
+        native_approaches = {
+            tuple(approaches[i : i + 3]) for i in range(0, len(approaches), 3)
+        }
+        allowed_position = (
+            (location["x"], location["y"], location["z"]) in native_approaches
+            if native_approaches
+            else abs(location["z"] - rule["z"]) <= 1
+            and abs(location["x"] - rule["x"]) + abs(location["y"] - rule["y"])
+            <= rule["max_distance"]
+        )
         if (
             interaction["type"] != rule["object_type"]
             or any(interaction[k] != rule[k] for k in ("x", "y", "z"))
-            or abs(location["z"] - rule["z"]) > 1
-            or abs(location["x"] - rule["x"]) + abs(location["y"] - rule["y"])
-            > rule["max_distance"]
+            or not allowed_position
         ):
             raise ValueError("Mission object is unavailable or out of range")
+        before = storage.load_locked(db, character["id"])
+        now_ms = int(store.now().timestamp() * 1000)
+        native_criterion = rule.get("native_criterion", "")
+        if native_criterion:
+            from wakfu_server.dungeon_criteria import evaluate
+            from wakfu_server.dungeon_achievement_authority import queries_from_state
+
+            if not evaluate(
+                store,
+                native_criterion,
+                character=character,
+                now_ms=now_ms,
+                queries=queries_from_state(before, now_ms=now_ms),
+            ):
+                return dict(
+                    applied=False,
+                    handled=False,
+                    packets=[],
+                    character=character,
+                    completed=[],
+                )
         visual = _visual(character["id"], object_id, rule.get("script_id", 0))
         definition = rule["data"]["native"]
-        before = storage.load_locked(db, character["id"])
         if rule["quest_id"] not in before["running"]:
             return dict(
                 applied=False,
@@ -80,7 +115,6 @@ def interact(store, account_id, generation, location, body, *, loaded, blocked):
                 character=character,
                 completed=[],
             )
-        now_ms = int(store.now().timestamp() * 1000)
         try:
             after, intents, added, completed = mission_progress.advance_objective(
                 before,
@@ -138,30 +172,22 @@ def interact(store, account_id, generation, location, body, *, loaded, blocked):
         key = f"quest-interactive:{rule['quest_id']}:{rule['objective_id']}"
         if not storage.record_event(db, character["id"], key, fact):
             raise ValueError("Mission interaction receipt exists without progress")
-        for quest_id, reward in intents:
-            rewards.validate(reward)
-            storage.claim_reward(
-                db, character["id"], quest_id, "once", reward["d"], reward
-            )
-        storage.store(db, character["id"], after)
-        packets = (
-            visual
-            + payment_packets
-            + wire.changes(
-                character["id"],
-                before,
-                after,
-                added,
-                completed,
-                now_ms,
-                definitions={rule["quest_id"]: definition},
-            )
+        from . import mission_dependencies
+
+        outcome = mission_dependencies.settle(
+            db,
+            store,
+            character,
+            before,
+            (after, intents, added, completed),
+            {rule["quest_id"]: definition},
+            (),
+            now_ms=now_ms,
         )
-        packets.extend(drain_rewards(db, store, character))
         return dict(
             applied=True,
             handled=True,
-            packets=packets,
-            completed=completed,
+            packets=visual + payment_packets + outcome["packets"],
+            completed=outcome["completed"],
             character=store.character(account_id, location["id"], db),
         )

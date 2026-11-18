@@ -190,9 +190,14 @@ def commit_spell_transaction(
     from .combat_owned_spell_delivery import validated_spell_delivery
 
     with validated_spell_delivery(runtime, transaction):
-        return runtime.prepare_fight_delivery(
+        delivery = runtime.prepare_fight_delivery(
             packets,
             transaction.fight,
             action_id=transaction.action_id,
             operation="commit_spell_transaction",
         )
+    if getattr(runtime.fight, "native_dj_dance", None) is not None:
+        from .combat_native_dj_dance import finish_challenge
+
+        finish_challenge(runtime.fight, runtime)
+    return delivery

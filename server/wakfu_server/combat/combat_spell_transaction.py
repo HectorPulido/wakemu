@@ -230,10 +230,22 @@ def _prepare_spell_transaction(
         roots_source=lambda: plan["effect_ids"],
         pay_resources=pay_resources,
     )
+    if getattr(preview, "native_dj_dance", None) is not None:
+        from .combat_native_dj_dance import record_committed_cast
+
+        record_committed_cast(preview, plan, action_id=action_id)
     if getattr(preview, "_rii_area_pending", None) is not None:
         from wakfu_server.achievements.rii_area_runtime import finish
 
         finish(preview, effect_packets)
+    if (getattr(preview, "native_encounter_scene", None) or {}).get(
+        "descriptor", {}
+    ).get("box_goals") is not None:
+        from .combat_scene_box_goals import settle_cast
+
+        settle_cast(
+            preview, caster_id=caster.id, spell_id=plan["spell_id"], action_id=action_id
+        )
     finish_mirrored_cast_facing(caster, plan, fight=preview)
     for opcode, payload in effect_packets:
         if (

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "id": "frigost-clinic-library-travel",
+  "evidence": [
+    "Reviewed native1114/2211 clinic entry uses original507/18255 paid16102 destination1136 to533(0,0,0);1114/2051 examines original533 lectern18261/destination1138 to534(-7,0,0). Guide confirms trapdoor by Doby then lectern at far end. Actual committed native transport events only; NPC talk/admin teleport never credits them.",
+    "Reviewed native1236/2209 library entry uses original507/18284 paid16105 destination1142 to535(0,0,0);1236/2225 manuscript reading uses original535 lectern18286/destination1143 to536(-14,-1,0). Native1124 itself supplies16105 as its earned reward. No library code grant,1237 survival outcome or book key is inferred.",
+    "The full native1114/1236 definitions and rewards remain unchanged.1124 and1237 are independent unsupported frontier chapters; activation requires their exact real predecessors and never fabricates their completion.",
+    "Native533/18261/1138 is reconstructed as an owned534 narrative entry. Exact owned world_ready credits1114/2051; the public-only transport objective adapter cannot credit private arrivals. Ten native timed heals and a guarded final native priest action complete1124; no objective is given for rendering or arbitrary talk."
+  ],
+  "bindings": [
+    {
+      "id": "frigost-clinic-arrival",
+      "quest_id": 1114,
+      "objective_id": 2211,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 1136
+      },
+      "maps": [
+        533
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "frigost-library-arrival",
+      "quest_id": 1236,
+      "objective_id": 2209,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 1142
+      },
+      "maps": [
+        535
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "frigost-library-manuscript",
+      "quest_id": 1236,
+      "objective_id": 2225,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 1143
+      },
+      "maps": [
+        536
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "frigost-earned-1112-1114",
+      "quest_id": 1114,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1112
+      },
+      "requires_completed": [
+        1112
+      ]
+    },
+    {
+      "id": "frigost-earned-1124-1236",
+      "quest_id": 1236,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1124
+      },
+      "requires_completed": [
+        1124
+      ]
+    },
+    {
+      "id": "frigost-earned-1114-1124",
+      "quest_id": 1124,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1114
+      },
+      "requires_completed": [
+        1114
+      ]
+    }
+  ]
+}

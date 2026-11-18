@@ -1,0 +1,27 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-estate-mobbit-store-720",
+  "map_id": 720,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1640,
+    "objective_id": null,
+    "continuation_quest_id": 1640
+  },
+  "provenance": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed.",
+  "steps": [
+    {
+      "id": "storeroom-arrived",
+      "kind": "world_ready",
+      "reference": 720,
+      "requires": [],
+      "effects": [],
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    }
+  ],
+  "initial_elements": [],
+  "native_sources": {
+    "path": "wild-estate-mobbit-store-720.native.v1.json",
+    "sha256": "09471779ff7feec9fa6254306cd0cfff828928985da1d67a1e6d03a7c6161cdc"
+  }
+}

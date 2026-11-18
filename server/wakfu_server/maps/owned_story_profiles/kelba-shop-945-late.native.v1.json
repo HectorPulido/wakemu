@@ -1,0 +1,11 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 945,
+  "objects": [],
+  "scenario_events": [],
+  "scenes": {},
+  "programs": {},
+  "loot_tables": {},
+  "native_scripts": {},
+  "provenance": "Reviewed physical late Kabrok shop context from original25107/2191 arrival945(154,3,0), literal25122/2174 exit943(-142,53,-24), native Sm6 late component. No movie, server script, room, combat or quest progress is fabricated on entry; only authentic native dialogue choices may advance the chapter."
+}

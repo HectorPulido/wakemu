@@ -53,6 +53,12 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
 
         if defer_auto_exit(db, instance_id):
             return None
+        from wakfu_server.achievements.source_quest_encounters import (
+            defer_dungeon_completion,
+        )
+
+        if defer_dungeon_completion(db, store, instance_id):
+            return None
         members = db.execute(
             "SELECT c.id,c.account_id,c.map_id,c.instance_id,c.x,c.y,c.z,"
             "s.generation,s.character_id AS selected_character_id,s.expires_at,"
@@ -97,7 +103,7 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
             return None
         if destination["map_id"] != run["entry_map_id"]:
             raise ValueError("Automatic exit does not match the owned native entry map")
-        if result.get("auto_exit_revision") is not None:
+        if result.get("auto_exit_revision") is not None and not member_ids:
             return dict(
                 destination,
                 instance_id=0,
@@ -202,3 +208,46 @@ def complete(store, instance_id, fight_id, *, topology, in_fight):
             replay=False,
             party_change=party_change,
         )
+
+
+def native_completed_return(
+    store, character, body, *, topology, source_allowed, in_fight, positions
+):
+    """Resume ordinary party return from an authenticated native exterior exit."""
+    from wakfu_server import dungeon_exit
+    from wakfu_server.dungeon_position_barrier import run_auto_transition
+
+    with store.connection() as db:
+        final = db.execute(
+            "SELECT e.fight_id,i.entry_map_id FROM dungeon_instances i "
+            "JOIN dungeon_instance_members m USING(instance_id) "
+            "JOIN dungeon_room_runs r USING(instance_id) "
+            "JOIN dungeon_room_encounters e ON e.instance_id=r.instance_id "
+            "AND e.room_order=r.current_room AND e.result_revision=r.revision "
+            "WHERE i.instance_id=%s AND m.character_id=%s AND m.status='active' "
+            "AND i.status IN ('active','completed') AND r.status='completed' "
+            "AND e.status='victory' AND e.encounter_scope='main' "
+            "AND COALESCE((e.result->>'completed')::boolean,false)",
+            (character["instance_id"], character["id"]),
+        ).fetchone()
+    if final is None or character["map_id"] != topology.get("asset_map_id"):
+        raise ValueError("Automatic party return requires its completed owned run")
+    dungeon_exit.resolve(
+        character,
+        body,
+        entry_map_id=final["entry_map_id"],
+        source_allowed=source_allowed,
+        topology=topology,
+    )
+    result = run_auto_transition(
+        store,
+        positions,
+        character["instance_id"],
+        final["fight_id"],
+        transition=complete,
+        topology=topology,
+        in_fight=in_fight,
+    )
+    if result is None or result.get("deferred"):
+        raise ValueError("Complete the pending native source before party return")
+    return result

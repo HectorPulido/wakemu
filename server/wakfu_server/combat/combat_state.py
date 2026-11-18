@@ -133,10 +133,26 @@ class Fight:
                 else:
                     memo[key] = previous
 
-    def __init__(self, fight_id, actors, walkable, placement_cells, valid_edges=None):
+    def __init__(
+        self,
+        fight_id,
+        actors,
+        walkable,
+        placement_cells,
+        valid_edges=None,
+        *,
+        native_order_policy=None,
+    ):
         actors = list(actors)
         self.actors = {a.id: a for a in actors}
-        if len(self.actors) != len(actors) or {a.team for a in actors} != {0, 1}:
+        if native_order_policy is not None:
+            from .native_order_trial_encounter import validate_constructor
+
+            validate_constructor(native_order_policy, fight_id, actors)
+            self.native_order_trial_constructor = native_order_policy
+        if len(self.actors) != len(actors) or (
+            native_order_policy is None and {a.team for a in actors} != {0, 1}
+        ):
             raise ValueError("Fight requires unique actors on both teams")
         from .combat_obstacle_ids import assign_obstacle_ids
 
@@ -403,7 +419,7 @@ class Fight:
         move_registered_actor(self, actor, position)
         return self._event("placement", actor_id=actor_id, position=position)
 
-    def ready(self, owner_id, ready=True):
+    def ready(self, owner_id, ready=True, *, defer_first_turn=False):
         if self.phase != "placement":
             raise ValueError("Placement has ended")
         owners = {a.owner_id for a in self.actors.values() if a.controlled}
@@ -434,8 +450,68 @@ class Fight:
             initialize(self, self.order)
             self.phase = "active"
             self.turn_id = 1
-            self._begin_turn()
+            if defer_first_turn:
+                # Setup providers require a real active timing context. This
+                # private first-cycle preparation does not publish a turn: INIT
+                # from owned roots must participate in the initial native sort.
+                self.native_initial_turn_preparation = dict(
+                    actor_id=self.current.id, baseline_ids=tuple(self.order)
+                )
+                self._begin_turn(record_event=False)
+            else:
+                self._begin_turn()
         return event
+
+    def finalize_initial_turn(self):
+        """Freeze setup INIT once, before fight-start replay or wire delivery.
+
+        Only a Ready-owned private preparation can reach this boundary. Later
+        initiative mutations never request another sort. Initial 307 births
+        keep their native insertion slots outside the baseline actor sort.
+        """
+        preparation = getattr(self, "native_initial_turn_preparation", None)
+        if preparation is None:
+            return
+        provisional = self.actors.get(preparation["actor_id"])
+        if (
+            self.phase != "active"
+            or self.turn_id != 1
+            or self.native_timeline_round != 1
+            or self.current is not provisional
+            or any(
+                actor.turn_count != (1 if actor is provisional else 0)
+                for actor in self.actors.values()
+            )
+            or len(self.order) != len(set(self.order))
+        ):
+            raise ValueError(
+                "Initial timeline preparation advanced before finalization"
+            )
+        baseline = set(preparation["baseline_ids"])
+        baseline_ids = [identity for identity in self.order if identity in baseline]
+        final = initial_order(
+            self.id,
+            [
+                dict(
+                    id=identity,
+                    team=self.actors[identity].team,
+                    initiative=self.actors[identity].initiative,
+                    effective_level=self.actors[identity].effective_level,
+                )
+                for identity in baseline_ids
+            ],
+        )
+        if not final:
+            raise ValueError("Initial timeline has no baseline participant")
+        replacements = iter(final)
+        self.order = [
+            next(replacements) if identity in baseline else identity
+            for identity in self.order
+        ]
+        self.turn_index = self.order.index(final[0])
+        provisional.turn_count = 0
+        del self.native_initial_turn_preparation
+        self._begin_turn()
 
     @staticmethod
     def _sync_resources(actor):
@@ -468,21 +544,22 @@ class Fight:
             actor.mp = actor.max_mp
         self._sync_resources(actor)
 
-    def _begin_turn(self):
+    def _begin_turn(self, *, record_event=True):
         actor = self.current
         self._sync_resources(actor)
         actor.turn_count += 1
         if self.native_timeline_round == 0:
             self.native_timeline_round = 1  # First SU.bhP enters round1.
-        from .combat_initial_finite_clock_policy import bind_initial_finite_clocks
+        if record_event:
+            from .combat_initial_finite_clock_policy import bind_initial_finite_clocks
 
-        bind_initial_finite_clocks(self)
-        self._event(
-            "turn_started",
-            actor_id=actor.id,
-            turn_id=self.turn_id,
-            actor_turn=actor.turn_count,
-        )
+            bind_initial_finite_clocks(self)
+            self._event(
+                "turn_started",
+                actor_id=actor.id,
+                turn_id=self.turn_id,
+                actor_turn=actor.turn_count,
+            )
 
     def _current_owned(self, owner_id, actor_id):
         from .combat_effective_control import require_effective_owner
@@ -903,8 +980,13 @@ class Fight:
             and detached_actor(self, source_id) is source
             and source is not None
         )
+        from .combat_scene_controlled_states import placement_application_authorized
+
+        controlled_placement = placement_application_authorized(
+            self, source_id, target_id, reference, level
+        )
         if (
-            (self.phase != "active" and not constructor)
+            (self.phase != "active" and not constructor and not controlled_placement)
             or source is None
             or target is None
             or (

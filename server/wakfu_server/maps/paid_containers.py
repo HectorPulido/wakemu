@@ -80,7 +80,12 @@ def _rule(db, map_id, object_id):
 
 def definition(store, map_id, object_id):
     with store.connection() as db:
-        return _rule(db, map_id, object_id)
+        rule = _rule(db, map_id, object_id)
+    if rule is not None:
+        return rule
+    from wakfu_server.quest_chest_supplies import definition as supply_definition
+
+    return supply_definition(store, map_id, object_id)
 
 
 def _source(rule):
@@ -227,9 +232,26 @@ def begin(
     if type(body) is not bytes or len(body) != 12 or not loaded or blocked:
         raise ValueError("Paid container requires its authenticated loaded action")
     object_id, action, parameter = struct.unpack(">qHH", body)
+    from wakfu_server import quest_chest_supplies
+
+    if (
+        quest_chest_supplies.definition(store, character["map_id"], object_id)
+        is not None
+    ):
+        return quest_chest_supplies.begin(
+            store,
+            account_id,
+            generation,
+            character,
+            body,
+            loaded=loaded,
+            blocked=blocked,
+            is_hero=is_hero,
+        )
     now = store.now()
     with store.connection() as db:
         _leased_owner(store, db, account_id, generation, character)
+        quest_chest_supplies.require_no_active(db, store, character["id"], generation)
         rule = _rule(db, character["map_id"], object_id)
         if rule is None or (action, parameter) != (rule["action"], rule["parameter"]):
             raise ValueError("Unsupported paid-container action")
@@ -341,6 +363,20 @@ def finish(
     blocked=False,
     is_hero=None,
 ):
+    from wakfu_server import quest_chest_supplies
+
+    if quest_chest_supplies.handles(token):
+        return quest_chest_supplies.finish(
+            store,
+            account_id,
+            generation,
+            character,
+            token,
+            body,
+            loaded=loaded,
+            blocked=blocked,
+            is_hero=is_hero,
+        )
     if (
         not isinstance(token, uuid.UUID)
         or type(body) is not bytes
@@ -463,6 +499,12 @@ def snapshots(store, map_id, instance_id):
 
 def cancel(store, account_id, generation, character, token):
     """Server interruption uses the same leased terminal transition, no charge."""
+    from wakfu_server import quest_chest_supplies
+
+    if quest_chest_supplies.handles(token):
+        return quest_chest_supplies.cancel(
+            store, account_id, generation, character, token
+        )
     with store.connection() as db:
         row = db.execute(
             "SELECT p.occupation_type FROM paid_container_attempts a "

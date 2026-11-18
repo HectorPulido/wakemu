@@ -1,0 +1,116 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 951,
+  "scenario_id": 1977,
+  "lua_sha256": "af2d5746508c5c3a189a91d7d325dd7da7d500cbf0b055fb6d7fea1669af3e5b",
+  "objects": [
+    {
+      "x": 1.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 25126,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 951,
+      "payload_hex": "02000000000b010000000d00000103b700000001000000000000000101010100000001000000010000000000000004313938310000003baf0001"
+    }
+  ],
+  "scenario_events": [
+    15757,
+    15758,
+    15774,
+    15759,
+    19800
+  ],
+  "scenes": {
+    "15758": {
+      "argument_count": 1,
+      "duration_ms": 6500,
+      "callback": 15876
+    },
+    "15774": {
+      "argument_count": 1,
+      "duration_ms": 11500,
+      "callback": 15774
+    },
+    "15759": {
+      "argument_count": 1,
+      "duration_ms": 50000,
+      "callback": 19800
+    }
+  },
+  "event_signatures": {
+    "15757": {
+      "argument_count": 0
+    },
+    "15758": {
+      "argument_count": 1
+    },
+    "15774": {
+      "argument_count": 1
+    },
+    "15759": {
+      "argument_count": 1
+    },
+    "19800": {
+      "argument_count": 0
+    }
+  },
+  "programs": {},
+  "loot_tables": {},
+  "native_scripts": {},
+  "argument_sources": {
+    "15758": {
+      "scene_actors": {
+        "scene_actor:kabrok": 3580
+      }
+    },
+    "15774": {
+      "scene_actors": {
+        "scene_actor:kabrok": 3580
+      }
+    },
+    "15759": {
+      "scene_actors": {
+        "scene_actor:kabrok": 3580
+      }
+    }
+  },
+  "presentation_quests": {
+    "15758": 2544,
+    "15774": 2544,
+    "15759": 2544
+  },
+  "presentation_groups": [
+    {
+      "id": "kelba-kabrok-reveal-1977",
+      "start_event": 15758,
+      "initializers": {
+        "1977": 15758
+      },
+      "events": [
+        15758,
+        15774,
+        15759
+      ]
+    }
+  ],
+  "scene_actors": [
+    {
+      "slot": 900,
+      "role": "kabrok",
+      "reference": 3580,
+      "level": 154,
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "direction": 5,
+      "requires": [],
+      "until": [],
+      "native_prototype_sha256": "3af310a447dc6b39fc8a288079b869c5d4d51db5a8bf1fa4f049c9c7144b0836"
+    }
+  ]
+}

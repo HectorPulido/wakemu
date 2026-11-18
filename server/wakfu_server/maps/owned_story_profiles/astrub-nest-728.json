@@ -1,0 +1,93 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "astrub-nest-728",
+  "map_id": 728,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2162,
+    "objective_id": 4283,
+    "continuation_quest_id": 2162
+  },
+  "provenance": "Reviewed reconstruction, NOT recovered original formations/choreography: installed map728 has three physical rooms separated by exact doors24969 and24971. Two real larva encounters must clear before native NannyLarva2819 (level5, HP100, spells4625/4626/4627). Native735 white larvae and125 green larva preserve original grade ranges/stats/spells; counts/placements and event bindings are declared local policy. No Lua scenario association was recovered, so none is invented. Only genuine original-roster owned victories earn clear4284 and boss4285; actual Donalangelo debrief4299 remains separate.",
+  "steps": [
+    {
+      "id": "nest-room1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 24969,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Actual first owned larva victory opens exact first native door at(-1,34,0)."
+    },
+    {
+      "id": "nest-room2-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "nest-room1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 24971,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2162,
+          "objective_id": 4284
+        }
+      ],
+      "evidence": "Second actual larva clear plus first-room receipt earns4284 and unlocks the exact final gate at(-1,9,0)."
+    },
+    {
+      "id": "nest-room3-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "nest-room2-victory"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2162,
+          "objective_id": 4285
+        }
+      ],
+      "evidence": "Only actual final native2819 victory, after qualified larva clear4284, earns boss objective4285. No name-only kill binding."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 24969,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 24971,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    }
+  ],
+  "native_sources": {
+    "path": "astrub-nest-728.native.json",
+    "sha256": "3bb7a75666f91b6511145c5f52de907994ca17afacb8cc269d7acaad816f5f0e"
+  }
+}

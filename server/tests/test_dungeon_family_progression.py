@@ -28,11 +28,11 @@ class FamilyProgressionTests(unittest.TestCase):
             native([10, 10, 10, 10]), 4, [4], eligible_refs={1, 2, 3, 4}
         )
         self.assertEqual(
-            [r["quantity"] for r in result["progression_policy"]["rooms"]], [2, 4, 6, 8]
+            [r["quantity"] for r in result["progression_policy"]["rooms"]], [3, 5, 7, 8]
         )
         self.assertEqual(
             [r["native_minimum_threat"] for r in result["progression_policy"]["rooms"]],
-            [20, 40, 60, 80],
+            [30, 50, 70, 80],
         )
         for room in result["rooms"][:-1]:
             self.assertNotIn(4, [m["ref_id"] for m in room["monsters"]])

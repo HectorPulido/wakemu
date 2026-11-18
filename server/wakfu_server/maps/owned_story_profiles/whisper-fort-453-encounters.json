@@ -1,0 +1,34 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "whisper-fort-453-encounters",
+  "map_id": 453,
+  "provenance": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "fort-arrival"
+      ],
+      "arena_seed": [
+        -1,
+        -8,
+        0
+      ],
+      "bounds": [
+        -7,
+        -18,
+        5,
+        -5
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2074,
+          "count": 2,
+          "role": "monster"
+        }
+      ]
+    }
+  ]
+}

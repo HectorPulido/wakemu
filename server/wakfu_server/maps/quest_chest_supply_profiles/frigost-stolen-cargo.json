@@ -1,0 +1,519 @@
+{
+  "schema": "quest-chest-supply-batch-v1",
+  "id": "frigost-stolen-cargo-chests",
+  "rules": [
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18180,
+      "position": [
+        7,
+        -25,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d000001021100000007ffffffe70000000101010100010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          8,
+          -25,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18181,
+      "position": [
+        -3,
+        -13,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d0000010211fffffffdfffffff30000000101010100010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -2,
+          -13,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18182,
+      "position": [
+        -3,
+        -14,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d0000010211fffffffdfffffff20000000101010100010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          -2,
+          -14,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18183,
+      "position": [
+        12,
+        -18,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d00000102110000000cffffffee0000000101010300010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          12,
+          -17,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18184,
+      "position": [
+        5,
+        -18,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d000001021100000005ffffffee0000000101010100010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          6,
+          -18,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18185,
+      "position": [
+        17,
+        -16,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d000001021100000011fffffff00000000101010300010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          17,
+          -15,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18186,
+      "position": [
+        22,
+        -14,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d000001021100000016fffffff20000000101010300010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          22,
+          -13,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18187,
+      "position": [
+        -1,
+        -5,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d0000010211fffffffffffffffb0000000101010100010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          0,
+          -5,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    },
+    {
+      "schema": "quest-chest-supply-rule-v1",
+      "id": "frigost-stolen-cargo-chest-supply",
+      "version": 1,
+      "authority": "Reviewed missing server supply association: actual native529 LootChest261/source/state/criterion and original1110 collect10cargo objective2227/counter259 plus guide proving crates and pirates produce cargo. Output16072x1 is reviewed; not serialized chest loot. Explicit reviewed1000ms occupation13, not native efm timing. Original paid16158 ship entry is preserved independently.",
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "map_id": 529,
+      "object_id": 18189,
+      "position": [
+        11,
+        -10,
+        0
+      ],
+      "payload_hex": "02000000000b010000000d00000102110000000bfffffff60000000101010300010000000332363100000035f10101",
+      "native_state_payload_hex": "01020000000602000101010001010000000000",
+      "geometry_sha256": "2a90766bb53cf919d411d6a7fac4e161e6bb06eb229c352bc338c81e4c5893df",
+      "physical_sha256": "a593326c5e39a8e8dcc2ceb891c7a4cd053480c34abe3ada464b4a287f682d3d",
+      "native_definition": 261,
+      "native_prototype": {
+        "p": 261,
+        "egY": 87,
+        "efm": -1,
+        "ema": 0,
+        "emb": 0,
+        "emc": 0,
+        "ejK": true,
+        "emd": 1,
+        "eme": true,
+        "ejL": 2,
+        "ehu": "!IsAchievementObjectiveComplete(2227)"
+      },
+      "source_stage": "IsAchievementRunning(1110)",
+      "quest_id": 1110,
+      "objective_id": 2227,
+      "variable_id": 259,
+      "threshold": 10,
+      "output_reference": 16072,
+      "output_quantity": 1,
+      "held_tool_reference": 0,
+      "held_tool_quantity": 0,
+      "occupation_type": 13,
+      "duration_ms": 1000,
+      "approaches": [
+        [
+          11,
+          -9,
+          0
+        ]
+      ],
+      "output_authority": "reviewed_native_quest_guide_join",
+      "scene_scope": "owned_story",
+      "owned_entry": {
+        "map_id": 504,
+        "object_id": 18178,
+        "destination_id": 1124
+      }
+    }
+  ]
+}

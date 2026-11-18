@@ -1,0 +1,102 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-brak-714",
+  "version": 1,
+  "map_id": 714,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 40.0,
+      "y": -103.0,
+      "z": -81.0,
+      "id": 20379,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_-6",
+      "map_id": 711,
+      "payload_hex": "02000000000b010000000d00000102c700000028ffffff99ffaf0001010101005b0000000332303300000000000101",
+      "native_parameters": "203",
+      "descriptor_id": 203
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 203,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 226,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 226,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 444,
+                  "effect_type": 3,
+                  "criterion": "IsAchievementComplete(1620)",
+                  "parameters": [
+                    "{2,-2,0}",
+                    "714",
+                    "1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 444,
+    "approaches": [
+      [
+        39,
+        -103,
+        -81
+      ],
+      [
+        41,
+        -103,
+        -82
+      ],
+      [
+        39,
+        -102,
+        -81
+      ],
+      [
+        40,
+        -102,
+        -82
+      ],
+      [
+        41,
+        -102,
+        -81
+      ]
+    ],
+    "evidence": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+  },
+  "native_entry_criterion": "IsAchievementComplete(1620)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20426
+  ],
+  "controller_file": "wild-estate-brak-714.json",
+  "exploration_file": "wild-estate-brak-714.exploration.json",
+  "provenance": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+}

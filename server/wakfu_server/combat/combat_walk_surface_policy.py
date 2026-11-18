@@ -4,6 +4,7 @@ Sm supplies physical transitions. Combat walking also excludes fight-sterile
 surfaces as a server floor policy; mob-sterile alone remains usable. Special
 jumps and ordinary encounter placement retain their separate restrictions.
 """
+
 from types import SimpleNamespace
 
 # Original Vy.bmd/bmg/bmj over exported native-sn-columns.bLF.
@@ -35,6 +36,9 @@ def require_native_walk_surfaces(fight, actor, path):
     kind = status.get("actor_kind") if isinstance(status, dict) else None
     if kind not in ("bjo", "bje"):
         raise ValueError("Missing original walking actor constructor kind")
+    from .combat_scripted_fixed_surfaces import npc_room_cells
+
+    scripted_cells = npc_room_cells(fight, actor) if kind == "bje" else frozenset()
     special_jump = None
 
     def surface(cell):
@@ -50,7 +54,11 @@ def require_native_walk_surfaces(fight, actor, path):
     previous = actor.position
     for destination in path:
         source, target = surface(previous), surface(destination)
-        if kind == "bje" and target.blf & _FIGHT_STERILE:
+        if (
+            kind == "bje"
+            and target.blf & _FIGHT_STERILE
+            and destination not in scripted_cells
+        ):
             raise ValueError("Combat walking destination is fight-sterile")
         if target.blf & _SPECIAL_JUMP or source.blf & _SPECIAL_JUMP:
             if special_jump is None:
@@ -121,6 +129,77 @@ def native_npc_point_placement_allowed(
 _NATIVE_POINT_PLACEMENT = native_npc_point_placement_allowed
 
 
+def native_player_point_placement_allowed(columns, cell, *, _ground_supported=None):
+    """Ordinary player slots cannot imply a special-jump birth contract.
+
+    Mob sterility is an NPC restriction, not a player movement restriction.
+    Scripted actor births and actual special-jump walking stay separate.
+    """
+    matches = [row for row in columns.column(*cell[:2]) or () if row.z == cell[2]]
+    from .combat_ground_support import supported
+
+    return (
+        bool(matches)
+        and not matches[-1].blf & _SPECIAL_JUMP
+        and (
+            supported(columns.map_id, cell, columns.source_sha256)
+            if _ground_supported is None
+            else _ground_supported
+        )
+    )
+
+
+def ordinary_owned_attack_goal_filter(db, character, group_key, members, player_radius):
+    """Use the same ordinary birth surfaces for automatic owned attack goals.
+
+    Only final approach cells are filtered. Native walking paths, authored
+    scenes and full-body constructors retain their existing authority.
+    """
+    if player_radius != 0 or not character.get("instance_id"):
+        return None
+    from wakfu_server import dungeon_runtime
+
+    if tuple(group_key[:2]) != (character["map_id"], character["instance_id"]):
+        raise ValueError("Attack approach group belongs to another native scope")
+    _, configuration = dungeon_runtime.configuration_for_instance(
+        db, character["instance_id"]
+    )
+    from wakfu_server.achievements.owned_quest_encounters import policy as quest_policy
+    from wakfu_server.owned_story_controller import policy as story_policy
+
+    if quest_policy(configuration) is None and story_policy(configuration) is None:
+        return None
+    if dungeon_runtime.combat_room_scene(db, group_key) is not None:
+        return None
+    # Approaching may begin outside the battle room. Qualify the frozen group,
+    # without pretending that the player has already reached its admission cell.
+    row = db.execute(
+        "SELECT r.current_room,s.asset_map_id,s.group_id FROM dungeon_room_runs r "
+        "JOIN dungeon_room_spawn_receipts s ON s.instance_id=r.instance_id "
+        "AND s.room_order=r.current_room WHERE r.instance_id=%s AND r.status='active'",
+        (character["instance_id"],),
+    ).fetchone()
+    if row is None or (row["asset_map_id"], row["group_id"]) != (
+        group_key[0],
+        group_key[2],
+    ):
+        return None
+    from wakfu_server import dungeon_branches
+
+    room = dungeon_branches.selected_room(
+        configuration["topology"], row["current_room"]
+    )
+    if room is None:
+        raise ValueError("Ordinary attack approach lacks its pinned native room")
+    allowed = dungeon_runtime.combat_area_cells(configuration["topology"], room)
+    from .combat_sn_path import NativeSnColumns
+
+    columns = NativeSnColumns.from_published(character["map_id"])
+    return lambda cell: cell in allowed and native_player_point_placement_allowed(
+        columns, cell
+    )
+
+
 def native_npc_walk_blocked_cells(fight, actor, cells, *, columns_observer=None):
     """Filter ordinary NPC planner anchors without changing displacement QI."""
     provenance = getattr(fight, "native_qi_surface_provenance", None)
@@ -145,11 +224,16 @@ def native_npc_walk_blocked_cells(fight, actor, cells, *, columns_observer=None)
     from .combat_ground_support import supported
 
     escape = escape_prefix_cells(fight, actor)
+    from .combat_scripted_fixed_surfaces import npc_room_cells
+
+    scripted_cells = npc_room_cells(fight, actor)
     blocked = set()
     for cell in cells:
         matches = [row for row in columns.column(*cell[:2]) or () if row.z == cell[2]]
-        physical = bool(matches) and not matches[-1].blf & (
-            _FIGHT_STERILE | _SPECIAL_JUMP
+        physical = (
+            bool(matches)
+            and not matches[-1].blf & _SPECIAL_JUMP
+            and (not matches[-1].blf & _FIGHT_STERILE or cell in scripted_cells)
         )
         if (
             not physical

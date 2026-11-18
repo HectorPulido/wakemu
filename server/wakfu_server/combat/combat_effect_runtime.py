@@ -34,6 +34,18 @@ from .combat_native_timing_context import NativeEffectTimingProvider
 from .combat_native_area_metadata import merge_native_point_areas
 
 
+def _deliver_scene_terminal(dispatcher, fight):
+    """Observe sealed scene outcomes after the complete native effect root."""
+    changed = False
+    if getattr(fight, "native_spirit_scene_admission", None) is not None:
+        from .combat_encounter_objective_spirit import deliver_spirit_early_defeat
+
+        changed = deliver_spirit_early_defeat(dispatcher)
+    from .combat_scene_ball_goals import settle_terminal
+
+    return settle_terminal(fight) or changed
+
+
 @dataclass(frozen=True)
 class NativeRuntimeContexts:
     """Explicit authoritative callbacks; every callback receives preview/plan.
@@ -1576,6 +1588,14 @@ class NativeEffectRuntimeFactory:
             context_hex = constructed_execution_context().payload().hex()
             with triggered_spell_scope(request):
                 consume_triggered_costs(actor, nested_plan, fight=preview)
+                from .combat_scene_triggered_failure import (
+                    prepare_triggered,
+                    settle_triggered,
+                )
+
+                scene_failure = prepare_triggered(
+                    preview, request, effect, invocation, effects=self.effects
+                )
                 nested, nested_packets = self(preview, nested_plan)
                 with active_spell_scope(
                     preview, request.spell_id, level=level
@@ -1602,6 +1622,7 @@ class NativeEffectRuntimeFactory:
                 # Both outboxes stay private to the parent transaction; a
                 # nested failure propagates and aborts the entire parent cast.
                 packets.extend(nested_packets)
+                settle_triggered(preview, scene_failure)
 
         triggered_spell = NativeTriggeredSpellHandler(
             preview,
@@ -1717,7 +1738,7 @@ class NativeEffectRuntimeFactory:
         from .combat_state_managers import selected_area_pv_scope
 
         from .combat_team_repeat import native_team_repeat_count
-        from .combat_encounter_effect_recipient import rebind_original_boss_recipient
+        from .combat_scene_area_states import rebind_scene_recipient
 
         from .combat_condition_cell_batch import (
             NativeConditionContextSource,
@@ -1787,7 +1808,7 @@ class NativeEffectRuntimeFactory:
         # group_random remains its scalar rounding callback, not a Random API.
         dispatcher_owner = FactoryOwnerReference(dispatcher)
         dispatcher.invocation_reconstruction = FactoryCallback(
-            rebind_original_boss_recipient, dispatcher_owner
+            rebind_scene_recipient, dispatcher_owner
         )
         dispatcher.rift_artifact_rng = self.transaction_rng
         dispatcher.native_condition_cell_batch_factory = native_cell_batch_factory(
@@ -1812,6 +1833,19 @@ class NativeEffectRuntimeFactory:
             action_id=self.action_id,
             allocate_uid=allocate,
             rng=rng,
+            native_actor_reference=(
+                None
+                if self.summon_authority is None
+                else lambda actor: self.summon_authority(preview, actor).breed_id
+            ),
+            native_actor_real_level=(
+                None
+                if self.summon_authority is None
+                else lambda actor: self.summon_authority(
+                    preview, actor
+                ).native_real_level
+            ),
+            native_active_spell_roots=tuple(plan.get("effect_ids", ())),
             state_spell_level=(
                 None
                 if self.contexts.state_spell_level is None
@@ -1868,6 +1902,15 @@ class NativeEffectRuntimeFactory:
             )
         dispatcher.native_state_handler = state
         dispatcher.native_retention = retention
+        if (
+            getattr(preview, "native_order_trial_constructor", None) is not None
+            and state is not None
+        ):
+            state.native_order_selection_dispatcher = dispatcher
+        if getattr(preview, "native_order_trial", None) is not None:
+            if self.displacement_authority is not None:
+                displacement.native_order_state_runtime = (state, retention)
+            kill.native_order_state_runtime = (state, retention)
         if retention is not None:
             from .combat_event_replay import NativeEventReplay
 
@@ -2482,6 +2525,8 @@ class NativeEffectRuntimeFactory:
             ),
             area_affiliation=self.contexts.area_affiliation,
         )
+        if getattr(preview, "native_order_trial", None) is not None:
+            summon.native_order_birth_areas = dispatcher.native_area_events
         from .rift_native_gameplay import (
             apply_artifact_collection,
             artifact_contact_eligible,
@@ -2572,11 +2617,15 @@ class NativeEffectRuntimeFactory:
             set_current_families=SET_CURRENT_FAMILIES,
         )
         dispatcher.operation_support_for_family = dispatcher.operation_contracts.get
-        if getattr(preview, "native_spirit_scene_admission", None) is not None:
-            from .combat_encounter_objective_spirit import deliver_spirit_early_defeat
-
+        if (
+            getattr(preview, "native_spirit_scene_admission", None) is not None
+            or (getattr(preview, "native_encounter_scene", None) or {})
+            .get("descriptor", {})
+            .get("ball_goals")
+            is not None
+        ):
             dispatcher.native_scene_root_observer = FactoryCallback(
-                deliver_spirit_early_defeat, dispatcher_owner
+                _deliver_scene_terminal, dispatcher_owner, preview
             )
         if retention is not None and any(
             handler is stat or getattr(handler, "native_wrapped_handler", None) is stat
@@ -2602,4 +2651,7 @@ class NativeEffectRuntimeFactory:
             component = getattr(dispatcher, name, None)
             if component is not None:
                 component.dispatcher = dispatcher_owner
+        from .combat_scene_area_states import install as install_area_scene_states
+
+        install_area_scene_states(preview, dispatcher)
         return dispatcher, packets

@@ -56,16 +56,13 @@ def require_access(db, run, receipt):
         or gate["rule_sha256"] != receipt["rule_sha256"]
     ):
         raise ValueError("Optional encounter lacks its winning native vote receipt")
-    from wakfu_server.dungeon_optional_votes import rules, digest
+    from wakfu_server.dungeon_optional_votes import rules, digest, require_source
     from wakfu_server import native_catalog
 
     contracts = [rule for rule in rules() if rule["key"] == gate["contract_key"]]
-    if (
-        len(contracts) != 1
-        or digest(contracts[0]) != gate["rule_sha256"]
-        or contracts[0]["native_revision"] != native_catalog.release()
-    ):
+    if len(contracts) != 1 or digest(contracts[0]) != gate["rule_sha256"]:
         raise ValueError("Optional vote source is no longer qualified")
+    require_source(contracts[0])
     require_checkpoint(
         db, run, gate["required_checkpoint"], expected_hash=gate["catalog_hash"]
     )

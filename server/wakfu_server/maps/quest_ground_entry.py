@@ -4,13 +4,14 @@ This source-bound reconstruction never searches nearby portals. Verified
 dungeon entrance hubs use the server's entrance policy; other destinations
 retain native quest criteria. All travel uses the normal owned transition.
 """
+
 import struct
 from contextlib import contextmanager
 from wakfu_server.achievements import storage, conversation
 from wakfu_server.achievements.service import _owner
 from wakfu_server import generic_transports, dungeon_criteria, native_catalog
 from wakfu_server.paths import DATA_ROOT
-from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+from wakfu_server.dungeon_achievement_authority import queries_from_state
 from wakfu_server.ecology_feedback import information
 from wakfu_server.quest_npc import SETTING, publication
 
@@ -112,9 +113,7 @@ def handle(store, account_id, generation, character, body, *, blocked):
                 "Quest entrance is not co-located with its native teleporter"
             )
         state = storage.load_locked(db, current["id"])
-        authority = queries_from_snapshot(
-            {k: state[k] for k in ("running", "completed", "objectives")}
-        )
+        authority = queries_from_state(state)
         destination = next(
             d
             for d in teleporter["destinations"]

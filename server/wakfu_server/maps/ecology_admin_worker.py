@@ -164,10 +164,9 @@ class PreparationProcess:
                     )
                 )
             raise EcologyPreparationFailure(details)
-        from wakfu_server import native_catalog
+        from wakfu_server.ecology_admin_planner import require_prepared_revision
 
-        if response.get("revision") != native_catalog.release():
-            raise ValueError("Administrative preparation catalog is stale")
+        require_prepared_revision(response.get("revision"), map_id, domain=domain)
         result = response.get("prepared")
         if not isinstance(result, dict) or (
             result.get("map_id"),

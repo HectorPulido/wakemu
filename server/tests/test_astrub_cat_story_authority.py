@@ -178,6 +178,33 @@ class AstrubCatStoryAuthorityTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     authority.combat_helper_admission(db, db.character, db.members)
 
+    def test_completed_or_unavailable_quest_reentry_never_reclaims_a_story_without_receipt(
+        self,
+    ):
+        for state in (
+            dict(running=[], completed=[5568], objectives=[11510, 11515]),
+            dict(running=[], completed=[], objectives=[]),
+            None,
+        ):
+            with self.subTest(state=state):
+                db = Database()
+                db.state = deepcopy(state)
+                db.receipts.clear()
+                # Ordinary repeat visits may use a generated roster. No old
+                # quest may bind its cutscene/ally authority to that new run.
+                for order, room in enumerate(db.progress["rooms"], 1):
+                    room["monsters"] = [dict(ref_id=2616, count=order)]
+                before = deepcopy(db.__dict__)
+                self.assertIsNone(
+                    authority.context(db, db.character, allow_finished=True)
+                )
+                self.assertTrue(
+                    all(sql.lstrip().startswith("SELECT ") for sql, _ in db.queries)
+                )
+                self.assertFalse(any("FROM dungeon_" in sql for sql, _ in db.queries))
+                for field in ("state", "progress", "run", "receipts", "member"):
+                    self.assertEqual(getattr(db, field), before[field])
+
     def test_finished_scope_is_explicit_and_still_requires_owned_membership(self):
         db = Database()
         db.run["status"] = db.progress["status"] = "completed"

@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from wakfu_server.combat.combat_session_adapter import CombatSessionAdapter
+from wakfu_server.combat_session_adapter import CombatSessionAdapter
 from wakfu_server.combat_shared import Session
 from wakfu_server.combat_state import Fight
 import test_combat_spell_transaction as fixture_module

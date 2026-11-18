@@ -1,0 +1,155 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-estate-excavation-717",
+  "map_id": 717,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1666,
+    "objective_id": null,
+    "continuation_quest_id": 1666
+  },
+  "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+  "steps": [
+    {
+      "id": "excavation-entered",
+      "kind": "world_ready",
+      "reference": 717,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1666,
+          "objective_id": 3088
+        }
+      ],
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    },
+    {
+      "id": "excavation-room-1-cured",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 20563,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    },
+    {
+      "id": "excavation-room-2-cured",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "excavation-room-1-cured"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 20566,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    },
+    {
+      "id": "excavation-room-3-cured",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "excavation-room-2-cured"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 20567,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 1666,
+          "objective_id": 3089
+        }
+      ],
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 20563,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20566,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20567,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    }
+  ],
+  "native_sources": {
+    "path": "wild-estate-excavation-717.native.v1.json",
+    "sha256": "490ba1d72c1b06af2bdba6be136cfdfced43d1b311d7506a5263e5d2680d86ee"
+  },
+  "victory_qualification": [
+    {
+      "room_order": 1,
+      "original_monster_reference": 2802,
+      "native_effect_reference": 107114,
+      "native_area_reference": 633,
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    },
+    {
+      "room_order": 2,
+      "original_monster_reference": 2802,
+      "native_effect_reference": 107114,
+      "native_area_reference": 633,
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    },
+    {
+      "room_order": 3,
+      "original_monster_reference": 2802,
+      "native_effect_reference": 107114,
+      "native_area_reference": 633,
+      "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    }
+  ],
+  "native_links": [
+    {
+      "source_id": 20570,
+      "destination_id": 1428,
+      "requires": []
+    },
+    {
+      "source_id": 20568,
+      "destination_id": 1426,
+      "requires": [
+        "excavation-room-3-cured"
+      ]
+    }
+  ]
+}

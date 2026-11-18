@@ -134,8 +134,22 @@ class NativeAIControlHandler:
                         raise ValueError("Missing actual native eGZ control field")
                 else:
                     target = None
+            retained = context.retained
+            if target is None:
+                from .combat_state_managers import registered_area_pv
+
+                area = registered_area_pv(self.fight, invocation.target_id)
+                if area is None:
+                    raise ValueError("Missing actual native AI-control recipient")
+                if area.native_running_effect_manager is not False:
+                    raise ValueError(
+                        "Native AI-control nonfighter retention requires a null Qf"
+                    )
+                # eYH.bbz is true, but c/bbR only mutate an eGj. An actual
+                # null-Qf area has no fighter baseline or owned carrier to keep.
+                retained = False
             baseline = None
-            if context.retained:
+            if retained:
                 if target is None:
                     raise ValueError("Missing retained native AI-control fighter")
                 baseline = getattr(authority, "native_ai_control_baseline", None)
@@ -157,7 +171,7 @@ class NativeAIControlHandler:
                 raise ValueError("Missing actual native AI-control delivery")
             if target is not None:
                 set_native_ai_control(target, runner.value == 1)
-            if context.retained:
+            if retained:
                 self.fight.owned_stat_effects[uid] = OwnedStateSourceRow(
                     uid=uid,
                     effect_class=325,
@@ -172,7 +186,7 @@ class NativeAIControlHandler:
                     native_ai_control_baseline=baseline,
                 )
             self.packets.append(packet)
-            if context.retained and self.event_lifecycle is not None:
+            if retained and self.event_lifecycle is not None:
                 # Actual Qe/PT insertion precedes L3/L4, whose complete view
                 # must include this just-applied retained runner.
                 self.event_lifecycle.register_applied(effect, invocation, uid)

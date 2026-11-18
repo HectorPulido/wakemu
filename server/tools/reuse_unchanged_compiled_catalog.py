@@ -11,14 +11,38 @@ from pathlib import Path
 
 from psycopg.types.json import Jsonb
 
-# These modules are exclusively runtime dialogue, group persistence, and
-# ecology removal; the static combat compiler does not import or call them.
+# These modules handle live world operations and event settlement; the static
+# combat compiler does not invoke their runtime or instance-authoring paths.
 RUNTIME_ONLY = frozenset(
     {
         "wakfu_server/combat/combat_group_store.py",
         "wakfu_server/combat/rii_lesson_grants.py",
         "wakfu_server/maps/monster_removal_ecology.py",
         "wakfu_server/maps/rii_airyna_dialogue.py",
+        "wakfu_server/maps/owned_physical_entry.py",
+        "wakfu_server/maps/dungeon_transport.py",
+        "wakfu_server/maps/owned_story_controller.py",
+        "wakfu_server/maps/owned_story_configuration.py",
+        "wakfu_server/maps/owned_story_terminal_returns.py",
+        "wakfu_server/maps/owned_story_defeat_qualification.py",
+        "wakfu_server/combat/combat_death_events.py",
+        "wakfu_server/application/session_travel.py",
+        "wakfu_server/maps/dungeon_criteria.py",
+        "wakfu_server/maps/owned_story_mechanics.py",
+        "wakfu_server/application/owned_story_generic_entry_dispatch.py",
+        "wakfu_server/maps/owned_story_dynamic_pickups.py",
+        "wakfu_server/application/owned_story_dispatch.py",
+        "wakfu_server/maps/owned_story_npcs.py",
+        "wakfu_server/maps/owned_story_reentry.py",
+        "wakfu_server/maps/dungeon_progression.py",
+        "wakfu_server/maps/quest_chest_supplies.py",
+        "wakfu_server/maps/owned_story_reviewed_items.py",
+        "wakfu_server/combat/combat_scene_controlled_states.py",
+        "wakfu_server/combat/combat_scene_ball_follow.py",
+        "wakfu_server/combat/combat_area_transaction.py",
+        "wakfu_server/combat/combat_controller_transfer.py",
+        "wakfu_server/combat/combat_ai_control.py",
+        "wakfu_server/combat/combat_scene_ball_goals.py",
     }
 )
 

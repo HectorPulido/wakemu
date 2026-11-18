@@ -1,0 +1,82 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "astrub-pizzlarva-885",
+  "version": 1,
+  "map_id": 885,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": -4.0,
+      "y": -9.0,
+      "z": 3.0,
+      "id": 23626,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "-1_-1",
+      "map_id": 546,
+      "payload_hex": "02000000000b010000000d0000010222fffffffcfffffff70003000101010300010000000335303500000000000101",
+      "native_parameters": "505",
+      "descriptor_id": 505
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 505,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 544,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 564,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 1457,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{0,0,0}",
+                    "885",
+                    "7"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 1457,
+    "approaches": [
+      [
+        -4,
+        -8,
+        3
+      ]
+    ],
+    "evidence": "Original546 GenericActivable23626/505/effect1457 enters native885(0,0,0), third parameter7 is facing, not instance kind. Solo private ownership is reviewed server policy. Original885 Teleporter23627/2016 returns freely to546(-4,-8,3), facing3. This context declares no battle, temporary form, tutorial, score, quest assignment, objective, item or reward producer; independently authenticated mode actions own gameplay. No invented native room or replayed cinematic."
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    23627
+  ],
+  "controller_file": "astrub-pizzlarva-885.json",
+  "exploration_file": "astrub-pizzlarva-885.exploration.json",
+  "provenance": "Original546 GenericActivable23626/505/effect1457 enters native885(0,0,0), third parameter7 is facing, not instance kind. Solo private ownership is reviewed server policy. Original885 Teleporter23627/2016 returns freely to546(-4,-8,3), facing3. This context declares no battle, temporary form, tutorial, score, quest assignment, objective, item or reward producer; independently authenticated mode actions own gameplay. No invented native room or replayed cinematic."
+}

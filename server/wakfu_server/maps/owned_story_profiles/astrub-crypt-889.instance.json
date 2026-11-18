@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "astrub-crypt-889",
+  "version": 1,
+  "map_id": 889,
+  "entry": {
+    "map_id": 527,
+    "object_id": 19411,
+    "destination_id": 1249
+  },
+  "native_entry_criterion": "IsAchievementActive(2160) and not IsAchievementComplete(2161)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    23618
+  ],
+  "controller_file": "astrub-crypt-889.json",
+  "encounters_file": "astrub-crypt-889-encounters.json",
+  "exploration_file": "astrub-crypt-889.exploration.json",
+  "provenance": "Reviewed reconstruction, NOT recovered original formations: original map889 has three gated rooms; installed scenario1724 names room1/room2 door unlocks and a third boss fight. Native undead family676 species/counts and arena placements are explicitly authored local policy preserving all original statistics, levels and spells. OLD scene14374 and obsolete sewer896 transfer are not executed. Only the final authentic owned victory earns crypt exploration4280; actual Pere debrief11548 remains separate."
+}

@@ -2,6 +2,21 @@
 import struct
 
 
+def _protected_summon_departed(fight, actor_id):
+    """Accept final removal only from the settled native protected-332 receipt."""
+    from .combat_summon_retirement import PROTECTED_SOURCE, retired_summon_actor
+
+    records = getattr(fight, "native_summon_retirements", {})
+    if not isinstance(records, dict):
+        raise ValueError("Malformed native summon retirement checkpoint")
+    record = records.get(actor_id)
+    return (
+        isinstance(record, dict)
+        and record.get("source") == PROTECTED_SOURCE
+        and retired_summon_actor(fight, actor_id)
+    )
+
+
 def newly_registered_death_messages(runtime, *, after_sequence, prepare_delivery=True):
     """Deliver settled deaths from one private action, once per actor identity."""
     if type(after_sequence) is not int or after_sequence < 0:
@@ -11,9 +26,24 @@ def newly_registered_death_messages(runtime, *, after_sequence, prepare_delivery
     identities = []
     reported = getattr(runtime, "_reported_deaths", set())
     for event in runtime.fight.events:
-        if event["sequence"] <= after_sequence or event.get("kind") != "death":
+        if event["sequence"] <= after_sequence or event.get("kind") not in (
+            "death",
+            "summon_out_of_play",
+        ):
             continue
         identity = event["actor_id"]
+        if event.get("kind") != "death":
+            if event.get(
+                "kind"
+            ) != "summon_out_of_play" or not _protected_summon_departed(
+                runtime.fight, identity
+            ):
+                continue
+            if (
+                runtime.fight.native_summon_retirements[identity]["sequence"]
+                != event["sequence"]
+            ):
+                continue
         actor = runtime.fight.actors.get(identity)
         # A reaction may legitimately resurrect the defeated actor before the
         # outer action settles. Do not replay its stale death over the revival.
@@ -82,6 +112,13 @@ def death_messages(runtime, actor_id, *, fighter_state=None):
         departed = actor_id in retired_pve_actor_ids(runtime.fight)
         if departed and fighter_state != 2:
             raise ValueError("Retired PvE departure requires final fighter state2")
+    if _protected_summon_departed(runtime.fight, actor_id):
+        # Protected332 already removed this summon from QI/global play. The
+        # client's old actor still needs aTS final removal, just like an
+        # explicit departure; it has no ordinary damage-corpse registration.
+        departed = True
+        if fighter_state != 2:
+            raise ValueError("Retired protected summon requires final fighter state2")
     if hasattr(runtime.fight, "native_global_pv_collections") and not departed:
         from .combat_ordinary_death import registered_ordinary_death
 

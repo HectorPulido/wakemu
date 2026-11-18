@@ -1,0 +1,80 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "astrub-night-1004",
+  "version": 1,
+  "map_id": 1004,
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 35.0,
+      "y": 83.0,
+      "z": 0.0,
+      "id": 25480,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "1_4",
+      "map_id": 1134,
+      "payload_hex": "02000000000b010000000d000001046e000000230000005300000001010101000f0000000339353800000000000101",
+      "native_parameters": "958",
+      "descriptor_id": 958
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 958,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1180,
+          "clx": 65,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 3000,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1202,
+              "criterion": "IsAchievementRunning(2706) and not IsAchievementObjectiveComplete(5341)",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 2409,
+                  "effect_type": 3,
+                  "criterion": "IsAchievementRunning(2706) and not IsAchievementObjectiveComplete(5341)",
+                  "parameters": [
+                    "{1,1,0}",
+                    "1004",
+                    "7"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 2409,
+    "approaches": [
+      [
+        35,
+        84,
+        0
+      ]
+    ],
+    "evidence": "Original25480/958/group1180/action1202/effect2409 coordinate{1,1,0},1004,direction7; real native3000ms operation before normal owned admission, no cost."
+  },
+  "native_entry_criterion": "IsAchievementRunning(2706) and not IsAchievementObjectiveComplete(5341)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [],
+  "controller_file": "astrub-night-1004.json",
+  "encounters_file": "astrub-night-1004-encounters.json",
+  "exploration_file": "astrub-night-1004.exploration.json",
+  "provenance": "Reviewed reconstruction of native2706 night mission on original1004: actual25480/958/effect2409 takes3000ms and enters(1,1,0); actual fire25482/960/wire0/effect2411 takes3000ms before real encounter. Three original3836 possessed larvae retain native3933 death/parasite3837 mechanics, levels/statistics/spells; count3 and native floor positions are reviewed formation, not original recovered server counts. Only genuine full encounter victory grants5341. Native firewire1/effect2412 takes3000ms and uses normal exit/outbox to original1134(35,84,0). No cinematic, waiting click or arrival gives victory. Original2043 cinematic is omitted because its eight actor assumptions exceed this explicitly reconstructed minimal roster; mechanics do not require that presentation."
+}

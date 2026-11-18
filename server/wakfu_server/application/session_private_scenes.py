@@ -8,6 +8,22 @@ from .dispatch_result import DispatchResult
 
 
 class PrivateScenesMixin:
+    def notify_owned_story_refresh(self):
+        if (
+            self.state.character is None
+            or not self.runtime.is_dungeon_run(
+                self.state.character.get("instance_id", 0)
+            )
+            or self.state.fight is not None
+            or self.state.combat_session is not None
+        ):
+            return
+        from wakfu_server import owned_story_refresh
+
+        owned_story_refresh.notify_pending(
+            self.runtime.STORE, self.state.character, self.state.generation
+        )
+
     def active_private_session(self):
         return self.state.ranch_session or self.state.bag_session
 
@@ -1260,6 +1276,24 @@ class PrivateScenesMixin:
         return DispatchResult.FALLTHROUGH
 
     def handle_world_interaction(self):
+        from . import native_order_trial_dispatch
+
+        order_trial_result = native_order_trial_dispatch.handle(self)
+        if order_trial_result is not None:
+            return order_trial_result
+        from . import owned_story_dispatch
+
+        if owned_story_dispatch.handle_interaction(self):
+            return DispatchResult.CONTINUE
+        from .mercenary_board_dispatch import dispatch as dispatch_mercenary_board
+
+        mercenary_result = dispatch_mercenary_board(self)
+        if mercenary_result is not None:
+            return mercenary_result
+        from . import source_quest_encounter_dispatch
+
+        if self.state.opcode == 12870 and source_quest_encounter_dispatch.handle(self):
+            return DispatchResult.CONTINUE
         from psycopg import Error as ItemDatabaseError
 
         self.state.ItemDatabaseError = ItemDatabaseError
@@ -2136,44 +2170,34 @@ class PrivateScenesMixin:
                                 *trace_result["scene_packet"],
                             )
                     return DispatchResult.CONTINUE
+                from wakfu_server.achievements import ground_quest_pickups
+                from .quest_interaction_dispatch import settle_interaction
+
+                if ground_quest_pickups.recognizes(
+                    self.state.character["map_id"], self.state.body
+                ) and settle_interaction(
+                    self,
+                    ground_quest_pickups.interact,
+                    event="native_quest_ground_pickup",
+                    object_id=environment_id,
+                ):
+                    return DispatchResult.CONTINUE
+                from wakfu_server.application import owned_story_generic_entry_dispatch
+
+                if owned_story_generic_entry_dispatch.handle(self):
+                    return DispatchResult.CONTINUE
                 from wakfu_server.achievements import interactive_missions
 
                 if interactive_missions.binding_exists(
                     self.runtime.STORE, self.state.character["map_id"], self.state.body
                 ):
-                    with self.runtime.POSITIONS.account_barrier(self.state.account_id):
-                        self.runtime.flush_positions(
-                            account_id=self.state.account_id,
-                            generation=self.state.generation,
-                            character_id=self.state.character["id"],
-                        )
-                        self.state.result = interactive_missions.interact(
-                            self.runtime.STORE,
-                            self.state.account_id,
-                            self.state.generation,
-                            self.state.character,
-                            self.state.body,
-                            loaded=self.state.loaded,
-                            blocked=self.environment_blocked()
-                            or self.state.environment_ticket is not None,
-                        )
-                        if self.state.result["applied"] or self.state.result.get(
-                            "handled"
-                        ):
-                            self.state.character = self.state.result["character"]
-                            for self.state.packet in self.state.result["packets"]:
-                                self.runtime.send(
-                                    self.state.connection,
-                                    self.state.service,
-                                    *self.state.packet,
-                                )
-                            self.runtime.record(
-                                event="configured_quest_interaction",
-                                actor_id=self.state.character["id"],
-                                object_id=environment_id,
-                                completed=self.state.result["completed"],
-                            )
-                            return DispatchResult.CONTINUE
+                    if settle_interaction(
+                        self,
+                        interactive_missions.interact,
+                        event="configured_quest_interaction",
+                        object_id=environment_id,
+                    ):
+                        return DispatchResult.CONTINUE
                 from wakfu_server import paid_containers
 
                 self.state.paid_containers = paid_containers
@@ -2205,7 +2229,9 @@ class PrivateScenesMixin:
                     self.state.paid_container_ticket = self.state.result["token"]
                     self.state.character = self.state.result["character"]
                     for self.state.packet in self.state.result["packets"]:
-                        if self.state.packet[0] == 12344:
+                        if self.state.packet[0] == 12344 and not self.state.result.get(
+                            "personal_state", False
+                        ):
                             self.runtime.WORLD.emit_location(
                                 *self.state.result["location"], *self.state.packet
                             )
@@ -2480,6 +2506,22 @@ class PrivateScenesMixin:
                 # other interactives can arrive after lazy loading.
                 self.sync_static_world(force=True)
                 if interaction["route"] != "transport_registration":
+                    if interaction["route"] == "transport_menu":
+                        with self.runtime.POSITIONS.account_barrier(
+                            self.state.account_id
+                        ):
+                            self.runtime.flush_positions(
+                                account_id=self.state.account_id
+                            )
+                            transport_action = (
+                                self.runtime.TRANSPORT_DISCOVERIES.activate_character(
+                                    self.state.account_id,
+                                    self.state.generation,
+                                    self.state.character,
+                                    self.state.body,
+                                )
+                            )
+                        self.publish_settled_quest_packets(transport_action["packets"])
                     self.runtime.record(
                         event="world_interactive_action",
                         actor_id=self.state.character["id"],
@@ -2487,15 +2529,18 @@ class PrivateScenesMixin:
                         implemented=interaction["route"] == "transport_menu",
                     )
                     return DispatchResult.CONTINUE
-                kind, self.state.identity = self.runtime.native_transports.registration(
-                    self.state.character, self.state.body
-                )
-                self.runtime.TRANSPORT_DISCOVERIES.discover(
-                    self.state.account_id,
-                    self.state.generation,
-                    kind,
-                    self.state.identity,
-                )
+                with self.runtime.POSITIONS.account_barrier(self.state.account_id):
+                    self.runtime.flush_positions(account_id=self.state.account_id)
+                    registration = (
+                        self.runtime.TRANSPORT_DISCOVERIES.register_character(
+                            self.state.account_id,
+                            self.state.generation,
+                            self.state.character,
+                            self.state.body,
+                        )
+                    )
+                kind = registration["kind"]
+                self.state.identity = registration["identity"]
                 (
                     self.state.message_id,
                     self.state.message_body,
@@ -2508,6 +2553,7 @@ class PrivateScenesMixin:
                     self.state.message_id,
                     self.state.message_body,
                 )
+                self.publish_settled_quest_packets(registration["packets"])
                 self.runtime.record(
                     event="transport_discovered",
                     account_id=self.state.account_id,

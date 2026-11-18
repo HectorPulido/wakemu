@@ -1,0 +1,225 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(1640)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 50 and IsAchievementComplete(1640)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 6,
+              "ckh": -36,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3174,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            130000
+          ],
+          "d": 2972,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7325,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 20,
+      "cka": "ach.187",
+      "d": 1688,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "wild-1688-native-burger-delivery",
+      "quest_id": 1688,
+      "objective_id": 3174,
+      "source": {
+        "x": 5.0,
+        "y": -36.0,
+        "z": 80.0,
+        "id": 20449,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "0_-2",
+        "map_id": 720,
+        "payload_hex": "02000000000b010000000d00000102d000000005ffffffdc0050000101010100010000000332323600000000000101",
+        "native_parameters": "226",
+        "descriptor_id": 226
+      },
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 226,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 251,
+            "clx": 136,
+            "cod": 17831,
+            "coe": 1,
+            "cof": true,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 251,
+                "criterion": "IsAchievementActive(1688)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 476,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementActive(1688)",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "native_class": "aLo",
+            "id": 252,
+            "clx": 87,
+            "cod": 17830,
+            "coe": 1,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 1,
+                "native_id": 252,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 477,
+                    "effect_type": 3,
+                    "criterion": "",
+                    "parameters": [
+                      "{4,-32,72}",
+                      "720",
+                      "3"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 251,
+        "clx": 136,
+        "cod": 17831,
+        "coe": 1,
+        "cof": true,
+        "cnd": 0,
+        "cog": 0,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 251,
+            "criterion": "IsAchievementActive(1688)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 476,
+                "effect_type": 1,
+                "criterion": "IsAchievementActive(1688)",
+                "parameters": [
+                  "false"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 251,
+        "criterion": "IsAchievementActive(1688)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 476,
+            "effect_type": 1,
+            "criterion": "IsAchievementActive(1688)",
+            "parameters": [
+              "false"
+            ]
+          }
+        ]
+      },
+      "approaches": [
+        [
+          6,
+          -36,
+          80
+        ]
+      ],
+      "mode": "gather",
+      "native_occupation_ms": 0,
+      "native_definition_sha256": "40d8cadbe8550be820842c7c95c0919b40591584eb49f90dd9301820bf045d71",
+      "roster": [],
+      "scenario": null,
+      "evidence": "Original native720/20449 descriptor226 group251 wire0/effect476 retains literal Running1688, burger17831 quantity1 consuming cost and instant occupation. Actual authenticated adjacent original action consumes the real Cook-supplied burger and credits original3174; rendering, navigation, free clicks and inventory possession alone do not deliver the burger. Original subsequent beer477 action remains distinct.",
+      "timing_basis": "Original native cog0 immediate paid action."
+    }
+  ],
+  "provenance": "Original native720/20449 descriptor226 group251 wire0/effect476 retains literal Running1688, burger17831 quantity1 consuming cost and instant occupation. Actual authenticated adjacent original action consumes the real Cook-supplied burger and credits original3174; rendering, navigation, free clicks and inventory possession alone do not deliver the burger. Original subsequent beer477 action remains distinct.",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06"
+}

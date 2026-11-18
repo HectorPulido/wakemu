@@ -196,7 +196,8 @@ def grant_outputs(
         rule = ACQUISITION_STACKS[reference]
         is_mount = (
             db.execute(
-                "SELECT model_id FROM mount_models WHERE reference=%s", (reference,)
+                "SELECT model_id FROM mount_item_models WHERE reference=%s",
+                (reference,),
             ).fetchone()
             is not None
         )

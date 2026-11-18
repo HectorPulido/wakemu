@@ -131,7 +131,7 @@ def rank_for_snapshot(snapshot):
 
 
 def load(db, character):
-    """Derive one current company from durable owned real progression only.
+    """Derive one owned company from progression and explicit rank entitlements.
 
     One bounded aggregate row avoids hydrating every character or companion
     equipment tree. Deleted players, unlinked/relocked companions and another
@@ -159,6 +159,9 @@ def load(db, character):
     if type(levels) is not int or levels <= 0 or not isinstance(experience, list):
         raise ValueError("Invalid durable native company progression")
     score = 3 * levels + sum(level_for_xp(xp) for xp in experience)
+    from wakfu_server.universal_equipment_unlocks import effective_company_score
+
+    score = effective_company_score(db, score)
     return CompanySnapshot(
         character["account_id"],
         character["id"],

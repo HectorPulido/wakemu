@@ -1,0 +1,49 @@
+{
+  "schema": "owned-quest-instance-v1",
+  "id": "astrub-grambo-camp",
+  "quest_id": 2165,
+  "entry_objective": 4286,
+  "victory_objective": 4298,
+  "entry_map_id": 546,
+  "entry_object_id": 21367,
+  "destination_id": 1460,
+  "map_id": 747,
+  "arena_seed": [
+    0,
+    0,
+    0
+  ],
+  "monster_reference": 3249,
+  "monster_count": 1,
+  "internal_sources": [
+    21379,
+    21381
+  ],
+  "exit_source": 21378,
+  "native_entry_criterion": "",
+  "provenance": "Reviewed reconstruction, NOT captured official formation: native quest2165/4286 admits the camp and4298 requires Grambo. Native breed3249 is the unique matching Grambo with original key18747 loot; breed3250 has no key and is excluded. One ordinary native3249 uses its installed level10, HP75/AP6/MP4, spell4618, native costs and loot. Exact original empty entrance criterion, Sm6/0/4 exploration, same-map stair links and sewer return remain intact. Scenario1729 choreography is not claimed or replayed without an authenticated association. Activation is held until the entire temple887 continuation and paid owned-to-owned native transfer are ready.",
+  "exploration_file": "astrub-grambo-camp.exploration.json",
+  "reentry_quests": [
+    2166,
+    2170
+  ],
+  "owned_quest_transfers": [
+    {
+      "schema": "owned-quest-transfer-v1",
+      "source_id": 23621,
+      "destination_id": 4029,
+      "target_route_key": "quest-map-887-23621-4029"
+    }
+  ],
+  "version": 2,
+  "pending_reentry": {
+    "all_completed": [
+      2166,
+      2170
+    ],
+    "none_completed": [
+      1721,
+      1726
+    ]
+  }
+}

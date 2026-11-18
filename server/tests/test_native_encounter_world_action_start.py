@@ -69,6 +69,48 @@ class EncounterWorldActionTests(unittest.TestCase):
             [m["hp"] for m in self.group["members"]], [4, 4, 4, 4, 5, 5, 10]
         )
 
+    def test_minimum_three_scope_keeps_old_scope_and_admits_native_final_roster(self):
+        fixture = json.loads(
+            (
+                BASE / "fixtures/native_encounter_world_action_minimum_three.json"
+            ).read_text()
+        )
+        old = next(
+            row
+            for row in subject._policies()["scopes"]
+            if row["route_key"] == self.args["config"]["route"]["key"]
+            and row["plan_sha256"] == self.args["config"]["evidence_hashes"]["plan"]
+        )
+        new = next(
+            row
+            for row in subject._policies()["scopes"]
+            if row["route_key"] == fixture["config"]["route"]["key"]
+            and row["plan_sha256"] == fixture["config"]["evidence_hashes"]["plan"]
+        )
+        self.assertEqual(new["actions"], old["actions"])
+        self.assertNotEqual(new["document_sha256"], old["document_sha256"])
+        self.args["config"] = fixture["config"]
+        self.args["instance"]["context_policy_version"] = fixture["config"]["version"]
+        self.args["progress"].update(
+            current_room=2,
+            rooms=fixture["rooms"],
+            catalog_hash=fixture["config"]["compiled_plan"]["document_sha256"],
+        )
+        self.args["spawn"]["room_order"] = 2
+        self.group["members"] = fixture["members"]
+        self.args["native_source"] = lambda ref: fixture["native"][str(ref)]
+        action = next(
+            row["action_id"]
+            for row in new["actions"]
+            if row["monster_reference"] == 2096
+        )
+        self.request = struct.pack(">qq", fixture["members"][0]["id"], action)
+        result = self.admit()
+        self.assertEqual(result["target_id"], fixture["members"][0]["id"])
+        self.assertEqual(
+            [row["ref"] for row in self.group["members"]], [2096, 2104, 2104]
+        )
+
     def test_stale_instance_progress_membership_and_group_are_rejected(self):
         for section, key, value in [
             ("instance", "status", "closed"),

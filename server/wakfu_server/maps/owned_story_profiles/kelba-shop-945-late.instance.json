@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "kelba-shop-945-late",
+  "version": 1,
+  "map_id": 945,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "map_id": 943,
+    "object_id": 25107,
+    "destination_id": 2191
+  },
+  "native_entry_criterion": "IsAchievementRunning(2538) || IsAchievementRunning(2539)|| IsAchievementRunning(2540)||IsAchievementRunning(2541) || IsAchievementRunning(2542)|| IsAchievementRunning(2543)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    {
+      "source_id": 25122,
+      "destination_id": 2174
+    }
+  ],
+  "controller_file": "kelba-shop-945-late.json",
+  "exploration_file": "kelba-shop-945-late.exploration.json",
+  "provenance": "Reviewed physical late Kabrok shop context from original25107/2191 arrival945(154,3,0), literal25122/2174 exit943(-142,53,-24), native Sm6 late component. No movie, server script, room, combat or quest progress is fabricated on entry; only authentic native dialogue choices may advance the chapter."
+}

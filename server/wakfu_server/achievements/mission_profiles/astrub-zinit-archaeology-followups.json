@@ -1,0 +1,294 @@
+{
+  "version": 1,
+  "id": "astrub-zinit-archaeology-followups",
+  "evidence": [
+    "Reviewed complete native main-story predecessor chain. Only fresh earned quest_completed events activate each next stage; native eligibility is retained. This profile is staged until voyage/reef/cave/NPC/puzzle/transport producers are published together; display levels and UI visibility do not grant progress.",
+    "FiveactualNPC-opening receipts qualify only the exact reviewed native actor/action/map declaration after successful native greeting. Native2676 objectiveckc preserves prior8330; repeated opens cannot replay objectives or rewards.",
+    "Voyage5305 requires actualacceptednativeBuddyHully3801/action697/root3212/7974 in the exactowned980instance afterthreegenuineboatvictories, scopedfinalflag, fullcontextrefresh andrangevalidation. Rendering, victoriesalone, staleNPCclicks and completedrepeatdialogue never emitprogress."
+  ],
+  "bindings": [
+    {
+      "id": "actual-post-dialogue-8331",
+      "quest_id": 2676,
+      "objective_id": 8331,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 8331
+      },
+      "count": "operation",
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "actual-post-dialogue-8332",
+      "quest_id": 2676,
+      "objective_id": 8332,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 8332
+      },
+      "count": "operation",
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "actual-post-dialogue-8333",
+      "quest_id": 2676,
+      "objective_id": 8333,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 8333
+      },
+      "count": "operation",
+      "maps": [
+        546
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "actual-post-dialogue-8334",
+      "quest_id": 2676,
+      "objective_id": 8334,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 8334
+      },
+      "count": "operation",
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "actual-post-dialogue-8336",
+      "quest_id": 2676,
+      "objective_id": 8336,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 8336
+      },
+      "count": "operation",
+      "maps": [
+        546
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "actual-owned-shore-hully-talk",
+      "quest_id": 2684,
+      "objective_id": 5305,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 5305
+      },
+      "count": "operation",
+      "maps": [
+        980
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "earned-story-2170-to-2675",
+      "quest_id": 2675,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2170
+      },
+      "requires_completed": [
+        2170
+      ]
+    },
+    {
+      "id": "earned-story-2675-to-2676",
+      "quest_id": 2676,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2675
+      },
+      "requires_completed": [
+        2675
+      ]
+    },
+    {
+      "id": "earned-story-2676-to-2684",
+      "quest_id": 2684,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2676
+      },
+      "requires_completed": [
+        2676
+      ]
+    },
+    {
+      "id": "earned-story-2684-to-2687",
+      "quest_id": 2687,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2684
+      },
+      "requires_completed": [
+        2684
+      ]
+    },
+    {
+      "id": "earned-story-2687-to-2688",
+      "quest_id": 2688,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2687
+      },
+      "requires_completed": [
+        2687
+      ]
+    },
+    {
+      "id": "earned-story-2688-to-2689",
+      "quest_id": 2689,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2688
+      },
+      "requires_completed": [
+        2688
+      ]
+    },
+    {
+      "id": "earned-story-2689-to-2690",
+      "quest_id": 2690,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2689
+      },
+      "requires_completed": [
+        2689
+      ]
+    },
+    {
+      "id": "earned-story-2690-to-2691",
+      "quest_id": 2691,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2690
+      },
+      "requires_completed": [
+        2690
+      ]
+    },
+    {
+      "id": "earned-story-2691-to-2692",
+      "quest_id": 2692,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2691
+      },
+      "requires_completed": [
+        2691
+      ]
+    },
+    {
+      "id": "earned-story-2692-to-2698",
+      "quest_id": 2698,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2692
+      },
+      "requires_completed": [
+        2692
+      ]
+    },
+    {
+      "id": "earned-story-2698-to-2699",
+      "quest_id": 2699,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2698
+      },
+      "requires_completed": [
+        2698
+      ]
+    },
+    {
+      "id": "earned-story-2699-to-2700",
+      "quest_id": 2700,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2699
+      },
+      "requires_completed": [
+        2699
+      ]
+    },
+    {
+      "id": "earned-story-2700-to-2701",
+      "quest_id": 2701,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2700
+      },
+      "requires_completed": [
+        2700
+      ]
+    },
+    {
+      "id": "earned-story-2701-to-2702",
+      "quest_id": 2702,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2701
+      },
+      "requires_completed": [
+        2701
+      ]
+    },
+    {
+      "id": "earned-story-2702-to-2703",
+      "quest_id": 2703,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2702
+      },
+      "requires_completed": [
+        2702
+      ]
+    },
+    {
+      "id": "earned-story-2703-to-2704",
+      "quest_id": 2704,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2703
+      },
+      "requires_completed": [
+        2703
+      ]
+    },
+    {
+      "id": "earned-story-2704-to-2705",
+      "quest_id": 2705,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2704
+      },
+      "requires_completed": [
+        2704
+      ]
+    }
+  ]
+}

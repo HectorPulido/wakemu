@@ -1,0 +1,118 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 952,
+  "scenario_id": 1967,
+  "lua_sha256": "b29d25d08750e57edeaddde67eb76822915aa0a79c2ba0b5d537312efac8c9aa",
+  "objects": [
+    {
+      "x": 1.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 25119,
+      "auto": false,
+      "type": "Teleporter",
+      "chunk": "0_0",
+      "map_id": 952,
+      "payload_hex": "02000000000b010000000d00000103b800000001000000000000000101010100000001000000010000000000000004313937360000003baf0001"
+    }
+  ],
+  "scenario_events": [
+    15705,
+    15832,
+    15833,
+    15834,
+    19799
+  ],
+  "scenes": {
+    "15832": {
+      "argument_count": 1,
+      "duration_ms": 6500,
+      "callback": 15832
+    },
+    "15833": {
+      "argument_count": 1,
+      "duration_ms": 7500,
+      "callback": 15833
+    },
+    "15834": {
+      "argument_count": 1,
+      "duration_ms": 31500,
+      "callback": 19799
+    }
+  },
+  "event_signatures": {
+    "15705": {
+      "argument_count": 0
+    },
+    "15832": {
+      "argument_count": 1
+    },
+    "15833": {
+      "argument_count": 1
+    },
+    "15834": {
+      "argument_count": 1
+    },
+    "19799": {
+      "argument_count": 0
+    }
+  },
+  "programs": {},
+  "loot_tables": {},
+  "native_scripts": {},
+  "argument_sources": {
+    "15832": {
+      "scene_actors": {
+        "scene_actor:kabrok": 3580
+      }
+    },
+    "15833": {
+      "scene_actors": {
+        "scene_actor:kabrok": 3580
+      }
+    },
+    "15834": {
+      "scene_actors": {
+        "scene_actor:kabrok": 3580
+      }
+    }
+  },
+  "presentation_quests": {
+    "15832": 2548,
+    "15833": 2548,
+    "15834": 2548
+  },
+  "presentation_groups": [
+    {
+      "id": "kelba-kabrok-chapter2-1967",
+      "start_event": 15832,
+      "initializers": {
+        "1967": 15832
+      },
+      "events": [
+        15832,
+        15833,
+        15834
+      ]
+    }
+  ],
+  "scene_actors": [
+    {
+      "slot": 900,
+      "role": "kabrok",
+      "reference": 3580,
+      "level": 154,
+      "position": [
+        -2,
+        0,
+        0
+      ],
+      "direction": 5,
+      "requires": [],
+      "until": [
+        "chapter2-discovered"
+      ],
+      "native_prototype_sha256": "3af310a447dc6b39fc8a288079b869c5d4d51db5a8bf1fa4f049c9c7144b0836"
+    }
+  ]
+}

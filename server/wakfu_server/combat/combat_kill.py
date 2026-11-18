@@ -52,6 +52,7 @@ class NativeKillHandler:
         )
         self.rng, self.authority, self.event_lifecycle = rng, authority, None
         self.prepared, self.runners = {}, {}
+        self.clone_lifetimes = {}
 
     def _context(self, effect, invocation):
         if effect["effect_class"] != 28:
@@ -69,7 +70,11 @@ class NativeKillHandler:
                 raise ValueError(
                     "Native eXc null/nonfighter manager delivery unsupported"
                 )
-        context = self.context(effect, invocation)
+        from .combat_kill_clone_lifetime import timing_scope
+
+        clone = self.clone_lifetimes.get(invocation.native_running_uid)
+        with timing_scope(clone, self.fight, effect, invocation):
+            context = self.context(effect, invocation)
         if (
             not isinstance(context, StatExecutionContext)
             or context.source_guards_verified is not True
@@ -77,6 +82,15 @@ class NativeKillHandler:
             or type(context.retained) is not bool
         ):
             raise ValueError("Unverified native eXc execution guards")
+        if clone is not None:
+            from .combat_native_timing_context import native_time_payload
+
+            context = replace(
+                context,
+                retained=False,
+                timer=None,
+                timing_payload=native_time_payload(),
+            )
         return context
 
     def _no_hp_area(self, identity):
@@ -131,14 +145,36 @@ class NativeKillHandler:
     def cancel_prepared(self, invocation):
         self.prepared.pop(invocation.native_running_uid, None)
         self.runners.pop(invocation.native_running_uid, None)
+        self.clone_lifetimes.pop(invocation.native_running_uid, None)
+
+    def prepare_activation(self, effect, values, invocation, *, clone_uid):
+        from .combat_kill_clone_lifetime import qualify
+
+        if self.event_lifecycle is None:
+            raise ValueError("Missing subscribed eXc activation lifecycle")
+        proof = qualify(self.fight, effect, invocation, clone_uid)
+        if clone_uid in self.prepared or clone_uid in self.runners:
+            raise ValueError("Native eXc clone UID is already prepared")
+        self.clone_lifetimes[clone_uid] = proof
+        invocation = replace(invocation, native_running_uid=clone_uid)
+        try:
+            return self._prepare_uid(effect, values, invocation)
+        except BaseException:
+            self.cancel_prepared(invocation)
+            raise
 
     def prepare(self, effect, values, invocation):
         if self.event_lifecycle is None:
             return invocation
         self._context(effect, invocation)
-        uid = self.allocate_uid()
-        invocation = replace(invocation, native_running_uid=uid)
+        invocation = replace(invocation, native_running_uid=self.allocate_uid())
+        return self._prepare_uid(effect, values, invocation, context_checked=True)
+
+    def _prepare_uid(self, effect, values, invocation, *, context_checked=False):
+        uid = invocation.native_running_uid
         try:
+            if not context_checked:
+                self._context(effect, invocation)
             runner = NativeRunnerAmount(uid, 28, rng=self.rng)
             self.runners[uid] = runner
             self.event_lifecycle.phase(
@@ -273,6 +309,9 @@ class NativeKillHandler:
         )
         # Native c order: HP setter, optional permanent property, KO maximum.
         from .combat_hp_raw import hp_raw_present, set_hp_raw_current
+        from .combat_scene_ball_goals import prepare_terminal, record_terminal
+
+        ball_terminal = prepare_terminal(self.fight, effect, invocation)
 
         if hp_raw_present(actor):
             set_hp_raw_current(actor, hp_min)
@@ -305,6 +344,10 @@ class NativeKillHandler:
                 from .combat_global_pv_collections import set_global_fighter_status
 
                 set_global_fighter_status(self.fight, actor.id, "OFF_PLAY")
+        if getattr(self.fight, "native_order_trial", None) is not None:
+            from .native_order_trial_events import record_baking_death
+
+            record_baking_death(self, effect, invocation, uid=uid)
         if counts is not None:
             actor.native_fight_property_counts = counts
             actor.native_fight_properties = frozenset(
@@ -358,6 +401,8 @@ class NativeKillHandler:
                 )
         from .combat_runner_callbacks import notify_runner_value
 
+        if ball_terminal is not None:
+            record_terminal(self.fight, ball_terminal, uid=uid)
         notify_runner_value(invocation, 0 if runner is None else runner.value)
         return True
 

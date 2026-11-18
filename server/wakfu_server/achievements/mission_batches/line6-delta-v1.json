@@ -1,0 +1,33 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "line6-school-third-year-delta-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/huppermage-labyrinth-1027.configuration.json",
+      "sha256": "7757ab64063822cd06c2968129c472d60c023061b8cc08171e4876270d24b818"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_object_trial_profiles/huppermage-infiltration-1028.configuration.json",
+      "sha256": "b2e2fd99aea8ac2a0fed8f008dabacd3675490e97efc0cc70ee6ae6df986d516"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/huppermage-occullege-1029.configuration.json",
+      "sha256": "4da9597f7bd66d198c033dba63f38b1c3df16b1a0aac3f20e6ef151b0f172d83"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/huppermage-school-third-year.json",
+      "sha256": "5e56bdca19d6d97dafa3f14e4880e7237f0c0698b219e272a1d24d9ac7f18527"
+    },
+    {
+      "kind": "conversation",
+      "path": "wakfu_server/maps/native_quest_conversation_contracts.json",
+      "sha256": "1d805dccc0b903d7ea3874f99a2be35bcf21492e15973b2048308f9d97bfcd7a"
+    }
+  ]
+}

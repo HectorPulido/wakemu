@@ -1,0 +1,25 @@
+{
+  "schema": "native-delivery-chain-archetype-v1",
+  "actor_id": -2251799934991695,
+  "action_id": 466,
+  "evidence": "Reviewed reconstruction from the existing Otomai Disciple placement and native explicit running/objective/item predicates. Not an official captured dialogue graph.",
+  "quests": [
+    {"quest_id": 1717, "running_root": 2422, "after_quest": 1715},
+    {"quest_id": 1719, "running_root": 2424, "after_quest": 1717},
+    {"quest_id": 2869, "running_root": 2429, "after_quest": 1719, "evidence": "The native prerequisite conjunctively requires Hunter I–V and achievement1707. Finishing V earns an opportunity to start VI, never a bypass of1707; defer until all native prerequisites hold."},
+    {"quest_id": 2870, "running_root": 2430, "after_quest": 2869},
+    {"quest_id": 2871, "running_root": 2431, "after_quest": 2870},
+    {"quest_id": 2872, "running_root": 2432, "after_quest": 2871},
+    {
+      "quest_id": 4733,
+      "running_root": 4814,
+      "after_quest": 2872,
+      "root_branches": [
+        {"root": 3451, "criterion": "not IsAchievementObjectiveComplete(9843)"},
+        {"root": 4814, "criterion": "IsAchievementObjectiveComplete(9843)"}
+      ],
+      "talk_edges": [{"node_id": 3451, "choice_id": 11776, "target_node_id": 4813}]
+    }
+  ],
+  "edges": [[4813, 11777, 0]]
+}

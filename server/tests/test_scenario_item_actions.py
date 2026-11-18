@@ -1,6 +1,7 @@
 """Bounded native scenario reading preserves its reusable source."""
 import struct
 import unittest
+from unittest.mock import patch
 
 from postgres_case import PostgresCase
 from wakfu_server import scenario_item_actions as actions
@@ -49,16 +50,38 @@ class ReadingScenarioPostgresTests(PostgresCase):
         account, generation, character = self.fixture()
         item = self.give(account, generation, character, 30723)
         body = struct.pack(">iq", 14933, item["uid"])
-        for _ in range(2):
-            result = actions.use(
-                self.store, account, generation, character["id"], body, in_fight=False
-            )
+        with patch(
+            "wakfu_server.achievements.mission_toolkit.settle", return_value=[]
+        ) as settle:
+            for _ in range(2):
+                result = actions.use(
+                    self.store,
+                    account,
+                    generation,
+                    character["id"],
+                    body,
+                    in_fight=False,
+                )
+                self.assertEqual(
+                    (
+                        result["native_class"],
+                        result["consumed"],
+                        result["background_id"],
+                    ),
+                    ("bIn", 0, 415),
+                )
+                self.assertEqual(
+                    result["packets"],
+                    [(13411, struct.pack(">BiiB", 0, 24072, 2704, 0))],
+                )
+            self.assertEqual(settle.call_count, 2)
             self.assertEqual(
-                (result["native_class"], result["consumed"], result["background_id"]),
-                ("bIn", 0, 415),
-            )
-            self.assertEqual(
-                result["packets"], [(13411, struct.pack(">BiiB", 0, 24072, 2704, 0))]
+                settle.call_args.args[3:],
+                (
+                    f"native-item-read:{character['id']}:{item['uid']}:2704",
+                    "quest_item_read",
+                    30723,
+                ),
             )
         restored = self.reopen().character(account, character["id"])
         physical = next(

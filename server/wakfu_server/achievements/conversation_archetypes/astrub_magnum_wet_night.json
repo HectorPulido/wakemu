@@ -1,0 +1,48 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Additive existing nativeMagnum3819/action703 branch for genuine2706 reminder and2707 final report. Preserve physical actor and original quest rewards. No talk grants5340/5341; actual wet/night outcomes remain mandatory.",
+  "speakers": [
+    {
+      "actor_id": -1724034232352753,
+      "action_id": 703,
+      "quest_ids": [
+        2706,
+        2707
+      ],
+      "objectives": [
+        {
+          "quest_id": 2707,
+          "objective_id": 5342,
+          "node_id": 3225,
+          "choice_id": 8080,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              3225,
+              8080,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3225,
+          8079,
+          3278
+        ],
+        [
+          3278,
+          8081,
+          0
+        ],
+        [
+          3225,
+          8080,
+          0
+        ]
+      ]
+    }
+  ]
+}

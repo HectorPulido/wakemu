@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "astrub-pizzlarva-score",
+  "evidence": [
+    "Reviewed server reconstruction: native quest2149/objective4261 requires finishing the hard Pizzlarva challenge with at least400 points. Original scenario1719 names score-validation event14412 but its server implementation is absent. Only native_order_trial_settlement may produce this scenario fact, after source-bound hard-mode admission, server-observed actions and an accepted earned-score checkpoint or a matching actual native withdrawal receipt. The recipe weights are explicitly reconstructed parameters, not recovered official values. Native mercenary-board acceptance remains mandatory; this profile does not start quests."
+  ],
+  "bindings": [
+    {
+      "id": "finished-hard-pizzlarva-score",
+      "quest_id": 2149,
+      "objective_id": 4261,
+      "event": {
+        "kind": "scenario_completed",
+        "reference": 14412
+      },
+      "maps": [885],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

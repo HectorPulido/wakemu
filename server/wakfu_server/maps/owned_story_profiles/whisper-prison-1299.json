@@ -1,0 +1,188 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "whisper-prison-1299",
+  "map_id": 1299,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 4873,
+    "objective_id": null,
+    "continuation_quest_id": 4874
+  },
+  "provenance": "Reviewed reconstructed server bindings from installed native1299 Sm6, original exterior16254/830/938 and exit32768/831/939, original1450 General/prisoner/key events and native2144/2099 prototypes. Original private actor positions/server key award are absent. Reviewed native14553 key grant after genuine General victory and nonconsuming door possession gate are explicit reconstruction, not original captured loot.",
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 16328,
+      "state": 1,
+      "visible": true,
+      "usable": true,
+      "blocks_movement": true
+    }
+  ],
+  "steps": [
+    {
+      "id": "prison-arrival",
+      "kind": "world_ready",
+      "reference": 1299,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 4873,
+          "objective_id": 10052
+        }
+      ],
+      "evidence": "Actual native exterior16254/830/938 arrival, without exterior item payment."
+    },
+    {
+      "id": "prison-general-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "prison-arrival"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 4873,
+          "objective_id": 10053
+        },
+        {
+          "kind": "reviewed_item_grant",
+          "source_id": "prison-general-key"
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1450,
+          "event": 11189
+        }
+      ],
+      "evidence": "Actual owned frozen native2144 General victory; authentic stats/spellbook preserved. Once-only reviewed native14553 award bridges absent private server key source, never replaces victory."
+    },
+    {
+      "id": "prison-door-open",
+      "kind": "interactive",
+      "reference": 16328,
+      "requires": [
+        "prison-general-victory"
+      ],
+      "effects": [
+        {
+          "kind": "native_item_gate",
+          "reference": 14553,
+          "quantity": 1,
+          "consume": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 1450,
+          "event": 11198
+        },
+        {
+          "kind": "element_state",
+          "object_id": 16328,
+          "state": 0,
+          "visible": true,
+          "usable": true,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Only actual General receipt and actual native14553 possession opens original Door16328. No debit, fake keys, Scepter movement or ordinary world species kill."
+    },
+    {
+      "id": "prison-rescue-1",
+      "kind": "npc_target",
+      "reference": 1,
+      "requires": [
+        "prison-door-open"
+      ],
+      "effects": [],
+      "evidence": "Actual unique scoped prisoner template1, native2099/action252 after genuine General and key gate; no other actor or replay supplies this target."
+    },
+    {
+      "id": "prison-rescue-2",
+      "kind": "npc_target",
+      "reference": 2,
+      "requires": [
+        "prison-door-open"
+      ],
+      "effects": [],
+      "evidence": "Actual unique scoped prisoner template2, native2099/action252 after genuine General and key gate; no other actor or replay supplies this target."
+    },
+    {
+      "id": "prison-rescue-3",
+      "kind": "npc_target",
+      "reference": 3,
+      "requires": [
+        "prison-door-open"
+      ],
+      "effects": [],
+      "evidence": "Actual unique scoped prisoner template3, native2099/action252 after genuine General and key gate; no other actor or replay supplies this target."
+    },
+    {
+      "id": "prison-rescue-4",
+      "kind": "npc_target",
+      "reference": 4,
+      "requires": [
+        "prison-door-open"
+      ],
+      "effects": [],
+      "evidence": "Actual unique scoped prisoner template4, native2099/action252 after genuine General and key gate; no other actor or replay supplies this target."
+    },
+    {
+      "id": "prison-release-complete",
+      "kind": "npc_targets_completed",
+      "reference": 1,
+      "requires": [
+        "prison-rescue-1",
+        "prison-rescue-2",
+        "prison-rescue-3",
+        "prison-rescue-4"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1450,
+          "event": 11215,
+          "arguments": [
+            "story_target:1",
+            "story_target:2",
+            "story_target:3",
+            "story_target:4"
+          ]
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 4873,
+          "objective_id": 10055
+        }
+      ],
+      "evidence": "Only all four actual rescue target receipts qualify native10055 and original1450/11215 dialogue with their four actual scoped actor UIDs. Presentation is durable once per character."
+    }
+  ],
+  "item_gates": [
+    {
+      "reference": 14553,
+      "quantity": 1,
+      "consume": false,
+      "failure_event": 11274,
+      "evidence": "Original1450/11198 identifies key-bearing story gate and11274 no-key feedback. Exact native item14553 is reviewed association; nonconsuming presence avoids inventing an unproved debit."
+    }
+  ],
+  "npc_target_groups": [
+    {
+      "id": 1,
+      "targets": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "evidence": "Four distinct scoped current prisoner UIDs must each receive their actual native type1 action252. Any order is allowed; repeated interaction with one actor cannot satisfy another target."
+    }
+  ],
+  "native_sources": {
+    "path": "whisper-prison-1299.native.v1.json",
+    "sha256": "0e3abb002c4bd4f541497b34d0806523cae6d5c87cde1cb384913754cb376aad"
+  }
+}

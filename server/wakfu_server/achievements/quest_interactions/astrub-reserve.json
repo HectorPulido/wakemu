@@ -1,0 +1,23 @@
+{
+  "schema": "quest-interaction-batch-v1",
+  "bindings": [
+    {
+      "status": "reviewed",
+      "map_id": 888,
+      "object_id": 23650,
+      "action_id": 0,
+      "parameter": 0,
+      "x": 4,
+      "y": -3,
+      "z": 0,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 1,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "quest_id": 2158,
+      "objective_id": 4275,
+      "evidence": "Reviewed reconstructed server progression, not a captured server trigger: native object23650 in reserve888 uses descriptor507/group546/nativeaction566/wire0, effecttype1/ref1459 guarded by not-complete2158. Objective4275 asks to recover equipment after actual reserve entry4274. The accepted physical source interaction qualifies recovery; it does not invent loot or execute an unknown script. Native equipment32788 remains the later2159 debrief reward."
+    }
+  ]
+}

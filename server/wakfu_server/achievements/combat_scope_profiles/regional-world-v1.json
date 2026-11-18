@@ -1,0 +1,25 @@
+{
+  "schema": "wakemu.original-monster-region-family-v1",
+  "native_catalog_revision": "0793e23d94afe346c4ae25532417355f3dd5e290da1b0588189523b31ae5cbde",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "scopes": [
+    {
+      "reference": 2135,
+      "quest_id": 2135,
+      "objective_id": 4228,
+      "variable_id": 828,
+      "maps": [
+        527
+      ],
+      "regions": [
+        66701,
+        76201
+      ],
+      "families": [
+        563
+      ],
+      "native_definition_sha256": "9be6d8a40bd35652420c58bb7e15e95210f14db8b5f4fb8061d064b20798a2f6",
+      "evidence": "Reviewed reconstruction: native2135 objective names Astrub City and Fishermen's Hamlet; i18n content66 maps those names to regions66701/76201; territory-protector-bonuses declares family563 there on527. Native810 defines counter828 nbChachasKilled>=3. The original callback was not recovered: original defeated-monster world XY (not combat cell/current player region) qualifies location; frozen owned admission and actual victory/drop sources qualify ownership."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "frigost-past-534",
+  "version": 1,
+  "map_id": 534,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "map_id": 533,
+    "object_id": 18261,
+    "destination_id": 1138
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    {
+      "source_id": 18262,
+      "destination_id": 1139
+    }
+  ],
+  "controller_file": "frigost-past-534.json",
+  "exploration_file": "frigost-past-534.exploration.json",
+  "provenance": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+}

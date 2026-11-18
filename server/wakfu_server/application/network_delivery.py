@@ -4,13 +4,21 @@ import socket
 import struct
 
 
+class PendingSessionWork(Exception):
+    """Yield an untouched frame boundary to already queued server work."""
+
+
 class NetworkDelivery:
     def __init__(self, runtime):
         self.runtime = runtime
 
-    def receive(self, connection, count, on_idle=None):
+    def receive(self, connection, count, on_idle=None, *, pending_work=None):
         data = bytearray()
         while len(data) < count:
+            # Only the next frame header opts in. Once any bytes have arrived,
+            # finish that frame normally so queued actions cannot discard bytes.
+            if not data and pending_work is not None and pending_work():
+                raise PendingSessionWork()
             try:
                 objectives_updates = getattr(connection, "objectives_updates", None)
                 if objectives_updates is not None and not connection.pending():

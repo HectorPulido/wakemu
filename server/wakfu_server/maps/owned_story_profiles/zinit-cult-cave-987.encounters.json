@@ -1,0 +1,214 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "zinit-cult-cave-987-encounters",
+  "map_id": 987,
+  "provenance": "Reviewed reconstruction, not captured original formations: installed map987/scenario2019 explicitly define two clears, native drill key state3679, a drill-triggered boss with six adds and a cleared terminal exit. Native family842 cultists and master retain all original level20 statistics/spells. Counts in the first two groups and species composition are authored local policy; final actor end positions are literal installed Lua. Only actual original-roster clear and the authenticated exit earn objective5308; Ullu5309 stays a real NPC debrief.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "cave-beach-explored"
+      ],
+      "arena_seed": [
+        20,
+        -4,
+        -2
+      ],
+      "bounds": [
+        0,
+        -8,
+        35,
+        15
+      ],
+      "z": -2,
+      "monsters": [
+        {
+          "reference": 2876,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2877,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "cave-room1-victory"
+      ],
+      "arena_seed": [
+        51,
+        23,
+        -1
+      ],
+      "bounds": [
+        38,
+        6,
+        70,
+        40
+      ],
+      "z": -1,
+      "monsters": [
+        {
+          "reference": 2878,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2879,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "cave-drill-activated"
+      ],
+      "arena_seed": [
+        47,
+        -9,
+        -7
+      ],
+      "bounds": [
+        40,
+        -15,
+        65,
+        0
+      ],
+      "z": -7,
+      "monsters": [
+        {
+          "reference": 2881,
+          "count": 1,
+          "role": "boss"
+        },
+        {
+          "reference": 2876,
+          "count": 6,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-cave-native-end-positions",
+        "authority": "original_native_marker",
+        "source_uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+        "fixed_actor_placements": [
+          {
+            "reference": 2881,
+            "cell": [
+              53,
+              -7,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          },
+          {
+            "reference": 2876,
+            "occurrence": 0,
+            "cell": [
+              55,
+              -5,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          },
+          {
+            "reference": 2876,
+            "occurrence": 1,
+            "cell": [
+              55,
+              -7,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          },
+          {
+            "reference": 2876,
+            "occurrence": 2,
+            "cell": [
+              55,
+              -9,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          },
+          {
+            "reference": 2876,
+            "occurrence": 3,
+            "cell": [
+              53,
+              -9,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          },
+          {
+            "reference": 2876,
+            "occurrence": 4,
+            "cell": [
+              53,
+              -5,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          },
+          {
+            "reference": 2876,
+            "occurrence": 5,
+            "cell": [
+              51,
+              -7,
+              -7
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "original_native_marker",
+              "uri": "client/contents/scripts/scripts.jar:scenario/2019.lua:event16039:Mobile.moveMobile",
+              "sha256": "d6240ee3b022653837e26c6c6d39d0af145c26d5a2b35067255b729b51b2a127"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

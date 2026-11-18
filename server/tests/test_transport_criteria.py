@@ -96,7 +96,7 @@ class TransportCriteriaTests(unittest.TestCase):
                 return 1791763200
 
         with patch(
-            "wakfu_server.maps.dungeon_achievement_authority.queries",
+            "wakfu_server.dungeon_achievement_authority.queries",
             return_value={"IsAchievementComplete": lambda identity: identity == 2192},
         ) as queries:
             allowed = criteria.evaluator(Store(), self.character)

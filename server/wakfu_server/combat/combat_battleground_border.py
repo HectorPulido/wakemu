@@ -9,6 +9,37 @@ SUPPORTED_POLICIES = frozenset(
 SOURCE = "buS.cvb.fbm_null_owner.faP_h.Qs_a"
 
 
+def registered_border_kill_source(fight, event):
+    """Authenticate an actual faP root as the source of native effect28 death.
+
+    The bootstrap border is a neutral PV, not a fighter. Its constructor and
+    original QI.P shape remain the authority if Qs has since retired the area.
+    This does not admit arbitrary area UIDs or ordinary damage sources.
+    """
+    identity = event.get("source_id")
+    constructor = getattr(fight, "native_border_constructor", None)
+    if (
+        event.get("kind") != "kill_hp_minimum_update"
+        or event.get("effect_class") != 28
+        or not isinstance(constructor, dict)
+        or constructor.get("identity") != identity
+    ):
+        return False
+    from .combat_state_managers import retained_area_pv_row, registered_area_pv
+    from .combat_effect_area import native_effect_areas
+
+    row = retained_area_pv_row(fight, identity)
+    if row is None or row.get("reference") != constructor.get("reference"):
+        return False
+    verify_battleground_border(fight, row)
+    definition = native_effect_areas().get(str(row["reference"]), {})
+    return (
+        definition.get("type") == "BATTLEGROUND_BORDER"
+        and event.get("generic_effect") in definition.get("effect_ids", ())
+        and registered_area_pv(fight, identity) is not None
+    )
+
+
 def validate_border_component(cells, edges, scope):
     """Require a whole native terrain component, preserving isolated platforms."""
     cells = set(cells)

@@ -1,0 +1,138 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged.",
+  "speakers": [
+    {
+      "actor_id": -2251799934991639,
+      "action_id": 439,
+      "quest_ids": [
+        1639,
+        1640,
+        1688,
+        1641,
+        1666
+      ],
+      "native_marker": {
+        "quest_id": 1639,
+        "objective_id": 3084
+      },
+      "placement": {
+        "quest_id": 1639,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934991639,
+          "reference_id": 2800,
+          "map_id": 720,
+          "instance_id": 0,
+          "x": -6,
+          "y": -37,
+          "z": 80,
+          "direction": 3,
+          "dialogue_root": 2320,
+          "action_ids": [
+            439
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+        },
+        "graph": [],
+        "interaction_anchor": {
+          "x": -6,
+          "y": -36,
+          "z": 80
+        },
+        "interaction_anchor_evidence": "Reviewed adjacent native-floor cook approach; verify against installed720 Sm6 before publication."
+      },
+      "graph": [
+        [
+          2320,
+          5618,
+          2326
+        ],
+        [
+          2326,
+          5628,
+          0
+        ],
+        [
+          2320,
+          5619,
+          2327
+        ],
+        [
+          2327,
+          5629,
+          0
+        ],
+        [
+          2320,
+          5630,
+          2328
+        ],
+        [
+          2328,
+          5631,
+          2329
+        ],
+        [
+          2329,
+          5632,
+          0
+        ],
+        [
+          2320,
+          5739,
+          2365
+        ],
+        [
+          2365,
+          5737,
+          0
+        ],
+        [
+          2320,
+          5626,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 1639,
+          "objective_id": 3084,
+          "node_id": 2326,
+          "choice_id": 5628,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            3083
+          ],
+          "native_guard_path": [
+            [
+              2320,
+              5618,
+              2326
+            ],
+            [
+              2326,
+              5628,
+              0
+            ]
+          ]
+        },
+        {
+          "quest_id": 1640,
+          "objective_id": 3086,
+          "node_id": 2320,
+          "choice_id": 5619,
+          "archetype": "deliver",
+          "remaining_objective": true,
+          "required_objectives": [
+            3085
+          ]
+        }
+      ]
+    }
+  ],
+  "activation_links": []
+}

@@ -77,9 +77,25 @@ def use(store, account_id, generation, character_id, body, *, in_fight):
         # Native cqa=false: neither the scenario's initialization nor its empty
         # follow-up callback destroys the source, grants items, or awards XP.
         packet = (13411, struct.pack(">BiiB", 0, EVENT_ID, SCENARIO_ID, 0))
+        packets = [packet]
+        # This native bIn scenario is a real read of the owned item. Keep the
+        # generic producer receipt in the same owner-locked transaction as the
+        # item validation; the notebook itself remains reusable and unconsumed.
+        from wakfu_server.achievements import mission_toolkit
+
+        packets.extend(
+            mission_toolkit.settle(
+                db,
+                store,
+                character,
+                f"native-item-read:{owner_id}:{uid}:{SCENARIO_ID}",
+                "quest_item_read",
+                ITEM_REFERENCE,
+            )
+        )
         return dict(
             character=character,
-            packets=[packet],
+            packets=packets,
             native_class="bIn",
             applied=True,
             validated=True,

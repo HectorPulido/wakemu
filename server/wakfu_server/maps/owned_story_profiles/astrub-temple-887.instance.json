@@ -1,0 +1,24 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "astrub-temple-887",
+  "version": 1,
+  "map_id": 887,
+  "entry": {
+    "map_id": 747,
+    "object_id": 23621,
+    "destination_id": 4029
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 18747,
+    "quantity": 1
+  },
+  "exit_sources": [
+    23582,
+    23614
+  ],
+  "controller_file": "astrub-temple-887.json",
+  "encounters_file": "astrub-temple-887-encounters.json",
+  "exploration_file": "astrub-temple-887.exploration.json",
+  "provenance": "Reviewed reconstruction, NOT captured official formations or choreography: installed native map887, scenario1722, explicit same-family native formations and authenticated controller stages. Four ordinary encounters occupy physical rooms1/2/4/5 without changing NPC levels/stats/spells. Complete original Sm6 walking geometry, keyed entrance23621/4029 and all four native conditional exit alternatives remain literal. Activation requires the complete owned story mechanic and exit executors; this manifest alone publishes nothing."
+}

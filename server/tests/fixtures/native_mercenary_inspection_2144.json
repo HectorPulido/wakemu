@@ -1,0 +1,123 @@
+{
+  "provenance": "Exact native quest2144 definition copied from the local native quest export for isolated focused interaction tests.",
+  "definition": {
+    "aHe": "IsAchievementActive(2144)",
+    "aeV": 3,
+    "aqb": false,
+    "bwX": 2014,
+    "cjG": 238,
+    "cjH": true,
+    "cjI": "",
+    "cjJ": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 73,
+            "ckh": -2,
+            "cki": 0,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4246,
+        "native_class": "aJN"
+      },
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 87,
+            "ckh": -13,
+            "cki": 0,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4247,
+        "native_class": "aJN"
+      },
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 73,
+            "ckh": 17,
+            "cki": 0,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4248,
+        "native_class": "aJN"
+      },
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 77,
+            "ckh": 26,
+            "cki": 0,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4249,
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "aeV": 6,
+        "ckk": false,
+        "ckl": [
+          7671
+        ],
+        "d": 3691,
+        "native_class": "aJP"
+      },
+      {
+        "aeV": 5,
+        "ckk": false,
+        "ckl": [
+          12686,
+          4
+        ],
+        "d": 4655,
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": true,
+    "cjP": 6,
+    "cjQ": 1,
+    "cjR": true,
+    "cjS": -1,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": false,
+    "cjW": true,
+    "cjX": 0,
+    "cjY": 1,
+    "cjZ": 1,
+    "cka": "ach.238",
+    "d": 2144,
+    "getDuration": 0,
+    "isVisible": true,
+    "native_class": "aJM"
+  }
+}

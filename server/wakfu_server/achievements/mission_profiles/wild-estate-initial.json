@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "wild-estate-initial",
+  "evidence": [
+    "Native category187 current level50 introduction1686 excludes allWildEstate maps and active legacy1612. The guide explicitly states automatic level50 admission. Finite character_ready activation retains native effective eligibility; neither all visible quests nor completed preview state activates the chain.",
+    "Actual typed map_departure(target711) fires after native public transport authorization and before position compare-and-set in the SAME transaction. The real source context preserves original intro cjI exclusions for map711 and running1616. Only subsequent committed map_enter711 activates the camp. Failed movement rolls back both objective/reward and departure facts; administrative teleport is not this producer. Native current boats use Astrub20236\u2192Bonta31317(route807), then31317\u2192WildEstate20694(route795), arrival711(3,22,-74). No obsolete directAstrub route is invented.",
+    "Initial camp1616 and footprint1617 actual source IDs and scripts are separately pinned in quest_interactions/wild-estate-initial.json. Original Lua differentiates correct clues from explicitWrongindice/WrongEmpreinte distractions. Quest-to-clue objective joins are reviewed local bindings by native indexed narrative, not recovered server scripts. Guide https://wakfu.wiki.gg/wiki/Wild_Estate/Main_Quest_Line corroborates camp\u2192threecorrecttracks\u2192Bontaflag sequence.",
+    "Only currentintro1686 is newly auto-admitted. Legacy1612 is supported solely when already actually running, preventing duplicate RelicHunt rewards. Later1618/1631 excavations are not activated by this bounded initial branch."
+  ],
+  "bindings": [
+    {
+      "id": "wild-estate-native-arrival-1612",
+      "quest_id": 1612,
+      "objective_id": 3012,
+      "event": {
+        "kind": "map_departure",
+        "reference": 711
+      },
+      "count": "operation",
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wild-estate-native-arrival-1686",
+      "quest_id": 1686,
+      "objective_id": 3170,
+      "event": {
+        "kind": "map_departure",
+        "reference": 711
+      },
+      "count": "operation",
+      "instances": [
+        0
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-estate-current-level50-introduction",
+      "quest_id": 1686,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed native/guide automatic level50 story admission; finite currentisland branch only. Native effective quest eligibility and original mutually exclusive introduction predicate remain authoritative."
+    },
+    {
+      "id": "wild-estate-camp-on-authentic-arrival",
+      "quest_id": 1616,
+      "event": {
+        "kind": "map_enter",
+        "reference": 711
+      },
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wild-estate-camp-on-island-ready",
+      "quest_id": 1616,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed native/guide automatic level50 story admission; finite currentisland branch only. Native effective quest eligibility and original mutually exclusive introduction predicate remain authoritative."
+    },
+    {
+      "id": "wild-estate-camp-after-current-intro",
+      "quest_id": 1616,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1686
+      },
+      "requires_completed": [
+        1686
+      ],
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wild-estate-camp-after-legacy-intro",
+      "quest_id": 1616,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1612
+      },
+      "requires_completed": [
+        1612
+      ],
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wild-estate-tracks-after-camp",
+      "quest_id": 1617,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1616
+      },
+      "requires_completed": [
+        1616
+      ],
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "wild-estate-recover-earned-tracks",
+      "quest_id": 1617,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1616
+      ],
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed native/guide automatic level50 story admission; finite currentisland branch only. Native effective quest eligibility and original mutually exclusive introduction predicate remain authoritative."
+    }
+  ]
+}

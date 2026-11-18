@@ -5,6 +5,7 @@ Original localized rules require +/-35 hero/profession levels, exclude kama
 crafting, and require a dungeon boss within50 levels for1391. No client event
 or caller-selected amount can award guild points through this module.
 """
+
 from copy import deepcopy
 from functools import lru_cache
 import struct
@@ -93,6 +94,9 @@ def synchronize(db, character_id, *, now_ms=None):
             or identity in after["completed"]
             or _OBJECTIVES[identity] in after["objectives"]
         )
+        from wakfu_server.achievements import lifecycle
+
+        lifecycle.reset(after, identity)
         after["running"] = [x for x in after["running"] if x != identity]
         after["completed"] = [x for x in after["completed"] if x != identity]
         after["objectives"] = [

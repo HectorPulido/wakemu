@@ -1,0 +1,37 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Original2709report to Magnum3819/action703 retains current public1134actor at16,8,0 and actual3225/8083 running2709 offered choice. Single actual report earns5344 after nativeComplete2708; no acknowledgement grants urgent2708 battle. Existing captured physical actor,weekly provider and earlier story branches remain unchanged.",
+  "speakers": [
+    {
+      "actor_id": -1724034232352753,
+      "action_id": 703,
+      "quest_ids": [
+        2708,
+        2709
+      ],
+      "graph": [
+        [
+          3225,
+          8082,
+          0
+        ],
+        [
+          3225,
+          8083,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2709,
+          "objective_id": 5344,
+          "node_id": 3225,
+          "choice_id": 8083,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ]
+    }
+  ],
+  "activation_links": []
+}

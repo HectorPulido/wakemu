@@ -1,0 +1,81 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "wild-estate-chief-726",
+  "controller_id": "wild-estate-chief-726",
+  "map_id": 726,
+  "policy_version": 1,
+  "quest_id": 1637,
+  "physical_visit": false,
+  "requires": [
+    "chief-quarters-arrived"
+  ],
+  "until": [],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 2801,
+      "action_ids": [
+        438
+      ],
+      "action_criterion": "",
+      "dialogue_root": 2319,
+      "native_opening_roots": [
+        2319
+      ],
+      "choice_id": 5622,
+      "choice_type": 8,
+      "objective_id": 3058,
+      "binding_node_id": 2323,
+      "graph": [
+        [
+          2319,
+          5616,
+          2322
+        ],
+        [
+          2319,
+          5624,
+          0
+        ],
+        [
+          2322,
+          5621,
+          2323
+        ],
+        [
+          2323,
+          5622,
+          0
+        ]
+      ],
+      "native_guard_path": [
+        [
+          2319,
+          5616,
+          2322
+        ],
+        [
+          2322,
+          5621,
+          2323
+        ],
+        [
+          2323,
+          5622,
+          0
+        ]
+      ],
+      "x": -2,
+      "y": -15,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -2,
+        "y": -14,
+        "z": 0
+      },
+      "provenance": "Reviewed native Wild Estate handoff: 1646 requires completed1679 and level50; actual thirteen map711 wool sources grant original17832 through accepted chest occupations and counter368 must reach10. Original frightened Bwork2811/action440 root2331 choice5634 requires Running1646 and ten17832; reviewed edge to original2366 describes squeezing wool into a flask, ending at native5740. Debiting ten wool and granting one17828 Essence of Bwork are explicit reviewed server reconstruction from native dialogue and actual chief gate item, not recovered server effects. Original chief entrance711/20440/1413 requires one17828 and enters native726; arrival3057 requires authenticated owned World-ready, and3058 requires the guarded original chief2801/action438 conversation2319/5616→2322/5621→2323/5622. NPC position and dialogue edges are reviewed reconstruction on native floor. No rendering, public teleport, preliminary choice or ordinary battle grants these facts. Existing owned instance reuse retains its paid entry; no new essence debit is made on a reused visit."
+    }
+  ]
+}

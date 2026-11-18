@@ -10,6 +10,7 @@ from wakfu_server.combat_sn_path import NativeSnColumns
 
 MAP_ID = 777
 SOURCE_SHA256 = "eb36ad4b882069928893bdd5d7a0a360adcef2e71ce23f65386f446393dc0835"
+SOURCE_REVISION = "a" * 64
 
 
 class StopAfterSelection(Exception):
@@ -48,7 +49,7 @@ class ArenaGroundBulkTests(unittest.TestCase):
             columns_data, map_id=MAP_ID, source_sha256=SOURCE_SHA256
         )
         publication = {
-            "qualified_native_release": "arena-ground-test",
+            "qualified_native_release": SOURCE_REVISION,
             "maps": {
                 str(MAP_ID): {
                     "map_id": MAP_ID,
@@ -82,7 +83,7 @@ class ArenaGroundBulkTests(unittest.TestCase):
             patch.object(
                 combat_terrain.protocol_catalog,
                 "release",
-                return_value="arena-ground-test",
+                return_value=SOURCE_REVISION,
             ),
             patch.object(combat_terrain, "compact_encounter", side_effect=select),
             patch.object(NativeSnColumns, "from_published", return_value=columns),

@@ -1,0 +1,517 @@
+{
+  "schema": "combat_mission_bindings_v1",
+  "revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "quest_id": 1272,
+      "objective_id": 2402,
+      "kind": "monster",
+      "target_id": 2535,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 1848,
+      "objective_id": 3847,
+      "kind": "monster",
+      "target_id": 3022,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 2138,
+      "objective_id": 4230,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 1259,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 27
+    },
+    {
+      "quest_id": 2139,
+      "objective_id": 4231,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 2157,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 65
+    },
+    {
+      "quest_id": 2561,
+      "objective_id": 5059,
+      "count": 1,
+      "kind": "dungeon",
+      "target_id": 88,
+      "evidence": "Reconstructed: exact native dungeon title in localized objective; initial acceptance on victory is local policy."
+    },
+    {
+      "quest_id": 2674,
+      "objective_id": 5283,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 3587,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 99
+    },
+    {
+      "quest_id": 2829,
+      "objective_id": 5711,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 3866,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 109
+    },
+    {
+      "quest_id": 3321,
+      "objective_id": 7013,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 4251,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 122
+    },
+    {
+      "quest_id": 3322,
+      "objective_id": 7026,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 4231,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 123
+    },
+    {
+      "quest_id": 3328,
+      "objective_id": 7040,
+      "count": 1,
+      "kind": "boss",
+      "target_id": 4254,
+      "evidence": "Reconstructed: exact boss and dungeon names in client; objective requires both. Initial acceptance on victory is local policy.",
+      "dungeon_id": 124
+    },
+    {
+      "quest_id": 3970,
+      "objective_id": 8461,
+      "kind": "monster",
+      "target_id": 4097,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3977,
+      "objective_id": 8462,
+      "kind": "monster",
+      "target_id": 4086,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3978,
+      "objective_id": 8463,
+      "kind": "monster",
+      "target_id": 4101,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3979,
+      "objective_id": 8464,
+      "kind": "monster",
+      "target_id": 4098,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3980,
+      "objective_id": 8465,
+      "kind": "monster",
+      "target_id": 4100,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3981,
+      "objective_id": 8466,
+      "kind": "monster",
+      "target_id": 4368,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3982,
+      "objective_id": 8467,
+      "kind": "monster",
+      "target_id": 4255,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3983,
+      "objective_id": 8468,
+      "kind": "monster",
+      "target_id": 4267,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3985,
+      "objective_id": 8470,
+      "kind": "monster",
+      "target_id": 4371,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3986,
+      "objective_id": 8471,
+      "kind": "monster",
+      "target_id": 4370,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3988,
+      "objective_id": 8473,
+      "kind": "monster",
+      "target_id": 4481,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3989,
+      "objective_id": 8474,
+      "kind": "monster",
+      "target_id": 3701,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3990,
+      "objective_id": 8475,
+      "kind": "monster",
+      "target_id": 4388,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3991,
+      "objective_id": 8476,
+      "kind": "monster",
+      "target_id": 4393,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3992,
+      "objective_id": 8477,
+      "kind": "monster",
+      "target_id": 4280,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3993,
+      "objective_id": 8478,
+      "kind": "monster",
+      "target_id": 4381,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3994,
+      "objective_id": 8479,
+      "kind": "monster",
+      "target_id": 4390,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3995,
+      "objective_id": 8480,
+      "kind": "monster",
+      "target_id": 2384,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3996,
+      "objective_id": 8481,
+      "kind": "monster",
+      "target_id": 2489,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3997,
+      "objective_id": 8482,
+      "kind": "monster",
+      "target_id": 4391,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3998,
+      "objective_id": 8483,
+      "kind": "monster",
+      "target_id": 2992,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 3999,
+      "objective_id": 8484,
+      "kind": "monster",
+      "target_id": 4480,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4000,
+      "objective_id": 8485,
+      "kind": "monster",
+      "target_id": 4235,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4002,
+      "objective_id": 8487,
+      "kind": "monster",
+      "target_id": 2630,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4003,
+      "objective_id": 8488,
+      "kind": "monster",
+      "target_id": 4372,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4004,
+      "objective_id": 8489,
+      "kind": "monster",
+      "target_id": 4269,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4005,
+      "objective_id": 8490,
+      "kind": "monster",
+      "target_id": 5480,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4006,
+      "objective_id": 8491,
+      "kind": "monster",
+      "target_id": 3098,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4007,
+      "objective_id": 8492,
+      "kind": "monster",
+      "target_id": 3175,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4008,
+      "objective_id": 8493,
+      "kind": "monster",
+      "target_id": 4358,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4009,
+      "objective_id": 8494,
+      "kind": "monster",
+      "target_id": 4357,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4010,
+      "objective_id": 8495,
+      "kind": "monster",
+      "target_id": 4304,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4011,
+      "objective_id": 8496,
+      "kind": "monster",
+      "target_id": 4220,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4012,
+      "objective_id": 8497,
+      "kind": "monster",
+      "target_id": 4330,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4013,
+      "objective_id": 8498,
+      "kind": "monster",
+      "target_id": 4329,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4014,
+      "objective_id": 8499,
+      "kind": "monster",
+      "target_id": 4261,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4541,
+      "objective_id": 9409,
+      "kind": "monster",
+      "target_id": 5005,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4542,
+      "objective_id": 9410,
+      "kind": "monster",
+      "target_id": 1632,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4543,
+      "objective_id": 9411,
+      "kind": "monster",
+      "target_id": 4752,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4544,
+      "objective_id": 9412,
+      "kind": "monster",
+      "target_id": 4737,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4545,
+      "objective_id": 9413,
+      "kind": "monster",
+      "target_id": 4765,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4546,
+      "objective_id": 9414,
+      "kind": "monster",
+      "target_id": 1631,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4547,
+      "objective_id": 9415,
+      "kind": "monster",
+      "target_id": 1639,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4548,
+      "objective_id": 9416,
+      "kind": "monster",
+      "target_id": 5019,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4549,
+      "objective_id": 9417,
+      "kind": "monster",
+      "target_id": 1749,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4550,
+      "objective_id": 9418,
+      "kind": "monster",
+      "target_id": 5010,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4551,
+      "objective_id": 9419,
+      "kind": "monster",
+      "target_id": 1633,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4552,
+      "objective_id": 9420,
+      "kind": "monster",
+      "target_id": 1638,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4553,
+      "objective_id": 9421,
+      "kind": "monster",
+      "target_id": 4998,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4555,
+      "objective_id": 9423,
+      "kind": "monster",
+      "target_id": 5012,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4557,
+      "objective_id": 9425,
+      "kind": "monster",
+      "target_id": 5015,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4558,
+      "objective_id": 9426,
+      "kind": "monster",
+      "target_id": 4853,
+      "count": 1,
+      "evidence": "Reconstructed: objective text exactly names one unique native monster; initial acceptance on victory is local policy, not recovered native quest-giver behavior."
+    },
+    {
+      "quest_id": 4668,
+      "objective_id": 9637,
+      "count": 1,
+      "kind": "dungeon",
+      "target_id": 155,
+      "evidence": "Reconstructed: exact native dungeon title in localized objective; initial acceptance on victory is local policy."
+    }
+  ]
+}

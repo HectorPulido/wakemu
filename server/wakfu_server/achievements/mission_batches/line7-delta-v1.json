@@ -1,0 +1,18 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "line7-optional-native-training-delta-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-mount-training-879.configuration.json",
+      "sha256": "9f7bf93198b4ae05597695e3ef8f2810e357cca159a997976d08d41343fcb5df"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/astrub-mount-training.json",
+      "sha256": "a365c49b616e4596aee8b9889830ab15eb5af29ffcbdac64d90dab4a98a8521f"
+    }
+  ]
+}

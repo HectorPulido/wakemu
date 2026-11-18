@@ -10,8 +10,27 @@ from protocol_codec import Reader
 _DATA = protocol_catalog.load(DATA_ROOT / "spells.json")
 SPELLS = {r["id"]: r for r in _DATA["spells"]}
 _PINNED_SPELLS = SPELLS
-# Original aNr 5623: common active, available while carrying scroll 26347.
+# Original aNr common actives/passives retain their account scroll and level.
 COMMON_ITEM_SPELLS = {
+    # Passive learning uses aNr.eqr, unlike the active scroll's aNr.ers.
+    5621: {
+        "id": 5621,
+        "breed": -2,
+        "kind": "passive",
+        "unlock_level": 80,
+        "item_reference": 26346,
+        "native_inventory": "account_quest",
+        "requires_published_domain": True,
+    },
+    5622: {
+        "id": 5622,
+        "breed": -2,
+        "kind": "active",
+        "unlock_level": 30,
+        "item_reference": 26345,
+        "native_inventory": "account_quest",
+        "requires_published_domain": True,
+    },
     5623: {
         "id": 5623,
         "breed": -2,
@@ -19,7 +38,7 @@ COMMON_ITEM_SPELLS = {
         "unlock_level": 130,
         "item_reference": 26347,
         "native_inventory": "account_quest",
-    }
+    },
 }
 # Client fzc: six initial active slots; remaining slots and passive slots unlock
 # at these exact levels. Spell unlock levels come separately from bdata 66.
@@ -33,7 +52,8 @@ def _breed_spell_records(breed):
     return tuple(
         r
         for r in _PINNED_SPELLS.values()
-        if r["breed"] == breed or (r["breed"] == -2 and r["kind"] == "passive")
+        if r["id"] not in COMMON_ITEM_SPELLS
+        and (r["breed"] == breed or (r["breed"] == -2 and r["kind"] == "passive"))
     )
 
 
@@ -47,9 +67,61 @@ def available_spells(breed, level, *, character=None):
     return [
         r
         for r in SPELLS.values()
-        if (r["breed"] == breed or (r["breed"] == -2 and r["kind"] == "passive"))
+        if r["id"] not in COMMON_ITEM_SPELLS
+        and (r["breed"] == breed or (r["breed"] == -2 and r["kind"] == "passive"))
         and r["unlock_level"] <= level
     ] + item_spells(character, level)
+
+
+@lru_cache(maxsize=1)
+def published_item_spell_references():
+    """Keep newly added domains unavailable until native source publication."""
+    source = protocol_catalog.load(DATA_ROOT / "native-common-spell-effect-trees.json")
+    references = source.get("spell_references")
+    if (
+        source.get("schema") != "native-retained-item-common-spell-effects-v1"
+        or not isinstance(references, list)
+        or any(
+            type(ref) is not int or ref not in COMMON_ITEM_SPELLS for ref in references
+        )
+        or references != sorted(set(references))
+    ):
+        raise ValueError("Missing native retained-item spell domain")
+    from wakfu_server.spell_audit import catalog as published_spell_book
+
+    published = published_spell_book()
+    installed = published["spells"]
+    result = {ref for ref in references if str(ref) in installed}
+    # Retained-item passives already belong to the ordinary sealed passive
+    # domain. Do not merge them into the separate common-active effect source
+    # or regenerate identical native effect collections.
+    for reference, spell in COMMON_ITEM_SPELLS.items():
+        native = SPELLS.get(reference)
+        record = installed.get(str(reference))
+        if (
+            spell["kind"] != "passive"
+            or native is None
+            or record is None
+            or any(
+                native[key] != spell[key]
+                for key in ("id", "breed", "kind", "unlock_level")
+            )
+        ):
+            continue
+        pending = [root for level in record["levels"] for root in level[2]]
+        visited = set()
+        while pending:
+            root = str(pending.pop())
+            if root in visited:
+                continue
+            effect = published["effects"].get(root)
+            if effect is None:
+                break
+            visited.add(root)
+            pending.extend(effect["children"])
+        else:
+            result.add(reference)
+    return frozenset(result)
 
 
 def item_spells(character, level):
@@ -66,7 +138,12 @@ def item_spells(character, level):
     return [
         spell
         for spell in COMMON_ITEM_SPELLS.values()
-        if spell["unlock_level"] <= level and spell["item_reference"] in owned
+        if spell["unlock_level"] <= level
+        and spell["item_reference"] in owned
+        and (
+            not spell.get("requires_published_domain")
+            or spell["id"] in published_item_spell_references()
+        )
     ]
 
 
@@ -129,7 +206,7 @@ def reconcile_item_spell_decks(character):
             for reference, spell in COMMON_ITEM_SPELLS.items()
             if cap > 0 and cap < spell["unlock_level"]
         }
-        if any(reference in unavailable for reference in active):
+        if any(reference in unavailable for reference in active + passive):
             builds[index] = dict(
                 build,
                 deck=encode_deck(
@@ -137,7 +214,10 @@ def reconcile_item_spell_decks(character):
                         0 if reference in unavailable else reference
                         for reference in active
                     ],
-                    passive,
+                    [
+                        0 if reference in unavailable else reference
+                        for reference in passive
+                    ],
                     cap,
                 ).hex(),
             )

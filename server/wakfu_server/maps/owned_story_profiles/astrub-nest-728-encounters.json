@@ -1,0 +1,84 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "astrub-nest-728-encounters",
+  "map_id": 728,
+  "provenance": "Reviewed reconstruction, NOT recovered original formations/choreography: installed map728 has three physical rooms separated by exact doors24969 and24971. Two real larva encounters must clear before native NannyLarva2819 (level5, HP100, spells4625/4626/4627). Native735 white larvae and125 green larva preserve original grade ranges/stats/spells; counts/placements and event bindings are declared local policy. No Lua scenario association was recovered, so none is invented. Only genuine original-roster owned victories earn clear4284 and boss4285; actual Donalangelo debrief4299 remains separate.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "arena_seed": [
+        -1,
+        43,
+        0
+      ],
+      "bounds": [
+        -8,
+        35,
+        6,
+        51
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 735,
+          "count": 2,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "nest-room1-victory"
+      ],
+      "arena_seed": [
+        -1,
+        18,
+        0
+      ],
+      "bounds": [
+        -8,
+        11,
+        6,
+        26
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 125,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "nest-room2-victory"
+      ],
+      "arena_seed": [
+        -1,
+        -7,
+        0
+      ],
+      "bounds": [
+        -8,
+        -15,
+        6,
+        1
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2819,
+          "count": 1,
+          "role": "boss"
+        }
+      ]
+    }
+  ]
+}

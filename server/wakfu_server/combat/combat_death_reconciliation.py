@@ -43,10 +43,20 @@ def apply_death_reconciliation(fight, plan):
         from .rift_combat_adapter import defer_wave_victory
 
         defer_victory = defer_wave_victory(fight, alive)
+    from .native_order_trial_encounter import defer_victory as defer_order_victory
+
+    defer_victory = defer_victory or defer_order_victory(fight, alive)
     if len(alive) < 2 and not defer_victory:
         fight.order = list(plan.surviving_order)
         fight.phase = "finished"
-        fight.winner = next(iter(alive), None)
+        from .native_order_trial_encounter import policy_for
+
+        order_policy = policy_for(fight)
+        fight.winner = (
+            order_policy.npc_team
+            if order_policy is not None
+            else next(iter(alive), None)
+        )
         fight._event("finished", winner=fight.winner)
     elif plan.current_id in plan.surviving_order:
         fight.order = list(plan.surviving_order)

@@ -13,8 +13,29 @@ SOURCE = Path(__file__).resolve().parent
 
 
 def ensure_python(environment):
+    if not (3, 10) <= sys.version_info[:2] < (3, 15):
+        raise OSError(
+            "The launcher requires Python 3.10-3.14. "
+            "Install Python 3.14 x64, then open Launch.bat again on Windows."
+        )
     environment = Path(environment)
     python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    if python.is_file():
+        compatible = (
+            subprocess.run(
+                [
+                    str(python),
+                    "-c",
+                    "import sys; sys.exit(not ((3, 10) <= sys.version_info[:2] < (3, 15)))",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ).returncode
+            == 0
+        )
+        if not compatible:
+            # Recover a private environment created by an unsupported Python.
+            venv.EnvBuilder(with_pip=True, clear=True).create(environment)
     requirements = SOURCE / "requirements.txt"
     digest = hashlib.sha256(requirements.read_bytes()).hexdigest()
     receipt = environment / "launcher-requirements.sha256"

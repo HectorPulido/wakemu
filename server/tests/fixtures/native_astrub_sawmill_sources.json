@@ -1,0 +1,144 @@
+{
+  "sources": [
+    {
+      "map_id": 527,
+      "id": 19409,
+      "x": -151.0,
+      "y": 51.0,
+      "z": 0.0,
+      "native_parameters": "1124",
+      "definition_id": 1124,
+      "destinations": [
+        {
+          "destination_id": 1245,
+          "map_id": 610,
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "direction": 7,
+          "criterion": "IsAchievementActive(2190)",
+          "display_reference": 131,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": false,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 15,
+      "approach_orientation": 1,
+      "approach_blocks_center": false,
+      "approach_positions": [
+        {
+          "x": -150,
+          "y": 51,
+          "z": 0
+        },
+        {
+          "x": -152,
+          "y": 51,
+          "z": 0
+        },
+        {
+          "x": -151,
+          "y": 50,
+          "z": 0
+        },
+        {
+          "x": -151,
+          "y": 52,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "map_id": 610,
+      "id": 19402,
+      "x": 1.0,
+      "y": 0.0,
+      "z": 0.0,
+      "native_parameters": "1125",
+      "definition_id": 1125,
+      "destinations": [
+        {
+          "destination_id": 1246,
+          "map_id": 527,
+          "x": -150,
+          "y": 51,
+          "z": 0,
+          "direction": 1,
+          "criterion": "",
+          "display_reference": 0,
+          "cyZ": -1,
+          "item_reference": 0,
+          "cof": true,
+          "cvd": true,
+          "cyY": true,
+          "cyW": 0,
+          "cyX": 0,
+          "arrival_heights": [
+            0
+          ],
+          "native_altitude_walkable": true
+        }
+      ],
+      "approach_mask": 0,
+      "approach_orientation": 1,
+      "approach_blocks_center": false,
+      "approach_positions": []
+    }
+  ],
+  "monster": {
+    "ref": 1710,
+    "name": "Rata de Astrub",
+    "family_id": 653,
+    "min_level": 3,
+    "max_level": 3,
+    "statistics": {
+      "AP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 2,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 30,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 20,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 107700210,
+    "illustration_id": 102800210,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 1013
+      }
+    ],
+    "loot_definitions": []
+  }
+}

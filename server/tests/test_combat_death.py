@@ -10,6 +10,23 @@ from wakfu_server.combat_results import finish_messages
 
 
 class DeathTests(unittest.TestCase):
+    def test_summon_out_of_play_without_native_receipt_does_not_remove_actor(self):
+        from wakfu_server.combat_death import newly_registered_death_messages
+        from wakfu_server.combat_summon_retirement import PROTECTED_SOURCE
+
+        fight, runtime, _ = test_combat_results.FightResultTests().state()
+        fight.events = [
+            dict(
+                sequence=1,
+                kind="summon_out_of_play",
+                actor_id=-200,
+                source=PROTECTED_SOURCE,
+            )
+        ]
+        self.assertEqual(newly_registered_death_messages(runtime, after_sequence=0), [])
+        self.assertEqual(runtime.action_id, 0)
+        self.assertNotIn(-200, getattr(runtime, "_reported_deaths", ()))
+
     def test_raw_new_deaths_finalize_state_without_allocating_native_actions(self):
         from wakfu_server.combat_death import newly_registered_death_messages
 

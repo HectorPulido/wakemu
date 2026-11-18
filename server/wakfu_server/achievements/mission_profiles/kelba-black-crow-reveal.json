@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "kelba-black-crow-reveal",
+  "evidence": [
+    "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented.",
+    "Earned admission follows actually completed2543 at native level65. Recovery admits only this earned chapter. Objective5043 requires the original reveal sequence and offered final callback19800; arriving in949/951 or administrative teleport never grants it. Native rendered Kabrok is noncombat; no Ush/BlackCrow encounter is substituted."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-earned-reveal-after-hadibal",
+      "quest_id": 2544,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2543
+      },
+      "requires_completed": [
+        2543
+      ]
+    },
+    {
+      "id": "kelba-earned-reveal-recovery",
+      "quest_id": 2544,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2543
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Reviewed reconstruction of original Kelba2544 reveal: native949/25127/2210 enters951, nativeKabrok3580 actualprototype/visual173603580 appears on legal original Sm6 floor(-2,0,0), and original1977 movie15758/15774/15759 precedes actualofferedend19800/objective5043. Native server actor placement/arrival path is not serialized; these legal floor anchors and timed server phase joins are explicitly reconstructed, not captured formations. No battle, victory, staff, Black Crow mechanics or later chapter completion is invented."
+    }
+  ]
+}

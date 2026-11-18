@@ -571,6 +571,24 @@ class MissionToolkitCoreTests(unittest.TestCase):
                 {"kind": "resource_harvest", "reference": 44, "quantity": 1},
             )
 
+    def test_alternative_child_links_are_allowed_but_exact_duplicate_is_rejected(self):
+        native = [
+            quest(1, [objective(11)]),
+            quest(2, [objective(21)]),
+            quest(3, [objective(31)]),
+        ]
+        declaration = profile(
+            links=[
+                {"parent_quest_id": 2, "objective_id": 21, "child_quest_id": 1},
+                {"parent_quest_id": 2, "objective_id": 21, "child_quest_id": 3},
+            ]
+        )
+        self.assertEqual(contract.validate(declaration, native), declaration)
+        duplicate = copy.deepcopy(declaration)
+        duplicate["links"].append(copy.deepcopy(duplicate["links"][0]))
+        with self.assertRaisesRegex(ValueError, "Conflicting or unsupported"):
+            contract.validate(duplicate, native)
+
     def test_publication_rejects_only_overlapping_binding_scopes(self):
         native = [
             quest(

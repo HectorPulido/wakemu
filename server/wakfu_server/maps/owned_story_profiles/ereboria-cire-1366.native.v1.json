@@ -1,0 +1,205 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1366,
+  "objects": [
+    {
+      "chunk": "0_-1",
+      "id": 33379,
+      "payload_hex": "02000000000b010000000d000001055600000006fffffff5000000010101010100000000043134383900000000000000",
+      "x": 6.0,
+      "y": -11.0,
+      "map_id": 1366,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "0_0",
+      "id": 33378,
+      "payload_hex": "02000000000b010000000d000001055600000000000000010000000100000100000001000000000000000100000004313336360000003baf0000",
+      "x": 0.0,
+      "y": 1.0,
+      "map_id": 1366,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "0_0",
+      "id": 33815,
+      "payload_hex": "02000000000b010000000d000001055600000000000000010000000101010100000001000000000000000100000004343237370000003baf0000",
+      "x": 0.0,
+      "y": 1.0,
+      "map_id": 1366,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    }
+  ],
+  "scenario_events": [],
+  "presentations": [],
+  "provenance": "Reviewed reconstruction of5059 final confrontation on actual1366, reached only through original33814/4558 after10466. Native5357 is original Cire Momore230 with98,765,432HP and initiative1000; all native spells/states/statistics stay unchanged. The single-original-boss formation, position and door-to-encounter join are reviewed reconstruction, not serialized original server composition. Actual33379/1489/1908/effect3375 opens the real door; only authenticated settled defeat caused by this original5357 native917 lethal effect earns10539. A withdrawal, early death, summon, ordinary unrelated defeat or intervention5416/5417 does not. No2528 presentation or scenario-map association is invented. Final10540 is the separate original Cyross return branch.",
+  "programs": {
+    "33379": {
+      "native_class": "aLl",
+      "descriptor_id": 1489,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 1857,
+          "clx": 305,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 1908,
+              "criterion": "not IsHero()",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 3375,
+                  "effect_type": 1,
+                  "criterion": "not IsHero()",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "defeat_source_authority": {
+    "kind": "reviewed_native_confrontation",
+    "map_join": "The map1366/5357 singleton placement and terminal loss join are explicit reviewed content reconstruction. No scenario2528 association is asserted.",
+    "original_monster_reference": 5357,
+    "native_monster_sha256": "5b4d34831f2bb997aa713331e99b1494b565b6a2982813188a5a0d69b70a9cd4",
+    "native_statistics": {
+      "AP": {
+        "base": 15,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 98765432,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 1000,
+        "per_level": 0.0
+      }
+    },
+    "native_abilities": [
+      {
+        "spell_id": 7531,
+        "level_parameter": -1
+      },
+      {
+        "spell_id": 7530,
+        "level_parameter": -1
+      },
+      {
+        "spell_id": 7529,
+        "level_parameter": -1
+      }
+    ],
+    "native_physical_radius": 1,
+    "cause_kind": "native_damage",
+    "native_damage_family": "STASIS917; ordinary native damage, not forced percentage kill",
+    "native_effects": [
+      {
+        "reference": 333860,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "aaece0d78b70d0cf0b1eb02a1c9b65f84f486d504bf188b47c3c8aec43c6d400",
+        "effect_class": 917,
+        "parameters": [
+          0.0,
+          100.0
+        ]
+      },
+      {
+        "reference": 333863,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "51609edbc46d7c4f45e0f45cb638d04571e94e5bae522f567d2afcc858db2273",
+        "effect_class": 917,
+        "parameters": [
+          100.0,
+          0.0
+        ]
+      },
+      {
+        "reference": 333864,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "1983990ce454a74c035b4b3b8c6ea7faf066671e4bd3c56faf11671150a8dd20",
+        "effect_class": 917,
+        "parameters": [
+          300.0,
+          0.0
+        ]
+      },
+      {
+        "reference": 333867,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "ce33dd147e06d60dbfefcdc5110ea6517d005a763ce2ce679cb066b95de3675c",
+        "effect_class": 917,
+        "parameters": [
+          200.0,
+          0.0
+        ]
+      },
+      {
+        "reference": 335171,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "5981e6f6a3046ee771343ac716ecb17911e82d635916508154180dcab02e90f5",
+        "effect_class": 917,
+        "parameters": [
+          125.0,
+          0.0
+        ]
+      },
+      {
+        "reference": 335172,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "9d9299422f55730021f49861656a997393d65528d97aac2d4e77249dbe16e961",
+        "effect_class": 917,
+        "parameters": [
+          375.0,
+          0.0
+        ]
+      },
+      {
+        "reference": 335175,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "c6626f8eed516019510bb7fcb5359e1f48a63afa3a4499c43c8910803875b844",
+        "effect_class": 917,
+        "parameters": [
+          250.0,
+          0.0
+        ]
+      },
+      {
+        "reference": 335180,
+        "source_path": "native-npc-spell-effect-trees.json",
+        "source_sha256": "112b083068fe55c1dcc83e08ad3fac4f1d94bcfa295f0909258472e0ba18307f",
+        "effect_class": 917,
+        "parameters": [
+          0.0,
+          125.0
+        ]
+      }
+    ]
+  }
+}

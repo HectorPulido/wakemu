@@ -312,6 +312,279 @@
         }
       ],
       "route_key": "native_dungeon_184"
+    },
+    {
+      "route_key": "quest-npc-980-1740-158-3206-7954",
+      "policy_version": 1,
+      "configuration_sha256": "7d266d8b4c5b459fe8e0d76ba008af38d35c22d9ed3fd51e6f213b73320f2288",
+      "plan_sha256": "d4bf494942f897b36473ee4f556eb561624cc669a7823c2bc7c471c8bfd4ac9d",
+      "document_sha256": "49fb5d26fb83e0fb21bd80a7655eb0d61bd60484d44cc4187d02b9d73c511347",
+      "rooms": [
+        {
+          "room_order": 1,
+          "room_sha256": "3ff9fc980b8b6eb080f8f420cfdeef78efb248f6d5bf26ec57482f0f8238914a",
+          "encounter_scene": {
+            "schema_version": 1,
+            "full_room_scope": true,
+            "policy_id": "zinit-voyage-reviewed-deck-stage-1-v1",
+            "authority": "authorized_native_content_reconstruction",
+            "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+            "fixed_actor_placements": [
+              {
+                "reference": 3771,
+                "occurrence": 0,
+                "cell": [
+                  2,
+                  -4,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3771,
+                "occurrence": 1,
+                "cell": [
+                  4,
+                  -4,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3771,
+                "occurrence": 2,
+                "cell": [
+                  2,
+                  -2,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "room_order": 2,
+          "room_sha256": "4666c67a8cacb171822965fff841b5e2c17e6986d24f36e3bad0a2981c756b19",
+          "encounter_scene": {
+            "schema_version": 1,
+            "full_room_scope": true,
+            "policy_id": "zinit-voyage-reviewed-deck-stage-2-v1",
+            "authority": "authorized_native_content_reconstruction",
+            "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+            "fixed_actor_placements": [
+              {
+                "reference": 3783,
+                "occurrence": 0,
+                "cell": [
+                  2,
+                  -4,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3783,
+                "occurrence": 1,
+                "cell": [
+                  4,
+                  -4,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3783,
+                "occurrence": 2,
+                "cell": [
+                  2,
+                  -2,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3784,
+                "occurrence": 0,
+                "cell": [
+                  4,
+                  -2,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3784,
+                "occurrence": 1,
+                "cell": [
+                  2,
+                  0,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "room_order": 3,
+          "room_sha256": "f669cf10d1a5f34c81a81f69cce5d8f6fa9d17b651dfd5071ad766e3c9bcd3a8",
+          "encounter_scene": {
+            "schema_version": 1,
+            "full_room_scope": true,
+            "policy_id": "zinit-voyage-reviewed-deck-stage-3-v1",
+            "authority": "authorized_native_content_reconstruction",
+            "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+            "fixed_actor_placements": [
+              {
+                "reference": 3769,
+                "occurrence": 0,
+                "cell": [
+                  2,
+                  -4,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3769,
+                "occurrence": 1,
+                "cell": [
+                  4,
+                  -4,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3769,
+                "occurrence": 2,
+                "cell": [
+                  2,
+                  -2,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3770,
+                "occurrence": 0,
+                "cell": [
+                  4,
+                  -2,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3770,
+                "occurrence": 1,
+                "cell": [
+                  2,
+                  0,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              },
+              {
+                "reference": 3770,
+                "occurrence": 2,
+                "cell": [
+                  4,
+                  0,
+                  0
+                ],
+                "direction": 5,
+                "source": {
+                  "kind": "authorized_native_content_reconstruction",
+                  "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+                  "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "room_order": 4,
+          "room_sha256": "85186d443731b21f9ee98b4317b33b0942bba028cbc6762bf046900252becb4b",
+          "encounter_scene": null
+        },
+        {
+          "room_order": 5,
+          "room_sha256": "c242db52eebb211d30fd97c94f1b5823043813b7fa4948fa204e5c32a4e2c2ad",
+          "encounter_scene": null
+        },
+        {
+          "room_order": 6,
+          "room_sha256": "1b7ee6bc02cb2995b8632f0d2a3456f1aeeb25580b23a013583318bf3ea8069f",
+          "encounter_scene": null
+        }
+      ]
     }
   ],
   "schema_version": 1

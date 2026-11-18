@@ -1,0 +1,44 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "huppermage-seed-1018",
+  "version": 1,
+  "map_id": 1018,
+  "entry": {
+    "kind": "native_npc_choice",
+    "map_id": 1018,
+    "reference_id": 3916,
+    "action_id": 724,
+    "node_id": 3312,
+    "choice_id": 8198,
+    "position": [
+      35,
+      -35,
+      -15
+    ],
+    "interaction_anchor": [
+      34,
+      -35,
+      -15
+    ],
+    "interaction_range": 4,
+    "arrival": [
+      0,
+      -27,
+      -8
+    ],
+    "direction": 7,
+    "evidence": "Original Janine3916/action724/node3312/choice8198 is explicit start-fight, accepted through the native offered conversation. Original speaker marker and actual Sm6 approach preserved. Private courtyard adaptation retains original native plant pattern."
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25691
+  ],
+  "controller_file": "huppermage-seed-1018.json",
+  "encounters_file": "huppermage-seed-1018-encounters.json",
+  "exploration_file": "huppermage-seed-1018.exploration.json",
+  "provenance": "Reviewed native-content version adaptation: actual1018 courtyard floor-8 hosts the unchanged installed seed173588/173589 seven-red/four-blue point pattern. Original greenhouse floor-14 cannot contain every original point on one native component. No point offsets, native programs, stats or spells are altered; no manual decoy placement substitutes for initial4071 construction. Actual Janine3312/8198 starts the private challenge. Original3907 enemy seed, genuine4072 temporary player form, original5599 collection eligibility and actual terminal outcome qualify5670."
+}

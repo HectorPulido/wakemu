@@ -1,0 +1,570 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "bovis-lair-1002",
+  "map_id": 1002,
+  "maximum_members": 1,
+  "admission": {
+    "alternatives": [
+      {
+        "quest_id": 2710,
+        "objective_id": null
+      },
+      {
+        "quest_id": 2711,
+        "objective_id": null
+      }
+    ],
+    "continuation_quest_id": 2720
+  },
+  "provenance": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory.",
+  "steps": [
+    {
+      "id": "bovis-lair-explored",
+      "kind": "world_ready",
+      "reference": 1002,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16152
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2710,
+          "objective_id": 5345
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-first-group-registered",
+      "kind": "room_available",
+      "reference": 1,
+      "requires": [
+        "bovis-lair-explored"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16166,
+          "arguments": [
+            "room_actor:1:0",
+            "room_actor:1:1",
+            "room_actor:1:2",
+            "room_actor:1:3"
+          ]
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-door-opened",
+      "kind": "interactive",
+      "reference": 25581,
+      "requires": [
+        "bovis-first-group-registered"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16267,
+          "arguments": [
+            "room_actor:1:0",
+            "room_actor:1:1",
+            "room_actor:1:2",
+            "room_actor:1:3"
+          ]
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-first-intro-finished",
+      "kind": "scenario_complete",
+      "reference": 16267,
+      "requires": [
+        "bovis-door-opened"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16295
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-room1-admitted",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [
+        "bovis-first-intro-finished"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 25524,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25525,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25526,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25527,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16164
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16165
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-room1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "bovis-room1-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16154
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25596,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-room2-admitted",
+      "kind": "room_admission",
+      "reference": 2,
+      "requires": [
+        "bovis-room1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 25528,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25529,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25530,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25531,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16235
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16173
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-room2-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "bovis-room2-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16156
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25599,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25600,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-mimi-confrontation",
+      "kind": "zone_trigger",
+      "reference": 25602,
+      "requires": [
+        "bovis-room2-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16296
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-mimi-intro-finished",
+      "kind": "scenario_complete",
+      "reference": 16296,
+      "requires": [
+        "bovis-mimi-confrontation"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16300
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-room3-admitted",
+      "kind": "room_admission",
+      "reference": 3,
+      "requires": [
+        "bovis-mimi-intro-finished"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 25532,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25533,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25534,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16236
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16175
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-mimi-rescued",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "bovis-room3-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16341
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16159
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-mimi-rescue-outcome",
+      "kind": "scenario_complete",
+      "reference": 16159,
+      "requires": [
+        "bovis-mimi-rescued"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 19866
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 2711,
+          "objective_id": 5346
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25601,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-room4-admitted",
+      "kind": "room_admission",
+      "reference": 4,
+      "requires": [
+        "bovis-mimi-rescue-outcome"
+      ],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 25535,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25536,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25537,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25538,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25539,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25540,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25541,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25542,
+          "state": 0,
+          "visible": false,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16237
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16207
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-boss-defeated",
+      "kind": "room_victory",
+      "reference": 4,
+      "requires": [
+        "bovis-room4-admitted"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16342
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2045,
+          "event": 16161
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    },
+    {
+      "id": "bovis-capture-outcome",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "bovis-boss-defeated"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2720,
+          "objective_id": 5358
+        }
+      ],
+      "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 25596,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25599,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25600,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25601,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    }
+  ],
+  "interaction_approach_policy": "pinned_native_qv",
+  "native_sources": {
+    "path": "bovis-lair-1002.native.v1.json",
+    "sha256": "c7c69eb65e2f2270f88d8216fe585d738d2bb50e99adb5f68689ba41207c7d8d"
+  },
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v2",
+    "rooms": [
+      {
+        "room_order": 1,
+        "requires": [
+          "bovis-first-intro-finished"
+        ],
+        "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+      },
+      {
+        "room_order": 3,
+        "requires": [
+          "bovis-mimi-intro-finished"
+        ],
+        "evidence": "Reviewed native Bovis story reconstruction: original1134/25510/2260 enters1002, after actual2710 level23 victory5359; original2045 names four fights, native25581 firstdoor/2426 and ZoneTrigger25602 thirdroomarrival. Real owned room3 TeamMissile3840/3841 victory with nativeMimi3854 rescues her; real room4 Bovis3845 outcome and original capture movie earn2720, retaining19660wool/19664miniature rewards. Missing original server first/second formations and source joins are explicitly reviewed reconstruction on originalnative1002 Sm6 floor. Native3842 is passive/no book and is not fabricated as an ordinary enemy. Actual native pillars andMimi state/books are independent required combat scene declarations, never replaced by ordinary talk or administrative victory."
+      }
+    ]
+  }
+}

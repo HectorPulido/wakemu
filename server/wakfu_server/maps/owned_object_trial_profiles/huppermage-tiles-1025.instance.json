@@ -1,0 +1,31 @@
+{
+  "schema": "owned-story-instance-v1",
+  "content_policy": "owned-object-trials-v1",
+  "id": "huppermage-tiles-1025",
+  "version": 1,
+  "map_id": 1025,
+  "entry": {
+    "map_id": 1017,
+    "object_id": 25688,
+    "destination_id": 2321
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25689
+  ],
+  "controller_file": "huppermage-tiles-1025.json",
+  "exploration_file": "huppermage-tiles-1025.exploration.json",
+  "owned_transfers": [
+    {
+      "schema": "owned-quest-transfer-v1",
+      "source_id": 26174,
+      "destination_id": 2351,
+      "target_route_key": "quest-map-1026-26174-2351"
+    }
+  ],
+  "provenance": "Reviewed School80 world-trial version: original1025 asset, exact native entry25688/2321 and exit25689/2322. The native15-tile adjacent-swap rule is reconstructed through actual accepted owner movement and durable permutation; standard native information packets show current tile identities/blank and the reviewed row-major target. Original fighting form/state references are provenance, not silently applied to a world actor. Native26175 inspection zone qualifies the flooded-path discovery, separately from its item hand-in and resource round trip. All story objectives still require actual running quests."
+}

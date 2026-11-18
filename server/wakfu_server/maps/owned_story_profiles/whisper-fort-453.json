@@ -1,0 +1,131 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "whisper-fort-453",
+  "map_id": 453,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 4872,
+    "objective_id": null,
+    "continuation_quest_id": 4873
+  },
+  "provenance": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed.",
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "fort-arrival",
+      "kind": "world_ready",
+      "reference": 453,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 4872,
+          "objective_id": 10046
+        }
+      ],
+      "evidence": "Actual native16531/957 admitted Fort453 context."
+    },
+    {
+      "id": "fort-infantry-win",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "fort-arrival"
+      ],
+      "effects": [],
+      "evidence": "Winning is a genuine ordinary result but never intentional defeat10047."
+    },
+    {
+      "id": "fort-infantry-defeat",
+      "kind": "room_defeat",
+      "reference": 1,
+      "requires": [
+        "fort-arrival"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1456,
+          "event": 11168,
+          "arguments": [
+            "scene_actor:infantry"
+          ]
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 4872,
+          "objective_id": 10047
+        }
+      ],
+      "evidence": "Only original owner loss and actual player death in this frozen infantry formation; withdrawals and wins cannot qualify."
+    },
+    {
+      "id": "fort-airwhisp",
+      "kind": "emote_performed",
+      "reference": 20106,
+      "requires": [
+        "fort-arrival"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1456,
+          "event": 11171,
+          "arguments": [
+            "scene_actor:crossbowman"
+          ]
+        },
+        {
+          "kind": "quest_objective",
+          "quest_id": 4872,
+          "objective_id": 10048
+        }
+      ],
+      "evidence": "Actual authorized nativeAirwhisp occupation, adjacent original floor and facing actual scoped native2101 crossbow actor."
+    }
+  ],
+  "emote_triggers": [
+    {
+      "reference": 20106,
+      "actor_role": "crossbowman",
+      "positions": [
+        [
+          3,
+          -27,
+          0
+        ],
+        [
+          4,
+          -26,
+          0
+        ],
+        [
+          5,
+          -27,
+          0
+        ],
+        [
+          4,
+          -28,
+          0
+        ]
+      ],
+      "evidence": "Reviewed finite adjacent positions on originalSm6; player must face the actual native2101 actor. No object click/dialogue qualifies."
+    }
+  ],
+  "terminal_returns": {
+    "schema": "owned-story-terminal-return-v1",
+    "room_order": 1,
+    "victory": {
+      "kind": "recorded_entry"
+    },
+    "defeat": {
+      "kind": "recorded_entry"
+    },
+    "evidence": "Actual settled Fort result returns through the recorded native exterior. Victory grants no intentional-defeat credit. Normal native source16531 reentry permits the independent crossbow exercise."
+  },
+  "native_sources": {
+    "path": "whisper-fort-453.native.v1.json",
+    "sha256": "8ba55a7c6a3c7882adffb367030d91dd23895abadccce077dab454f08bdaaa1e"
+  }
+}

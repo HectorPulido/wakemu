@@ -87,6 +87,12 @@ def context(db, character, *, allow_finished=False):
     ):
         return None
     instance_id = character["instance_id"]
+    receipt = _receipt(db, character["id"], start_key(instance_id))
+    if (QUEST_ID not in running or 11515 in objectives) and receipt is None:
+        # Finished-story polling may resume an already introduced instance's
+        # ending. A completed quest alone does not enroll an ordinary revisit
+        # into that story or impose its frozen presentation roster on the run.
+        return None
     run = db.execute(
         "SELECT * FROM dungeon_instances WHERE instance_id=%s", (instance_id,)
     ).fetchone()
@@ -171,7 +177,7 @@ def context(db, character, *, allow_finished=False):
         state=state,
         room=progress["current_room"],
         configuration=config,
-        receipt=_receipt(db, character["id"], start_key(instance_id)),
+        receipt=receipt,
     )
 
 

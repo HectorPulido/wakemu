@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "huppermage-store-1024",
+  "version": 1,
+  "map_id": 1024,
+  "entry": {
+    "map_id": 1019,
+    "object_id": 25799,
+    "destination_id": 2348
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25800
+  ],
+  "controller_file": "huppermage-store-1024.json",
+  "encounters_file": "huppermage-store-1024-encounters.json",
+  "exploration_file": "huppermage-store-1024.exploration.json",
+  "provenance": "Reviewed reconstruction on original1024 School storage asset. Native25799/2348 entry and25800/2349 exit are free and remain usable with or without2784. Original2078 takes four hoodlum arguments; native3935/3936/3937/3938 retain original levels, stats, states and spell books. One of each and the original2078 final four actor positions are reviewed formation policy, not recovered server composition. The guide names the Small Dresser: actual26251 descriptor991 has only default effect2492, so joining that exact authenticated object to objective5616 is an explicit reviewed server bridge, not an encoded native quest action. Original16523 is omitted because it references undefined playedId and moves the player; no unsafe movie or fabricated callback is used. Original16524 guide remains once-only; normal real owned victory alone grants5617. External Bonta5619 and NPC debrief5618/5620 are separate producers."
+}

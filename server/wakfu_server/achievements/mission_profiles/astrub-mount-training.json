@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "astrub-mount-training",
+  "evidence": [
+    "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback.",
+    "Native2014 requires real level35 and completed2013. Independent admission does not add2014 as a prerequisite of2015, modify existing astrub-mount-books, or credit training on entry."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "optional-native-training-after-2013",
+      "quest_id": 2014,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2013
+      },
+      "requires_completed": [
+        2013
+      ]
+    },
+    {
+      "id": "optional-native-training-earned-recovery",
+      "quest_id": 2014,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2013
+      ],
+      "minimum_level": 35,
+      "admission_evidence": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback."
+    }
+  ]
+}

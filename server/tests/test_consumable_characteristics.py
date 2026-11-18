@@ -36,6 +36,60 @@ def state(
 
 
 class ConsumableCharacteristicTests(unittest.TestCase):
+    def test_owned_story_native_marker_skips_only_its_own_characteristics(self):
+        food = effect(66106, "eWQ", 36, [100.0, 0.0], [100], level=12)
+        ordinary = state([food], level=12)
+        marker = dict(
+            state_id=3679,
+            level=1,
+            remaining_ms=0,
+            clock="event",
+            effect_ids=[],
+            metadata=dict(
+                native_marker_generic=400,
+                native_marker_effect_id=159866,
+                source_sha256="bf23e3e23e0f686ba82abf52944baec278b9f5baff0dff545c0caf3c47cb86c5",
+            ),
+            native_origin=dict(
+                kind="owned-story-native-marker",
+                character_id=7,
+                instance_id=99,
+                state_id=3679,
+                source_sha256="bf23e3e23e0f686ba82abf52944baec278b9f5baff0dff545c0caf3c47cb86c5",
+            ),
+        )
+        self.assertEqual(
+            bonuses({"id": 7, "consumable_states": [marker, ordinary]}),
+            dict(stats={36: 100}, unsupported=[]),
+        )
+
+        for malformed in (
+            dict(marker, metadata=dict(marker["metadata"], native_marker_generic=399)),
+            dict(marker, effect_ids=[159866]),
+            dict(
+                marker,
+                native_origin=dict(marker["native_origin"], source_sha256="c" * 64),
+            ),
+            dict(
+                marker,
+                native_origin=dict(marker["native_origin"], character_id=8),
+            ),
+        ):
+            with self.subTest(marker=malformed), self.assertRaisesRegex(
+                ValueError, "Missing native consumable characteristic definitions"
+            ):
+                bonuses({"id": 7, "consumable_states": [malformed, ordinary]})
+
+        with self.assertRaisesRegex(
+            ValueError, "Missing native consumable characteristic definitions"
+        ):
+            bonuses(
+                {
+                    "id": 7,
+                    "consumable_states": [dict(state_id=2, level=1, remaining_ms=1000)],
+                }
+            )
+
     def test_resource_reduction_preserves_native_family_and_raw_minimum(self):
         from wakfu_server.equipment_resource_bonuses import project
 

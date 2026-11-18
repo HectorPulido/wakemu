@@ -153,21 +153,36 @@ def advance(state, fact, definition, *, character, store, now_ms):
     )
 
 
-def settle(db, store, character, session, binding, definition, *, node_id, choice_id):
+def settle(
+    db,
+    store,
+    character,
+    session,
+    binding,
+    definition,
+    *,
+    node_id,
+    choice_id,
+    speaker_row=None,
+):
     """Settle an offered edge inside the existing authenticated action boundary.
 
     Caller owns the account/session action barrier, current position projection,
     normal session.choose call, transaction commit and packet delivery. This
     function is not a client-facing objective or quest-completion API.
+    speaker_row is the caller's locked, publication-validated physical provider;
+    the same offered-edge authorization applies to it and legacy dialogue rows.
     """
-    from . import storage, wire
-    from .service import _owner, drain_rewards
+    from . import storage
+    from .service import _owner
 
     _owner(db, character)
-    row = db.execute(
-        "SELECT * FROM world_dialogue_npcs WHERE actor_id=%s AND enabled FOR SHARE",
-        (session.speaker_id,),
-    ).fetchone()
+    row = speaker_row
+    if row is None:
+        row = db.execute(
+            "SELECT * FROM world_dialogue_npcs WHERE actor_id=%s AND enabled FOR SHARE",
+            (session.speaker_id,),
+        ).fetchone()
     if row is None:
         raise ValueError("Quest NPC is not currently published")
     fact = authorize_fact(
@@ -194,15 +209,23 @@ def settle(db, store, character, session, binding, definition, *, node_id, choic
     event_key = f"native-quest-conversation:{binding.quest_id}:{binding.objective_id}"
     if not storage.record_event(db, character["id"], event_key, fact):
         raise ValueError("Quest conversation receipt is missing its progress")
-    for identity, reward in intents:
-        storage.claim_reward(db, character["id"], identity, "once", reward["d"], reward)
-    storage.store(db, character["id"], after)
-    packets = wire.changes(
-        character["id"], before, after, objectives, completed, now_ms
+    from . import mission_dependencies
+
+    outcome = mission_dependencies.settle(
+        db,
+        store,
+        character,
+        before,
+        (after, intents, objectives, completed),
+        {definition["d"]: definition},
+        (),
+        now_ms=now_ms,
     )
-    packets.extend(drain_rewards(db, store, character))
     return dict(
-        applied=True, packets=packets, completed=completed, new_objectives=objectives
+        applied=True,
+        packets=outcome["packets"],
+        completed=outcome["completed"],
+        new_objectives=outcome["new_objectives"],
     )
 
 

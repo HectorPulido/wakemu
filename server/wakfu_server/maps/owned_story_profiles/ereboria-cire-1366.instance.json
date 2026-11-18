@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "ereboria-cire-1366",
+  "version": 1,
+  "map_id": 1366,
+  "entry": {
+    "map_id": 1364,
+    "object_id": 33814,
+    "destination_id": 4558
+  },
+  "native_entry_criterion": "IsAchievementRunning(5059)\r\nand IsAchievementObjectiveComplete(10466)\r\nand not IsAchievementObjectiveComplete(10539)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    33815
+  ],
+  "controller_file": "ereboria-cire-1366.json",
+  "encounters_file": "ereboria-cire-1366-encounters.json",
+  "exploration_file": "ereboria-cire-1366.exploration.json",
+  "provenance": "Reviewed reconstruction of5059 final confrontation on actual1366, reached only through original33814/4558 after10466. Native5357 is original Cire Momore230 with98,765,432HP and initiative1000; all native spells/states/statistics stay unchanged. The single-original-boss formation, position and door-to-encounter join are reviewed reconstruction, not serialized original server composition. Actual33379/1489/1908/effect3375 opens the real door; only authenticated settled defeat caused by this original5357 native917 lethal effect earns10539. A withdrawal, early death, summon, ordinary unrelated defeat or intervention5416/5417 does not. No2528 presentation or scenario-map association is invented. Final10540 is the separate original Cyross return branch."
+}

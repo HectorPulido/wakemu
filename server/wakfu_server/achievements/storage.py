@@ -3,13 +3,15 @@
 The caller owns commit/rollback and account/session authorization. Character
 row locks serialize all changes, including events and outbox reservations.
 """
+
 import hashlib
 import json
 
 from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
-from wakfu_server.maps.dungeon_achievement_authority import queries_from_snapshot
+from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+from . import lifecycle
 
 
 def _lock(db, character_id):
@@ -50,7 +52,7 @@ def _key(value):
 
 
 def _state(state):
-    if not isinstance(state, dict) or set(state) != {
+    required = {
         "variables",
         "objectives",
         "running",
@@ -58,7 +60,12 @@ def _state(state):
         "tracking",
         "recent",
         "completion_dates",
-    }:
+    }
+    if (
+        not isinstance(state, dict)
+        or not required <= set(state)
+        or set(state) - required - lifecycle.EXTRA_FIELDS
+    ):
         raise ValueError("Invalid achievement progress state")
     if not isinstance(state["variables"], dict) or any(
         not isinstance(key, str)
@@ -103,9 +110,14 @@ def _state(state):
         for key, value in state["completion_dates"].items()
     ):
         raise ValueError("Invalid achievement completion dates")
-    projection = {key: state[key] for key in ("running", "completed", "objectives")}
+    lifecycle.validate(state)
+    projection = lifecycle.snapshot(state)
     queries_from_snapshot(projection)
-    if any(value >= 2**31 for values in projection.values() for value in values):
+    if any(
+        value >= 2**31
+        for key in ("running", "completed", "objectives")
+        for value in projection[key]
+    ):
         raise ValueError("Achievement identifiers exceed native signed32")
     _json(state)
     return projection
@@ -120,7 +132,7 @@ def load_locked(db, character_id):
     ).fetchone()
     if row is not None:
         _state(row["state"])
-        return json.loads(_json(row["state"]))
+        return lifecycle.reconcile(db, character_id, json.loads(_json(row["state"])))
     authority = db.execute(
         "SELECT snapshot FROM character_achievement_authority "
         "WHERE character_id=%s FOR UPDATE",
@@ -129,19 +141,32 @@ def load_locked(db, character_id):
     if authority is None:
         raise ValueError("Missing initialized achievement authority")
     queries_from_snapshot(authority["snapshot"])
-    return {
+    state = {
         "variables": {},
         "tracking": [],
         "recent": [],
         "completion_dates": {},
         **json.loads(_json(authority["snapshot"])),
     }
+    return lifecycle.reconcile(db, character_id, state)
 
 
 def store(db, character_id, state):
     """Persist progress and access-criterion authority in the same transaction."""
-    projection = _state(state)
+    _state(state)
     _lock(db, character_id)
+    previous = db.execute(
+        "SELECT state FROM character_achievement_progress WHERE character_id=%s",
+        (character_id,),
+    ).fetchone()
+    lifecycle.reconcile(
+        db,
+        character_id,
+        state,
+        before=None if previous is None else previous["state"],
+        writing=True,
+    )
+    projection = _state(state)
     authority = db.execute(
         "UPDATE character_achievement_authority SET snapshot=%s, "
         "revision=revision+1, provenance='local_achievement_engine', "

@@ -4,13 +4,22 @@ Callers must authenticate and qualify events before invoking this function.
 Persistence and reward delivery remain in the existing achievement service.
 """
 
+from . import native_effective_eligibility
+
 from copy import deepcopy
+
+
+class ObjectivePrerequisiteUnavailable(ValueError):
+    """A real activity occurred before its native mission objective was ready."""
 
 
 def auto_track(state, identity):
     """Track a newly accepted mission, preserving existing tracking at capacity."""
     if type(identity) is not int or identity <= 0 or identity not in state["running"]:
         raise ValueError("Only an active mission can be tracked")
+    from . import lifecycle
+
+    lifecycle.retain_activation(state)
     tracked = set(state["tracking"])
     if identity not in tracked and len(tracked) < 255:
         state["tracking"] = sorted(tracked | {identity})
@@ -37,7 +46,7 @@ def seed_counters(state, definition):
 
 def advance_objective(state, definition, objective_id, *, character, store, now_ms):
     """Advance one qualified objective; never starts a quest or invents events."""
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
     from wakfu_server import dungeon_criteria
 
     if (
@@ -57,16 +66,25 @@ def advance_objective(state, definition, objective_id, *, character, store, now_
     if identity in candidate["completed"] or objective_id in candidate["objectives"]:
         return candidate, [], [], []
     if identity not in candidate["running"]:
-        raise ValueError("Native quest objective prerequisite: quest is not running")
-    queries = queries_from_snapshot(
-        {k: candidate[k] for k in ("running", "completed", "objectives")}
-    )
+        raise ObjectivePrerequisiteUnavailable(
+            "Native quest objective prerequisite: quest is not running"
+        )
+    from . import lifecycle
+
+    lifecycle.retain_activation(candidate)
+    queries = queries_from_state(candidate)
     objective = objectives[objective_id]
-    for criterion in (definition["cjI"], objective["ckc"], objective["cke"]):
+    for criterion in (
+        native_effective_eligibility.criterion(definition),
+        objective["ckc"],
+        objective["cke"],
+    ):
         if not dungeon_criteria.evaluate(
             store, criterion, character=character, queries=queries
         ):
-            raise ValueError("Native quest objective prerequisite is not met")
+            raise ObjectivePrerequisiteUnavailable(
+                "Native quest objective prerequisite is not met"
+            )
     candidate["objectives"] = sorted(set(candidate["objectives"]) | {objective_id})
     completed, intents = [], []
     if set(objectives) <= set(candidate["objectives"]):

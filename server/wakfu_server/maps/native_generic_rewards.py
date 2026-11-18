@@ -4,14 +4,110 @@ The native12870 action has no request nonce. Inventory guards are rechecked
 under the owner lock on every action; only explicitly reconstructed once rules
 use a permanent marker. A new action after consumption may reacquire an item.
 """
+
 import hashlib
 import json
 import secrets
 from types import SimpleNamespace
 import struct
 import uuid
+import re
+import math
 
 from psycopg.types.json import Jsonb
+
+
+def _inventory_loot_leaf(db, effect):
+    """Prove a single deterministic original leaf before permitting reacquisition."""
+    row = db.execute(
+        "SELECT payload,source_sha256 FROM native_random_item_tables WHERE reference=%s",
+        (effect["loot_list_id"],),
+    ).fetchone()
+    if row is None or row["source_sha256"] != effect["loot_source_sha256"]:
+        raise ValueError("Inventory-repeatable loot lacks its original table")
+    table = row["payload"]
+    entries = table.get("gBN")
+    if (
+        type(table.get("d")) is not int
+        or table["d"] != effect["loot_list_id"]
+        or type(table.get("czg")) is not int
+        or table["czg"] != 1
+        or not isinstance(entries, list)
+        or len(entries) != 1
+    ):
+        raise ValueError("Inventory-repeatable loot requires one guaranteed leaf")
+    leaf = entries[0]
+    if (
+        type(leaf.get("aAi")) is not int
+        or leaf["aAi"] <= 0
+        or leaf.get("cqA") is not False
+        or type(leaf.get("cqy")) is not int
+        or type(leaf.get("cqz")) is not int
+        or not 1 <= leaf["cqy"] <= 32767
+        or leaf.get("cqz") != leaf["cqy"]
+        or (leaf.get("bfh"), leaf.get("czl"), leaf.get("csE")) != (1, 0, 1)
+        or any(type(leaf.get(key)) is not int for key in ("bfh", "czl", "csE"))
+        or leaf.get("gBO") != []
+        or not isinstance(leaf.get("czk"), str)
+        or leaf["czk"] != ""
+        and not _positive_inventory_guard(leaf["czk"], leaf["aAi"])
+        or type(leaf.get("cmY")) not in (int, float)
+        or not math.isfinite(leaf["cmY"])
+        or not (leaf["cmY"] == -1 or leaf["cmY"] > 0)
+    ):
+        raise ValueError("Inventory-repeatable loot is not a guaranteed native item")
+    return leaf
+
+
+def _inventory_loot_reference(db, effect):
+    return _inventory_loot_leaf(db, effect)["aAi"]
+
+
+def _inventory_loot_guard(db, effect):
+    """The original quantity guard may be on the effect or its sole loot leaf."""
+    leaf = _inventory_loot_leaf(db, effect)
+    return _positive_inventory_guard(
+        effect["criterion"], leaf["aAi"]
+    ) or _positive_inventory_guard(leaf["czk"], leaf["aAi"])
+
+
+def _positive_inventory_guard(criterion, reference):
+    """Recognize an original positive conjunction, never an OR bypass."""
+    terms = re.split(r"\s+and\s+|\s*&&\s*", criterion.strip())
+    guard = re.compile(rf"GetItemQuantity\({reference}\)\s*(?:==|<=)\s*0")
+    prerequisite = re.compile(
+        r"(?:IsAchievementRunning|IsAchievementActive|IsAchievementComplete|IsAchievementObjectiveComplete)\([1-9][0-9]*\)"
+    )
+    level = re.compile(r"GetRealLevel\(\)\s*>=\s*[1-9][0-9]*")
+    return any(guard.fullmatch(term.strip()) for term in terms) and all(
+        guard.fullmatch(term.strip())
+        or prerequisite.fullmatch(term.strip())
+        or level.fullmatch(term.strip())
+        for term in terms
+    )
+
+
+def external_quest_scripts(db, rule, *, map_id, object_id):
+    """Resolve absent client callbacks owned by guarded quest interactions."""
+    rows = db.execute(
+        "SELECT native_effect_reference,native_criterion FROM quest_interactive_bindings "
+        "WHERE map_id=%s AND object_id=%s AND action_id=%s AND parameter=0 "
+        "AND script_id=0 AND native_effect_reference>0",
+        (map_id, object_id, rule["wire_action"]),
+    ).fetchall()
+    effects = {effect["effect_reference"]: effect for effect in rule["effects"]}
+    result = set()
+    for row in rows:
+        reference = row["native_effect_reference"]
+        effect = effects.get(reference)
+        if (
+            effect is None
+            or effect["effect_type"] != 1
+            or effect["criterion"] != row["native_criterion"]
+        ):
+            raise ValueError("External quest callback differs from its native effect")
+        result.add(reference)
+    return result
 
 
 def _rule(db, map_id, object_id):
@@ -81,11 +177,18 @@ def _rule(db, map_id, object_id):
         ):
             raise ValueError("Native loot reward differs from its original table")
         if kind != 1 and rule["lifecycle_mode"] == "NATIVE_INVENTORY_GUARD":
-            if (
-                kind != 12
-                or effect["criterion"]
-                != f"GetItemQuantity({effect['item_reference']}) <= 0"
-            ):
+            qualified = (
+                kind == 12
+                and effect["criterion"]
+                == f"GetItemQuantity({effect['item_reference']}) <= 0"
+            )
+            if kind == 4:
+                if sum(row["effect_type"] != 1 for row in rule["effects"]) != 1:
+                    raise ValueError(
+                        "Repeatable native loot requires one item-producing effect"
+                    )
+                qualified = _inventory_loot_guard(db, effect)
+            if not qualified:
                 raise ValueError(
                     "Inventory-repeatable reward lacks its native quantity guard"
                 )
@@ -237,14 +340,30 @@ def claim(
         _source(rule)
         before = actual
         now_ms = int(store.now().timestamp() * 1000)
+        queries = None
 
         def allowed(expression):
+            nonlocal queries
+            if queries is None and "IsAchievement" in expression:
+                from wakfu_server.achievements import storage
+                from wakfu_server.dungeon_achievement_authority import (
+                    queries_from_state,
+                )
+
+                queries = queries_from_state(
+                    storage.load_locked(db, actual["id"]), now_ms=now_ms
+                )
             # Same eKE view as native dungeon access: bags + personal QUEST +
             # effective ACCOUNT_QUEST, including existing artifact projection.
-            return evaluate(store, expression, character=actual, now_ms=now_ms)
+            return evaluate(
+                store, expression, character=actual, now_ms=now_ms, queries=queries
+            )
 
         if not allowed(rule["action_criterion"]):
             raise ValueError("Native generic action criterion failed")
+        server_scripts = external_quest_scripts(
+            db, rule, map_id=actual["map_id"], object_id=object_id
+        )
         visual = chest_scripts.packets(
             dict(
                 rule,
@@ -252,6 +371,7 @@ def claim(
                     dict(effect, effect_criterion=effect["criterion"])
                     for effect in rule["effects"]
                     if effect["effect_type"] == 1
+                    and effect["effect_reference"] not in server_scripts
                 ],
             ),
             actual["id"],
@@ -336,6 +456,24 @@ def claim(
                 Jsonb(consumed),
             ),
         )
+        if grants:
+            from wakfu_server.achievements import mission_toolkit
+
+            # The event reference is the exact physical source, rather than an
+            # item ID that could also be produced by another unrelated object.
+            # The attempt row above freezes the actual native products and is
+            # committed atomically with their inventory/objective settlement.
+            packets.extend(
+                mission_toolkit.settle(
+                    db,
+                    store,
+                    actual,
+                    f"generic-item-acquired:{token}",
+                    "generic_item_acquired",
+                    object_id,
+                    quantity=sum(grant["quantity"] for grant in grants),
+                )
+            )
         key = None
         if packets:
             key = f"generic-reward:{token}"

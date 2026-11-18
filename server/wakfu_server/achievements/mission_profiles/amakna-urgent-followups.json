@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "amakna-urgent-followups",
+  "evidence": [
+    "Native2708requiresgenuineComplete2707;2709requiresgenuineComplete2708. Existing mission toolkit admission only; no grant atentry,dialogue opening or cinematic.2709normalofferedMagnum report remains separate."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "urgent-earned-2707-2708",
+      "quest_id": 2708,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2707
+      },
+      "requires_completed": [
+        2707
+      ]
+    },
+    {
+      "id": "urgent-ready-2708",
+      "quest_id": 2708,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 20,
+      "requires_completed": [
+        2707
+      ],
+      "admission_evidence": "Reviewed continuation after genuine2707,retaining original native prerequisite and default source level20."
+    },
+    {
+      "id": "urgent-earned-2708-2709",
+      "quest_id": 2709,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2708
+      },
+      "requires_completed": [
+        2708
+      ]
+    },
+    {
+      "id": "urgent-ready-2709",
+      "quest_id": 2709,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 20,
+      "requires_completed": [
+        2708
+      ],
+      "admission_evidence": "Reviewed continuation after genuine2708,retaining original native prerequisite and default source level20."
+    }
+  ]
+}

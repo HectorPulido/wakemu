@@ -1,0 +1,137 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed native level8 Astrub continuation after earned5568: PappyPal1134/action46 exact native2165 dialogue and11546 predicate. Position is explicitly waypoint-derived reconstruction with connected native floor anchor. Only2165 has a conversation binding;2166/2170 native definitions are included for the qualified owned camp/temple continuation. Actual camp admission, real native3249 victory and owned temple controllers earn the external steps; no UI-visibility activation.",
+  "speakers": [
+    {
+      "actor_id": -2251799934992165,
+      "action_id": 46,
+      "quest_ids": [
+        2165,
+        2166,
+        2170
+      ],
+      "available_quests_on_open": [
+        2165
+      ],
+      "native_marker": {
+        "quest_id": 2165,
+        "objective_id": 11546
+      },
+      "placement": {
+        "quest_id": 2165,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992165,
+          "reference_id": 1134,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 39,
+          "y": 2,
+          "z": 5,
+          "direction": 3,
+          "dialogue_root": 2745,
+          "action_ids": [
+            46
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION PappyPal1134 around native2165 navigation marker527(39,2,5), named native speaker/action46; not an official captured NPC placement or server graph"
+        },
+        "interaction_anchor": {
+          "x": 38,
+          "y": 2,
+          "z": 4
+        },
+        "interaction_anchor_evidence": "Read-only directed map527 terrain: native waypoint and adjacent38,2,4 both reach exterior component; reviewed gameplay approach, not an original captured interaction endpoint.",
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2165,
+          "objective_id": 11546,
+          "node_id": 2745,
+          "choice_id": 15270,
+          "archetype": "talk"
+        }
+      ],
+      "graph": [
+        [
+          2745,
+          15270,
+          2751
+        ],
+        [
+          2751,
+          6652,
+          2752
+        ],
+        [
+          2752,
+          6653,
+          2753
+        ],
+        [
+          2753,
+          6654,
+          2754
+        ],
+        [
+          2754,
+          6655,
+          0
+        ],
+        [
+          2745,
+          15271,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": [],
+  "qualified_external_producers": [
+    {
+      "quest_id": 2165,
+      "objective_id": 4286,
+      "native_prerequisite": "IsAchievementObjectiveComplete(11546)",
+      "label": "Go to OgrestCultCamp",
+      "native_transport_chain": [
+        {
+          "source_map": 527,
+          "object_id": 23622,
+          "definition_id": 1861,
+          "destination_id": 2012,
+          "target_map": 546,
+          "target_position": [
+            16,
+            14,
+            0
+          ]
+        },
+        {
+          "source_map": 546,
+          "object_id": 21367,
+          "definition_id": 1331,
+          "destination_id": 1460,
+          "target_map": 747,
+          "target_position": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "policy": "Authenticated owned quest-map-747-21367-1460 admission settles4286 after literal11546 prerequisite. Arbitrary teleport/map possession never qualifies."
+    },
+    {
+      "quest_id": 2165,
+      "objective_id": 4298,
+      "native_prerequisite": "IsAchievementObjectiveComplete(4286)",
+      "label": "Fight the GramboBreaker",
+      "candidate_breed_refs": [
+        3249
+      ],
+      "policy": "Authenticated owned camp encounter with one original native3249, real victory and original key18747 loot. Native stats/spells/loot remain unchanged; no captured formation/choreography is claimed."
+    }
+  ]
+}

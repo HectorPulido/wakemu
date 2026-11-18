@@ -8,6 +8,90 @@ from wakfu_server.combat_state import Actor, Fight
 
 
 class SequentialAreaMovementTests(unittest.TestCase):
+    def test_real_3173_npc_movement_replays_all_four_paid_mp_steps(self):
+        from tests.native_oracle_fixture import NativeOracleTests
+        from wakfu_server.combat_runtime_messages import RuntimeMessages
+        from wakfu_server.spells import default_deck
+
+        NativeOracleTests.setUpClass()
+        fixture = NativeOracleTests.wonejo_fixture(
+            map_id=879,
+            player_position=(2, -4, 0),
+            monster_position=(3, -8, 0),
+            monster_ref=3173,
+            monster_level=30,
+        )
+        fight, actor = fixture.fight, fixture.npc
+        fight.order = [actor.id, fixture.pc.id]
+        fight.turn_index = 0
+        runtime = RuntimeMessages(fight)
+        oracle = NativeOracleTests.oracle_for(
+            runtime,
+            fixture.character,
+            fixture.monster,
+            default_deck(fixture.character),
+            flags={"native_area_callbacks": True, "native_start_events": False},
+        )
+        path = [[2, -8, 0], [2, -7, 0], [2, -6, 0], [2, -5, 0]]
+        before = (
+            actor.position,
+            actor.mp,
+            actor.ap,
+            tuple(fight.events),
+            tuple(actor.state_ledger.entries),
+        )
+
+        moved, _packets, _transaction = oracle.preview(
+            runtime, {"type": "move", "path": path}, forecast=False
+        )
+        moved_actor = moved.fight.actors[actor.id]
+        fatigue = [
+            row for row in moved_actor.state_ledger.entries if row.reference == 3003
+        ]
+        self.assertEqual(moved_actor.position, (2, -5, 0))
+        self.assertEqual((actor.mp, moved_actor.mp), (5, 1))
+        self.assertEqual([row.level for row in fatigue], [4])
+        applied_levels = [
+            event["level"]
+            for event in moved.fight.events
+            if event.get("kind") == "state_applied" and event.get("state_id") == 3003
+        ]
+        self.assertEqual(applied_levels, [1, 2, 3, 4])
+
+        replay, _replay_packets, _ = oracle.preview(
+            runtime, {"type": "move", "path": path}, forecast=False
+        )
+        self.assertEqual(replay.fight.actors[actor.id].position, moved_actor.position)
+        self.assertEqual(
+            [
+                (row.reference, row.level)
+                for row in replay.fight.actors[actor.id].state_ledger.entries
+            ],
+            [(row.reference, row.level) for row in moved_actor.state_ledger.entries],
+        )
+        self.assertEqual(
+            (
+                actor.position,
+                actor.mp,
+                actor.ap,
+                tuple(fight.events),
+                tuple(actor.state_ledger.entries),
+            ),
+            before,
+        )
+
+        ended, _end_packets, _ = oracle.preview(
+            moved, {"type": "end_turn"}, forecast=False
+        )
+        self.assertEqual(ended.fight.actors[actor.id].position, (2, -5, 0))
+        self.assertIn(
+            3003,
+            [
+                row.reference
+                for row in ended.fight.actors[actor.id].state_ledger.entries
+            ],
+        )
+
     @staticmethod
     def _native_wonejo_runtime(*, native_area_callbacks=True):
         from tests.native_oracle_fixture import NativeOracleTests

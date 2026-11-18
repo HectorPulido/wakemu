@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "whisper-fort-453",
+  "version": 1,
+  "map_id": 453,
+  "entry": {
+    "map_id": 1295,
+    "object_id": 16531,
+    "destination_id": 957
+  },
+  "native_entry_criterion": "IsAchievementActive(4872)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    16533
+  ],
+  "controller_file": "whisper-fort-453.json",
+  "encounters_file": "whisper-fort-453-encounters.json",
+  "exploration_file": "whisper-fort-453.exploration.json",
+  "provenance": "Reviewed reconstruction from original native map, exact source transport and original Lua. Original private server formations and actor placements are absent. Explicitly authored native-family formation and finite native Sm6 positions preserve original levels, stats, books and costs; no capture fidelity is claimed."
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1030,
+  "objects": [],
+  "scenario_id": 2067,
+  "scenario_events": [
+    16396
+  ],
+  "scenes": {},
+  "event_signatures": {},
+  "presentations": [
+    16396
+  ],
+  "version_boundary": {
+    "omitted_events": [
+      16393,
+      16395
+    ],
+    "reason": "Reviewed version relocation: original2067 platform choreography uses unavailable/unaligned old map coordinates0. Current installed1030 retains an actual150-cell floor0 component122..136,-22..-8. Native family807 actors3927/3928/3929, grades/stats/spells and4091/909 remain original; composition/placement are reviewed reconstruction, not recovered original formation. Guide corroborates three foes and ring-out challenge. Unsafe16393/16395 movie omitted; safe16396 native tutorial retained once."
+  }
+}

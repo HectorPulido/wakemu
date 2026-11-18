@@ -11,6 +11,17 @@ from .dispatch_result import DispatchResult
 
 class SessionDispatchMixin:
     def dispatch_request(self):
+        if self.state.opcode not in (33, 13932, 12239):
+            self.state.pending_actor_approach = None
+        if (
+            self.state.opcode == 13130
+            and self.state.loaded
+            and getattr(self.state.connection, "owned_object_trials_active", False)
+        ):
+            from .owned_world_stealth_actor_dispatch import handle_attack
+
+            if handle_attack(self):
+                return True
         if self.state.opcode == 574:
             return self.handle_handshake()
         elif self.state.service == "dispatcher":
@@ -298,7 +309,7 @@ class SessionDispatchMixin:
             and astrub_house_exit_activation(self.state.character, self.state.body)
         ):
             return self.handle_astrub_house_exit()
-        elif self.state.opcode in (12870, 12363) and self.state.loaded:
+        elif self.state.opcode in (12870, 12363, 12864) and self.state.loaded:
             return self.handle_world_interaction()
         elif self.state.opcode == 13826 and self.state.loaded:
             return self.handle_haven_furniture_move()

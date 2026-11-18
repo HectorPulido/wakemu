@@ -214,6 +214,18 @@ class AchievementCombatAdapterTests(unittest.TestCase):
         )
         custom.start()
         self.addCleanup(custom.stop)
+        owned_quest = patch(
+            "wakfu_server.achievements.owned_quest_encounters.settle",
+            return_value=[],
+        )
+        self.owned_quest_settle = owned_quest.start()
+        self.addCleanup(owned_quest.stop)
+        after_combat = patch(
+            "wakfu_server.achievements.mission_character_events.after_combat",
+            return_value=[],
+        )
+        after_combat.start()
+        self.addCleanup(after_combat.stop)
 
     def fixture(self):
         player = lambda owner, team=0: SimpleNamespace(
@@ -251,8 +263,13 @@ class AchievementCombatAdapterTests(unittest.TestCase):
         )
         roster = [dict(id=i, ref=39) for i in (-1, -2, -3)]
         with patch.object(
-            service, "settle", return_value=dict(packets=[(13295, b"owned")])
+            service,
+            "settle",
+            side_effect=lambda *_: dict(packets=[(13295, b"owned")]),
         ) as settle, patch(
+            "wakfu_server.achievements.owned_quest_encounters.settle",
+            return_value=[(13312, b"mission")],
+        ) as owned_settle, patch(
             "wakfu_server.custom_tasks.adapters.original_kills",
             return_value=dict(replayed=False, updated=[], completed=[]),
         ):
@@ -262,12 +279,20 @@ class AchievementCombatAdapterTests(unittest.TestCase):
         self.assertEqual(
             result,
             dict(
-                packets_by_owner={7: [(13295, b"owned"), (13295, b"owned")]},
+                packets_by_owner={
+                    7: [
+                        (13295, b"owned"),
+                        (13312, b"mission"),
+                        (13295, b"owned"),
+                        (13312, b"mission"),
+                    ]
+                },
                 notification_receipts=[],
                 custom_task_updates=[],
             ),
         )
         self.assertEqual(settle.call_count, 2)
+        self.assertEqual(owned_settle.call_count, 2)
         for call in settle.call_args_list:
             self.assertEqual(call.args[-1], [dict(id=-1, ref=39)])
 

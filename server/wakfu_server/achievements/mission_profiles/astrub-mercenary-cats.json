@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "astrub-mercenary-cats",
+  "evidence": [
+    "Reviewed reconstruction: native2135 objective names Astrub City and Fishermen's Hamlet; i18n content66 maps those names to regions66701/76201; territory-protector-bonuses declares family563 there on527. Native810 defines counter828 nbChachasKilled>=3. The original callback was not recovered: original defeated-monster world XY (not combat cell/current player region) qualifies location; frozen owned admission and actual victory/drop sources qualify ownership."
+  ],
+  "bindings": [
+    {
+      "id": "astrub-city-and-fishermen-cats",
+      "quest_id": 2135,
+      "objective_id": 4228,
+      "variable_id": 828,
+      "event": {
+        "kind": "scoped_monster_defeat",
+        "reference": 2135
+      },
+      "maps": [
+        527
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

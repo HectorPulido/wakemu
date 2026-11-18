@@ -1,0 +1,254 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion.",
+  "speakers": [
+    {
+      "actor_id": -1724034232352753,
+      "action_id": 703,
+      "quest_ids": [
+        2712
+      ],
+      "available_quests_on_open": [
+        2712
+      ],
+      "placement": {
+        "row": {
+          "actor_id": -1724034232352753,
+          "reference_id": 3819,
+          "map_id": 1134,
+          "instance_id": 0,
+          "x": 16,
+          "y": 8,
+          "z": 0,
+          "direction": 1,
+          "dialogue_root": 3225,
+          "action_ids": [
+            703
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reviewed story overlay of the same existing accredited native Magnum3819 actor/action703 at original1134(16,8,0), actor identity and native appearance retained; dialogue graph is explicit narrative reconstruction, not captured original server transitions."
+        },
+        "choice_criteria": [
+          {
+            "node_id": 3225,
+            "choice_id": 8086,
+            "criterion": "IsAchievementRunning(2712) && GetItemQuantity(19660) >= 1",
+            "evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+          }
+        ]
+      },
+      "graph": [
+        [
+          3225,
+          8086,
+          3281
+        ],
+        [
+          3281,
+          8087,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2712,
+          "objective_id": 5347,
+          "node_id": 3281,
+          "choice_id": 8087,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              3225,
+              8086,
+              3281
+            ],
+            [
+              3281,
+              8087,
+              0
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "actor_id": -2251799927089062,
+      "action_id": 698,
+      "quest_ids": [
+        2713
+      ],
+      "available_quests_on_open": [
+        2713
+      ],
+      "placement": {
+        "row": {
+          "actor_id": -2251799927089062,
+          "reference_id": 3814,
+          "map_id": 1134,
+          "instance_id": 0,
+          "x": -22,
+          "y": 77,
+          "z": -11,
+          "direction": 3,
+          "dialogue_root": 3219,
+          "action_ids": [
+            698
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: Tower native quest marker and dialogue reconstruction; original server position/edges not recovered"
+        },
+        "choice_criteria": [
+          {
+            "node_id": 3219,
+            "choice_id": 8088,
+            "criterion": "IsAchievementRunning(2713) && GetItemQuantity(19665) >= 1",
+            "evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+          }
+        ]
+      },
+      "graph": [
+        [
+          3219,
+          8088,
+          3282
+        ],
+        [
+          3282,
+          8089,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2713,
+          "objective_id": 5348,
+          "node_id": 3282,
+          "choice_id": 8089,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              3219,
+              8088,
+              3282
+            ],
+            [
+              3282,
+              8089,
+              0
+            ]
+          ],
+          "running_branch": 2713
+        }
+      ]
+    },
+    {
+      "actor_id": -2251799934992048,
+      "action_id": 436,
+      "quest_ids": [
+        2714
+      ],
+      "available_quests_on_open": [
+        2714
+      ],
+      "placement": {
+        "row": {
+          "actor_id": -2251799934992048,
+          "reference_id": 2805,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": -145,
+          "y": 123,
+          "z": -4,
+          "direction": 3,
+          "dialogue_root": 2315,
+          "action_ids": [
+            436
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: reconstructed Astrub mount speaker2805 REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from native quest2048 navigation marker and named native speaker/action; marker is not proof of original actor coordinates; reviewed native dialogue paths, not an official captured server graph"
+        },
+        "choice_criteria": [
+          {
+            "node_id": 2315,
+            "choice_id": 8094,
+            "criterion": "IsAchievementRunning(2714) && GetItemQuantity(19665) >= 1",
+            "evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+          }
+        ]
+      },
+      "graph": [
+        [
+          2315,
+          8094,
+          3283
+        ],
+        [
+          3283,
+          8098,
+          3284
+        ],
+        [
+          3284,
+          8102,
+          3285
+        ],
+        [
+          3285,
+          8103,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2714,
+          "objective_id": 5349,
+          "node_id": 3285,
+          "choice_id": 8103,
+          "archetype": "talk",
+          "single_objective": true,
+          "native_guard_path": [
+            [
+              2315,
+              8094,
+              3283
+            ],
+            [
+              3283,
+              8098,
+              3284
+            ],
+            [
+              3284,
+              8102,
+              3285
+            ],
+            [
+              3285,
+              8103,
+              0
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "reviewed_handoff": {
+    "source_quest_id": 2720,
+    "source_reward_id": 4307,
+    "native_actor_source_sha256": "0410af8f82ee3c8a209efca093d0ebbdaf477be9f35801b1a63d4559f4e381cb",
+    "turnin": {
+      "reference_id": 3819,
+      "action_id": 703,
+      "node_id": 3281,
+      "choice_id": 8087,
+      "item_reference": 19660,
+      "quantity": 1
+    },
+    "evidence": "Reviewed final Amakna Chapter2 handoffs. Native2720 reward4307 gives one19660 BovisRockwool;2712 objective5347 says deliver it toMagnum and original3281 thanks the player for receiving it, corroborated by the MethodWakfu/Wiki chapter walkthrough. Consume exactly one19660 only at accepted terminal8087 using the existing transactional turnin. Original server debit operands are absent: this is explicit reviewed reconstruction, not claimed recovered serialization. Native19664Miniature is retained. Original19665UnidentifiedAncientObject remains owned throughout Laura and Jenry inspection because no source establishes its consumption. Only native2714 rewards grant19661Orichalcum/19799basket; no duplicate custom grant or future chapter completion."
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "line7-native-training-gate-v2-delta",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/astrub-mount-training-879.configuration.json",
+      "sha256": "155b1bcfa007b6e8e27666bdbf62b5cbd4ec9395143859100c0be477d1ac39db"
+    }
+  ]
+}

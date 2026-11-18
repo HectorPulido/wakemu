@@ -1,0 +1,319 @@
+[
+  {
+    "ref": 3783,
+    "name": "Pirata de agua dulce",
+    "family_id": 779,
+    "min_level": 15,
+    "max_level": 15,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 4,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 23,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 67,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 40,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 5223
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 5224
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3784,
+    "name": "Pirata encendido",
+    "family_id": 779,
+    "min_level": 15,
+    "max_level": 15,
+    "statistics": {
+      "AP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 23,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 103,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28,
+        88,
+        56,
+        70,
+        3
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 131,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 5197
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 5196
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3781,
+    "name": "Micho Pera",
+    "family_id": 779,
+    "min_level": 15,
+    "max_level": 15,
+    "statistics": {
+      "AP": {
+        "base": 8,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 10,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 50,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28,
+        16
+      ],
+      "csc": [
+        53,
+        13,
+        36,
+        7
+      ]
+    },
+    "sprite_id": 177903781,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 5147
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3769,
+    "name": "Torbellino del Zinit",
+    "family_id": 779,
+    "min_level": 12,
+    "max_level": 12,
+    "statistics": {
+      "AP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 2,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": -30,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 30,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 137201721,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": 1,
+        "spell_id": 2524
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2525
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3771,
+    "name": "Albatroz",
+    "family_id": 779,
+    "min_level": 13,
+    "max_level": 13,
+    "statistics": {
+      "AP": {
+        "base": 7,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 6,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 0,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": 28,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 100,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28
+      ],
+      "csc": [
+        53,
+        7
+      ]
+    },
+    "sprite_id": 132901597,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": -1,
+        "spell_id": 2366
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2367
+      }
+    ],
+    "loot_definitions": []
+  },
+  {
+    "ref": 3770,
+    "name": "Tornado del Zinit",
+    "family_id": 779,
+    "min_level": 15,
+    "max_level": 15,
+    "statistics": {
+      "AP": {
+        "base": 5,
+        "per_level": 0.0
+      },
+      "MP": {
+        "base": 3,
+        "per_level": 0.0
+      },
+      "WP": {
+        "base": 1,
+        "per_level": 0.0
+      },
+      "INIT": {
+        "base": -25,
+        "per_level": 0.0
+      },
+      "HP": {
+        "base": 50,
+        "per_level": 0.0
+      }
+    },
+    "raw_visual_arrays": {
+      "csu": [],
+      "csb": [
+        28,
+        55,
+        70
+      ],
+      "csc": [
+        7
+      ]
+    },
+    "sprite_id": 137201722,
+    "illustration_id": -1,
+    "native_abilities": [
+      {
+        "level_parameter": 4,
+        "spell_id": 2526
+      },
+      {
+        "level_parameter": -1,
+        "spell_id": 2527
+      },
+      {
+        "level_parameter": 4,
+        "spell_id": 2528
+      }
+    ],
+    "loot_definitions": []
+  }
+]

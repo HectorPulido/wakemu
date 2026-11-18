@@ -111,19 +111,27 @@ class MissionToolkitProducerTests(unittest.TestCase):
 
         resource = function("maps/resource_collect.py", "complete")
         self.assert_account_lock_precedes_lease(resource)
-        (settle,) = call_named(resource, "mission_toolkit.settle")
-        kwargs = call_keywords(settle)
-        self.assertEqual(kwargs["kind"], "'resource_harvest'")
-        self.assertEqual(kwargs["reference"], "item_reference")
-        self.assertEqual(kwargs["quantity"], "quantity")
-        self.assertTrue(source_has(enclosing(resource, settle, ast.If), "product"))
+        settles = call_named(resource, "mission_toolkit.settle")
+        self.assertEqual(len(settles), 2)
+        by_kind = {call_keywords(call)["kind"]: call for call in settles}
+        action_settle = by_kind["'resource_action_completed'"]
+        product_settle = by_kind["'resource_harvest'"]
+        action_kwargs = call_keywords(action_settle)
+        self.assertEqual(action_kwargs["reference"], "rule['action_id']")
+        self.assertEqual(action_kwargs["quantity"], "1")
+        product_kwargs = call_keywords(product_settle)
+        self.assertEqual(product_kwargs["reference"], "item_reference")
+        self.assertEqual(product_kwargs["quantity"], "quantity")
+        product_guard = enclosing(resource, product_settle, ast.If)
+        self.assertTrue(source_has(product_guard, "product"))
+        self.assertLess(action_settle.lineno, product_guard.lineno)
         self.assertTrue(
-            source_has(enclosing(resource, settle, ast.With), "store.connection")
+            source_has(enclosing(resource, action_settle, ast.With), "store.connection")
         )
         resource_source = ast.unparse(resource)
         self.assertLess(
             resource_source.index("if result == 3"),
-            resource_source.index("mission_toolkit.settle"),
+            resource_source.index("resource_action_completed"),
         )
 
     def test_crafting_settlement_uses_completed_recipe_batch_inside_account_transaction(

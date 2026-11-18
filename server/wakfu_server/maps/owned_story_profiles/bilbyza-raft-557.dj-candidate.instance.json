@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "bilbyza-raft-557",
+  "version": 2,
+  "map_id": 557,
+  "entry": {
+    "map_id": 458,
+    "object_id": 18981,
+    "destination_id": 1289
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 16833,
+    "quantity": 1
+  },
+  "exit_sources": [
+    {
+      "source_id": 18984,
+      "destination_id": 1290
+    }
+  ],
+  "controller_file": "bilbyza-raft-557.dj-candidate.json",
+  "exploration_file": "bilbyza-raft-557.exploration.json",
+  "provenance": "Reviewed native DJ challenge reconstruction: original raft18981/1289 paid VIP16833 and free18984/1290 return remain literal. Native DJ2502/action343/type4 at an explicitly reconstructed legal Sm6 stage anchor opens the genuine2502 encounter. Native2502 level100/INIT1000/spell3700 and source-pinned consumer2518 innate1895 initialize the solo challenge;1941 and areas527-530 are produced only by the original3700/95219/95845 and native1001 callbacks. No ordinary monster death supplies2393.",
+  "encounters_file": "bilbyza-raft-557.dj-candidate.encounters.json"
+}

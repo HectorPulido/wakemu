@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "id": "huppermage-school-second-year",
+  "evidence": [
+    "Unpublished bounded level80 School chapter: current2781 is admitted only after the earned first-year2780 certificate; mutually exclusive2782 remains supported when genuinely already running. Neither variant is inferred from visibility or administrative map arrival.",
+    "Original upper-floor source25684/destination2316 from1018 enters public1019(0,0,0). Only the committed native transport producer qualifies5613/5612. Original Active intro flags remain retained when completion starts2783, preserving its native eligibility.",
+    "The three original1012/1284 crate programs qualify5583/5584/5585 only through authenticated native Sokoban goal completion. Their click and the accepted teacher conversation never grant crate success. Later second-year lessons2784 and above are held.",
+    "Actual completed2780 also offers the current2781 continuation immediately; its original native GetRealLevel()>=80 predicate remains authoritative, so lower-level characters wait for character-ready admission."
+  ],
+  "bindings": [
+    {
+      "id": "school-upper-floor-2781",
+      "quest_id": 2781,
+      "objective_id": 5613,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 2316
+      },
+      "count": "operation",
+      "maps": [
+        1019
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "school-upper-floor-2782",
+      "quest_id": 2782,
+      "objective_id": 5612,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 2316
+      },
+      "count": "operation",
+      "maps": [
+        1019
+      ],
+      "instances": [
+        0
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "school-current-level80-introduction",
+      "quest_id": 2781,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 80,
+      "requires_completed": [
+        2780
+      ],
+      "admission_evidence": "Original level80 gate and genuinely completed2780; original exclusive2782 eligibility remains authoritative. Only current2781 auto-starts."
+    },
+    {
+      "id": "school-earned-2781-2783",
+      "quest_id": 2783,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2781
+      },
+      "requires_completed": [
+        2781
+      ]
+    },
+    {
+      "id": "school-earned-2782-2783",
+      "quest_id": 2783,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2782
+      },
+      "requires_completed": [
+        2782
+      ]
+    },
+    {
+      "id": "school-earned-first-year-level80-introduction",
+      "quest_id": 2781,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2780
+      },
+      "requires_completed": [
+        2780
+      ]
+    }
+  ]
+}

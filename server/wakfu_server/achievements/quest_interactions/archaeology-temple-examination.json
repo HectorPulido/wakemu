@@ -1,0 +1,37 @@
+{
+  "schema": "quest-interaction-batch-v1",
+  "bindings": [
+    {
+      "status": "reviewed",
+      "map_id": 1003,
+      "object_id": 25603,
+      "action_id": 0,
+      "parameter": 0,
+      "x": -10,
+      "y": -3,
+      "z": -15,
+      "object_type": "GenericActivableInteractiveElement",
+      "max_distance": 2,
+      "required_item": 0,
+      "required_quantity": 0,
+      "script_id": 0,
+      "approach_cells": [
+        -9,
+        -3,
+        -15,
+        -9,
+        -4,
+        -15,
+        -9,
+        -2,
+        -15,
+        -8,
+        -3,
+        -15
+      ],
+      "quest_id": 2701,
+      "objective_id": 5335,
+      "evidence": "Reviewed reconstructed physical examination: original1003/object25603(-10,-3,-15), descriptor969/group1197/nativeaction1219/wire0 parameter0; both native action and type1 effect2427 requireRunning2701. Native2701 has sole objective5335 and eligibilityComplete2700, retained through the shared objective planner. Installed genericLua2427 is absent: script0 executes no invented script or background. Only a fresh authenticated owner action at one of these exact published native1003 floor cells qualifies examination; no broad coordinatevisit or dialogue8106 completion. SourceSHAda0ce8498b627139a2ae05271fbdb27d55214a5a9390c0c0e21748041df13d6d. No autoaccept or prerequisite completion is introduced. Native object25603 wire1 postquest2430 and wire2 future2930/scenario2202 remain unbound and untouched; unrelated25604/25605 are not completion sources."
+    }
+  ]
+}

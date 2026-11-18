@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "id": "bilbyza-85-introduction",
+  "evidence": [
+    "Finite reviewed level85 island arrival admits original1260 only. Native GetRealLevel>=85 remains authoritative; no category-wide admission or future dance victory is inferred.",
+    "Exact original kiosk143/2537 callback and four native effects are installed together. First grant comes from native quest reward; repeatable replacement requires Complete1260 and missing17515.",
+    "Reviewed source-qualified Full Jellix Party: native portal19114 exact approach458(-74,5,3) matches both original1261 objective markers, destination1227 enters actual560; native19115/1226 freely returns. Five authentic family540 Bilbiboyz preserve native levels/books/states/loot. Four native color breeds with a repeated Raspberry is reviewed private formation, not recovered official server roster. Only actual defeated original actors increment native variable311; no room-victory surrogate kill or minigame substitution. Repeatable entrance remains available with or without a quest."
+  ],
+  "bindings": [
+    {
+      "id": "bilbyza-enter-actual-full-party",
+      "quest_id": 1261,
+      "objective_id": 2390,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 1227
+      },
+      "maps": [
+        560
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "bilbyza-native-bilbiboy-2519",
+      "quest_id": 1261,
+      "objective_id": 2546,
+      "variable_id": 311,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 2519
+      },
+      "maps": [
+        560
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "bilbyza-native-bilbiboy-2520",
+      "quest_id": 1261,
+      "objective_id": 2546,
+      "variable_id": 311,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 2520
+      },
+      "maps": [
+        560
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "bilbyza-native-bilbiboy-2521",
+      "quest_id": 1261,
+      "objective_id": 2546,
+      "variable_id": 311,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 2521
+      },
+      "maps": [
+        560
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "bilbyza-native-bilbiboy-2648",
+      "quest_id": 1261,
+      "objective_id": 2546,
+      "variable_id": 311,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 2648
+      },
+      "maps": [
+        560
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "bilbyza-enter-actual-dance-raft",
+      "quest_id": 1263,
+      "objective_id": 2392,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 1289
+      },
+      "maps": [
+        557
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "bilbyza-native-level85-arrival",
+      "quest_id": 1260,
+      "event": {
+        "kind": "map_enter",
+        "reference": 458
+      },
+      "maps": [
+        458
+      ],
+      "instances": [
+        0
+      ]
+    },
+    {
+      "id": "bilbyza-native-level85-ready",
+      "quest_id": 1260,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "maps": [
+        458
+      ],
+      "instances": [
+        0
+      ],
+      "minimum_level": 85,
+      "admission_evidence": "Same finite island admission recovers a character already on458; completed quest is not reactivated."
+    },
+    {
+      "id": "bilbyza-earned-1260-1261",
+      "quest_id": 1261,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1260
+      },
+      "requires_completed": [
+        1260
+      ]
+    },
+    {
+      "id": "bilbyza-earned-1261-1262",
+      "quest_id": 1262,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1261
+      },
+      "requires_completed": [
+        1261
+      ]
+    },
+    {
+      "id": "bilbyza-earned-1262-1263",
+      "quest_id": 1263,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1262
+      },
+      "requires_completed": [
+        1262
+      ]
+    }
+  ]
+}

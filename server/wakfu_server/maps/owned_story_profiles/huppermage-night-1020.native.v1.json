@@ -1,0 +1,76 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1020,
+  "objects": [
+    {
+      "chunk": "-1_-1",
+      "id": 25690,
+      "payload_hex": "02000000000b010000000d00000103fcfffffff4fffffffc000000010100010001000000043230393600000000000000",
+      "x": -12.0,
+      "y": -4.0,
+      "map_id": 1020,
+      "z": 0.0,
+      "auto": false,
+      "type": "Teleporter"
+    },
+    {
+      "chunk": "-1_-1",
+      "id": 25692,
+      "payload_hex": "02000000000b010000000d00000103fcfffffff6fffffffd00000001010103ffff0004fffffff6fffffffc0000fffffff6fffffffd0000fffffff5fffffffd0000fffffff4fffffffd0000000000000000000000",
+      "x": -10.0,
+      "y": -3.0,
+      "map_id": 1020,
+      "z": 0.0,
+      "auto": false,
+      "type": "ZoneTrigger"
+    }
+  ],
+  "scenario_id": 2070,
+  "scenario_events": [
+    16410,
+    16411,
+    16413,
+    16417
+  ],
+  "scenes": {
+    "16411": {
+      "argument_count": 3,
+      "duration_ms": 7000,
+      "callback": 2
+    }
+  },
+  "presentations": [
+    16410,
+    16413,
+    16417
+  ],
+  "event_signatures": {
+    "16410": {
+      "argument_count": 1
+    },
+    "16417": {
+      "argument_count": 1
+    }
+  },
+  "argument_sources": {
+    "16411": {
+      "room_actors": {
+        "room_actor:1:0": {
+          "room_order": 1,
+          "index": 0,
+          "reference": 3918
+        },
+        "room_actor:1:1": {
+          "room_order": 1,
+          "index": 1,
+          "reference": 3918
+        },
+        "room_actor:1:2": {
+          "room_order": 1,
+          "index": 2,
+          "reference": 3918
+        }
+      }
+    }
+  }
+}

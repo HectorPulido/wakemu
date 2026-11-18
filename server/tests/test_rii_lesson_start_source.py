@@ -240,6 +240,35 @@ class RiiLessonStartSourceTests(unittest.TestCase):
             native_explicit_target=True,
         )
         self.assertTrue(permits_lesson_floor_retirement(fight, effect, invocation))
+        turn_fight = SimpleNamespace(
+            **vars(fight), phase="active", current=SimpleNamespace(id=7), turn_id=9
+        )
+        boundary = dict(
+            policy="wakemu.owned-turn-boundary-facts-v1",
+            actor_id=7,
+            turn_id=9,
+            phase="start",
+            event_id=1001,
+        )
+        turn_invocation = SimpleNamespace(
+            **{**vars(invocation), "target_id": 7},
+            native_turn_boundary_context=boundary,
+        )
+        self.assertTrue(
+            permits_lesson_floor_retirement(turn_fight, effect, turn_invocation)
+        )
+        for invalid in (
+            None,
+            dict(boundary, actor_id=-2),
+            dict(boundary, turn_id=8),
+            dict(boundary, phase="end", event_id=1002),
+            dict(boundary, policy="unqualified"),
+        ):
+            with self.subTest(boundary=invalid):
+                turn_invocation.native_turn_boundary_context = invalid
+                self.assertFalse(
+                    permits_lesson_floor_retirement(turn_fight, effect, turn_invocation)
+                )
         ordinary = SimpleNamespace(
             actors=fight.actors,
             rii_los_lesson_contract=dict(

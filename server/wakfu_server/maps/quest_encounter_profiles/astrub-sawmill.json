@@ -1,0 +1,22 @@
+{
+  "schema": "owned-quest-instance-v1",
+  "id": "astrub-maui-sawmill",
+  "quest_id": 2190,
+  "entry_objective": 4329,
+  "victory_objective": 4328,
+  "entry_map_id": 527,
+  "entry_object_id": 19409,
+  "destination_id": 1245,
+  "map_id": 610,
+  "arena_seed": [
+    -5,
+    0,
+    0
+  ],
+  "monster_reference": 1710,
+  "monster_count": 3,
+  "internal_sources": [],
+  "exit_source": 19402,
+  "provenance": "Reviewed reconstruction, NOT captured official formation: native2190/4329 requires Astrub Sawmill Cellar and4328 requires defeating rats. Native1710 is Astrubian Rat, family653, original level3/HP20/AP4/MP3/spell1013. Three ordinary native rats in installed cellar610 are explicit local encounter policy; no native map-to-spawn association was recovered. Exact native entrance19409/1245 retains IsAchievementActive(2190); exact return19402 is preserved. Actual win settles2190 and enables2191 only through the shared completed-quest producer.",
+  "exploration_file": "astrub-sawmill.exploration.json"
+}

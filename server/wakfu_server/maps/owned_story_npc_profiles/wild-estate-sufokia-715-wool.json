@@ -1,0 +1,81 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "wild-estate-sufokia-715-wool",
+  "controller_id": "wild-estate-sufokia-715",
+  "map_id": 715,
+  "policy_version": 2,
+  "quest_id": 1646,
+  "physical_visit": false,
+  "requires": [
+    "sufokian-storehouse-discovered"
+  ],
+  "until": [],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 2811,
+      "action_ids": [
+        440
+      ],
+      "action_criterion": "",
+      "dialogue_root": 2331,
+      "native_opening_roots": [
+        2331
+      ],
+      "choice_id": 5740,
+      "choice_type": 8,
+      "objective_id": 3056,
+      "binding_node_id": 2366,
+      "graph": [
+        [
+          2331,
+          5634,
+          2366
+        ],
+        [
+          2331,
+          5637,
+          0
+        ],
+        [
+          2366,
+          5740,
+          0
+        ]
+      ],
+      "native_guard_path": [
+        [
+          2331,
+          5634,
+          2366
+        ],
+        [
+          2366,
+          5740,
+          0
+        ]
+      ],
+      "x": -1,
+      "y": -2,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": 0,
+        "y": -2,
+        "z": 0
+      },
+      "provenance": "Reviewed native1646 exchange: original2811/action440 root2331/5634 requires running1646 and ten17832; reviewed edge to2366 describes wool squeezed into a flask and terminal5740 ends the exchange. Objective3056, ten-wool debit and one17828 essence output are reviewed server reconstruction, independently grounded by native1646 objective text and original chief20440/1413 item gate. Prior3055 must already be earned from the actual acquisition counter368. Native dialogue edges are reviewed, not recovered server graph. No opening, preliminary choice, cancelled payment or replay grants an item or objective.",
+      "item_turn_in": {
+        "reference": 17832,
+        "quantity": 10,
+        "output_reference": 17828,
+        "output_quantity": 1,
+        "required_objectives": [
+          3055
+        ],
+        "evidence": "Reviewed native1646 exchange: original2811/action440 root2331/5634 requires running1646 and ten17832; reviewed edge to2366 describes wool squeezed into a flask and terminal5740 ends the exchange. Objective3056, ten-wool debit and one17828 essence output are reviewed server reconstruction, independently grounded by native1646 objective text and original chief20440/1413 item gate. Prior3055 must already be earned from the actual acquisition counter368. Native dialogue edges are reviewed, not recovered server graph. No opening, preliminary choice, cancelled payment or replay grants an item or objective."
+      }
+    }
+  ]
+}

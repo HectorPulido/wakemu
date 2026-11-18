@@ -91,7 +91,7 @@ def _targets(fight, rows):
                 tuple(row["cell"]),
                 -1 if border or environment else area_affiliation(fight, row),
                 row["owner_id"],
-                direction=row["direction"],
+                direction=_pv_direction(fight, row),
                 native_targeting_bcR=native_area_targeting_bcR(row),
                 native_obstacle_id=row.get("native_obstacle_id", -1),
                 native_movement_blocking=constructor["movement_blocking"]
@@ -117,6 +117,14 @@ def _targets(fight, rows):
     return tuple(targets)
 
 
+def _pv_direction(fight, row):
+    if "native_faw_stored_direction" in row:
+        from .combat_area_orientation import creation_area_pv
+
+        return creation_area_pv(fight, row["uid"]).direction
+    return row["direction"]
+
+
 def retained_area_source_target(fight, identity):
     """Resolve a selected Qq source pointer without restoring Qs membership."""
     from .combat_state_managers import registered_area_pv, retained_area_pv_row
@@ -134,7 +142,7 @@ def retained_area_source_target(fight, identity):
         pv.position,
         affiliation,
         row.get("owner_id"),
-        direction=row["direction"],
+        direction=_pv_direction(fight, row),
         native_los_height=pv.native_los_height,
         native_targeting_bcR=native_area_targeting_bcR(row),
         native_baF=life["baF"],

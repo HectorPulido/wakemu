@@ -33,10 +33,24 @@ def qualified_roots(fight, request, rule, effects):
         effect = effects.get(str(reference))
         if not isinstance(effect, dict):
             return None
+        if (
+            effect.get("criteria", "").strip() == "False"
+            and effect.get("application_flag") == "NONE"
+            and effect.get("removal_flag") == "NONE"
+        ):
+            # An original disabled root remains in the ordinary transaction.
+            # It cannot select a recipient and must not veto a live sibling.
+            continue
         if effect.get("children") and transfer_children(effect, effects) is None:
-            from .combat_npc_area_groups import immediate_state_group
+            from .combat_npc_area_groups import (
+                immediate_state_group,
+                immediate_target_state_group,
+            )
 
-            if immediate_state_group(effect, effects) is None:
+            if (
+                immediate_state_group(effect, effects) is None
+                and immediate_target_state_group(effect, effects) is None
+            ):
                 return None
         selector = effect.get("native_target_selector")
         if not isinstance(selector, dict) or selector.get("class") != "fcE":
@@ -67,7 +81,7 @@ def qualified_roots(fight, request, rule, effects):
             )
             if not offsets or set(offsets) <= {(0, 0)}:
                 return None
-        elif mask in (8, (1 << 47) | 256):
+        elif mask in (8, (1 << 47) | 8, (1 << 47) | 256):
             # fcE without bit1 selects the actual PV population. Native empty
             # geometry is authoritative here, never an invented infinite AoE.
             if (
@@ -230,10 +244,20 @@ def eligible_recipients(dispatcher, effect, invocation, fight):
         eligibility_effect, eligibility_invocation = effect, selected
         handler = dispatcher.handlers.get(effect["effect_class"])
         if effect["effect_class"] == 330:
-            from .combat_npc_area_groups import immediate_state_group
+            from .combat_npc_area_groups import (
+                immediate_state_group,
+                immediate_target_state_group,
+            )
 
             child = immediate_state_group(effect, dispatcher.effects)
-            if child is None or dispatcher.handlers.get(child["effect_class"]) is None:
+            children = (
+                (child,)
+                if child is not None
+                else immediate_target_state_group(effect, dispatcher.effects)
+            )
+            if children is None or any(
+                dispatcher.handlers.get(row["effect_class"]) is None for row in children
+            ):
                 raise ValueError("Missing native NPC ordered state group authority")
             # Class330 is an internal dispatcher branch, not a leaf handler.
             # Child selection and state application remain transaction-owned.

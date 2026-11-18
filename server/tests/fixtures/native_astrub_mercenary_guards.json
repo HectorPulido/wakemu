@@ -1,0 +1,338 @@
+{
+  "definition": {
+    "aHe": "IsAchievementActive(2143)",
+    "aeV": 3,
+    "aqb": false,
+    "bwX": 2014,
+    "cjG": 238,
+    "cjH": true,
+    "cjI": "",
+    "cjJ": [
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 79,
+            "ckh": -1,
+            "cki": 4,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4242,
+        "native_class": "aJN"
+      },
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 88,
+            "ckh": -7,
+            "cki": 4,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4243,
+        "native_class": "aJN"
+      },
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 79,
+            "ckh": 18,
+            "cki": 4,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4244,
+        "native_class": "aJN"
+      },
+      {
+        "ckb": true,
+        "ckc": "",
+        "ckd": [
+          {
+            "ckg": 73,
+            "ckh": 32,
+            "cki": 4,
+            "ckj": 527,
+            "native_class": "aJO"
+          }
+        ],
+        "cke": "",
+        "ckf": [],
+        "d": 4245,
+        "native_class": "aJN"
+      }
+    ],
+    "cjK": [
+      {
+        "aeV": 6,
+        "ckk": false,
+        "ckl": [
+          7671
+        ],
+        "d": 3690,
+        "native_class": "aJP"
+      },
+      {
+        "aeV": 5,
+        "ckk": false,
+        "ckl": [
+          12686,
+          4
+        ],
+        "d": 4654,
+        "native_class": "aJP"
+      }
+    ],
+    "cjL": 0,
+    "cjM": false,
+    "cjN": false,
+    "cjO": true,
+    "cjP": 6,
+    "cjQ": 1,
+    "cjR": true,
+    "cjS": -1,
+    "cjT": 0,
+    "cjU": 0,
+    "cjV": false,
+    "cjW": true,
+    "cjX": 0,
+    "cjY": 1,
+    "cjZ": 0,
+    "cka": "ach.238",
+    "d": 2143,
+    "getDuration": 0,
+    "isVisible": true,
+    "native_class": "aJM"
+  },
+  "nodes": [
+    {
+      "id": 2154,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()!=30 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6853,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4242)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5184,
+          "criteria": "",
+          "type": 7,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2155,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()==30 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6852,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4242)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5187,
+          "criteria": "",
+          "type": 10,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2156,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()!=31 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6858,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4243)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5188,
+          "criteria": "",
+          "type": 7,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2157,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()==31 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6857,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4243)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5189,
+          "criteria": "",
+          "type": 10,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2158,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()!=32 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6863,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4244)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5190,
+          "criteria": "",
+          "type": 7,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2159,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()==32 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6862,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4244)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5191,
+          "criteria": "",
+          "type": 10,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2160,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()!=33 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6866,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4245)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5192,
+          "criteria": "",
+          "type": 7,
+          "native_cmW": false
+        }
+      ]
+    },
+    {
+      "id": 2161,
+      "native_cmT": "",
+      "native_cmU": "",
+      "criteria": "GetNationId()==33 and GetInstanceId()==527",
+      "choices": [
+        {
+          "id": 6864,
+          "criteria": "IsAchievementRunning(2143) && !IsAchievementObjectiveComplete(4245)",
+          "type": 7,
+          "native_cmW": false
+        },
+        {
+          "id": 5193,
+          "criteria": "",
+          "type": 10,
+          "native_cmW": false
+        }
+      ]
+    }
+  ],
+  "speakers": [
+    {
+      "ref": 1592,
+      "actions": [
+        {
+          "type": 4,
+          "id": 129,
+          "criteria": ""
+        }
+      ],
+      "min_level": 0,
+      "visual_id": 1035,
+      "max_level": 1
+    },
+    {
+      "ref": 1324,
+      "actions": [
+        {
+          "type": 4,
+          "id": 100,
+          "criteria": ""
+        }
+      ],
+      "min_level": 0,
+      "visual_id": 1033,
+      "max_level": 1
+    },
+    {
+      "ref": 1437,
+      "actions": [
+        {
+          "type": 4,
+          "id": 117,
+          "criteria": ""
+        }
+      ],
+      "min_level": 0,
+      "visual_id": 1034,
+      "max_level": 1
+    },
+    {
+      "ref": 1322,
+      "actions": [
+        {
+          "type": 4,
+          "id": 102,
+          "criteria": ""
+        }
+      ],
+      "min_level": 0,
+      "visual_id": 1032,
+      "max_level": 1
+    }
+  ]
+}

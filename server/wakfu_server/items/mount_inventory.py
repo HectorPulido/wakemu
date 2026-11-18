@@ -20,7 +20,7 @@ def initialize(db, uid, character_id, now):
     if item is None or item["quantity"] != 1:
         raise ValueError("Mount requires an owned, unstacked unit")
     model = db.execute(
-        "SELECT * FROM mount_models WHERE reference=%s", (item["reference"],)
+        "SELECT * FROM mount_item_models WHERE reference=%s", (item["reference"],)
     ).fetchone()
     if model is None:
         raise ValueError("Missing verified mount model")
@@ -73,6 +73,28 @@ def hydrate(db, items):
     ]
 
 
+def validate_equipment(character, selected):
+    """Require the same owned mount state before saving or publishing a sheet."""
+    units = {item["uid"]: item for item in character.get("inventory_items", [])}
+    for entry in selected:
+        if entry["slot"] == 24:
+            unit = units[entry["uid"]]
+            if not isinstance(unit.get("mount"), dict):
+                raise ValueError("Equipped mount has no authoritative unit state")
+            return unit
+    return None
+
+
+def initialize_equipment(db, character, selected, now):
+    """Initialize qualified legacy units only inside their owned build transaction."""
+    units = {item["uid"]: item for item in character.get("inventory_items", [])}
+    for entry in selected:
+        if entry["slot"] == 24:
+            unit = units[entry["uid"]]
+            if unit.get("mount") is None:
+                unit["mount"] = initialize(db, unit["uid"], character["id"], now)
+
+
 def equipped(character):
     """Resolve the mount unit through the authoritative active equipment sheet."""
     from wakfu_server.equipment import validate_sheet
@@ -94,15 +116,7 @@ def equipped(character):
         blob,
         strict=False,
     )
-    units = {item["uid"]: item for item in character.get("inventory_items", [])}
-    for entry in selected:
-        if entry["slot"] == 24:
-            unit = units[entry["uid"]]
-            state = unit.get("mount")
-            if state is None:
-                raise ValueError("Equipped mount has no authoritative unit state")
-            return unit
-    return None
+    return validate_equipment(character, selected)
 
 
 def actor_pet(character):

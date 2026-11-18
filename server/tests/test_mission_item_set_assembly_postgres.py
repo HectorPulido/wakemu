@@ -1,4 +1,5 @@
 """Journal item assembly advances only a running, level-qualified mission."""
+
 import struct
 import unittest
 from unittest.mock import patch
@@ -11,6 +12,40 @@ from wakfu_server.progression import level_xp
 
 
 class MissionItemSetAssemblyPostgresTests(PostgresCase):
+    def test_real_assembly_completion_reaches_shared_toolkit_once(self):
+        from wakfu_server.achievements import mission_assembly, mission_toolkit
+
+        account, generation, character_id = self._fixture()
+        with patch.object(
+            mission_toolkit,
+            "settle_completions",
+            wraps=mission_toolkit.settle_completions,
+        ) as followup:
+            for group in journal_actions.descriptors()["groups"]:
+                inputs = self._group_inputs(account, generation, character_id, group)
+                result = journal_actions.use(
+                    self.store,
+                    account,
+                    generation,
+                    character_id,
+                    self._body(group, inputs[0]),
+                    in_fight=False,
+                )
+            followup.assert_called_once()
+            self.assertEqual(followup.call_args.args[-1], [2907])
+            state = self._running_state(account, character_id)
+            self.assertIn(2907, state["completed"])
+            self.assertIsInstance(state["completion_dates"]["2907"], int)
+            xp = self.store.character(account, character_id)["xp"]
+            with self.store.connection() as db:
+                character = self.store.character(account, character_id, db)
+                replay = mission_assembly.settle(
+                    db, self.store, character, result["assembly_receipt_id"]
+                )
+            self.assertFalse(replay["applied"])
+            followup.assert_called_once()
+            self.assertEqual(self.store.character(account, character_id)["xp"], xp)
+
     def _fixture(self, *, level=178, running=True):
         account = self.store.register("mission-assembly", "local-password")["id"]
         character = self.store.create_character(account, "Mission Assembly")

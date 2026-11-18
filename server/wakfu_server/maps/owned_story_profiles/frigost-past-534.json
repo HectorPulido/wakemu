@@ -1,0 +1,218 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "frigost-past-534",
+  "map_id": 534,
+  "maximum_members": 1,
+  "provenance": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced.",
+  "admission": {
+    "quest_id": 1114,
+    "objective_id": null,
+    "continuation_quest_id": 1124
+  },
+  "native_sources": {
+    "path": "frigost-past-534.native.v1.json",
+    "sha256": "2e4274501b0a8d9e62a167401477a44a8dffe9eb7fb3739f90dac9536656754a"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "past-clinic-entered",
+      "kind": "world_ready",
+      "reference": 534,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1114,
+          "objective_id": 2051
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2420-treated",
+      "kind": "npc_spoken",
+      "reference": 309,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2240
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2418-treated",
+      "kind": "npc_spoken",
+      "reference": 317,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2241
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2415-treated",
+      "kind": "npc_spoken",
+      "reference": 310,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2242
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2414-treated",
+      "kind": "npc_spoken",
+      "reference": 311,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2243
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2416-treated",
+      "kind": "npc_spoken",
+      "reference": 312,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2244
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2412-treated",
+      "kind": "npc_spoken",
+      "reference": 313,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2245
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2413-treated",
+      "kind": "npc_spoken",
+      "reference": 314,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2246
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2419-treated",
+      "kind": "npc_spoken",
+      "reference": 315,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2247
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2417-treated",
+      "kind": "npc_spoken",
+      "reference": 316,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2248
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "patient-2411-treated",
+      "kind": "npc_spoken",
+      "reference": 318,
+      "requires": [
+        "past-clinic-entered"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2249
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    },
+    {
+      "id": "priest-healing-report",
+      "kind": "npc_spoken",
+      "reference": 2421,
+      "requires": [
+        "patient-2420-treated",
+        "patient-2418-treated",
+        "patient-2415-treated",
+        "patient-2414-treated",
+        "patient-2416-treated",
+        "patient-2412-treated",
+        "patient-2413-treated",
+        "patient-2419-treated",
+        "patient-2417-treated",
+        "patient-2411-treated"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1124,
+          "objective_id": 2239
+        }
+      ],
+      "evidence": "Reviewed reconstruction of original Frigost1124 past-clinic scene. Original533 lectern18261/1138 enters534, original534/18262/1139 returns533. All ten original native family524 patient models and aMg type1 Heal actions with native2000ms duration are retained. Finite actor placements on genuine connected534 Sm6 floor are reviewed server reconstruction, not captured original actor positions. Ten actual distinct accepted timed cures earn2240-2249; final actual native Doby2421/action304 requires all ten cures before2239. No combat, automatic healing, forged dialogue or generic victory is introduced."
+    }
+  ]
+}

@@ -4,6 +4,7 @@ This is a publication tool, not an inference engine: only entries that have
 been reviewed and contain their evidence may be installed. Existing conflicting
 bindings are never changed. The same manifest can safely be applied again.
 """
+
 import argparse
 import json
 import os
@@ -29,8 +30,49 @@ FIELDS = (
     "revision",
     "evidence",
     "script_id",
+    "approach_cells",
+    "native_criterion",
+    "native_effect_reference",
 )
 KEYS = FIELDS[:4]
+
+
+def _native_activation_positions(row):
+    """Allow a large activation polygon only when it exactly matches native data."""
+    pin = row.get("native_activation_source_sha256")
+    if pin is None:
+        return None
+    from hashlib import sha256
+    from wakfu_server import native_interactive_activation, world_static
+
+    source = next(
+        (
+            source
+            for source in world_static.objects(row["map_id"])
+            if source["id"] == row["object_id"]
+        ),
+        None,
+    )
+    if source is None or source["type"] != "PositionTrigger":
+        raise ValueError("Native activation source is not a position trigger")
+    signature = sha256(
+        json.dumps(
+            source, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        ).encode()
+    ).hexdigest()
+    if pin != signature or any(source[key] != row[key] for key in ("x", "y", "z")):
+        raise ValueError("Native activation source does not match installed content")
+    if (
+        row["object_type"] != source["type"]
+        or row["action_id"] != 5
+        or row["parameter"] != 0
+    ):
+        raise ValueError("Native position trigger requires its exact WALKON action")
+    return [
+        coordinate
+        for position in native_interactive_activation.decode(source)
+        for coordinate in position
+    ]
 
 
 def validate_manifest(document, revision):
@@ -48,6 +90,18 @@ def validate_manifest(document, revision):
             raise ValueError("Only reviewed quest bindings can be installed")
         item = {key: row.get(key) for key in FIELDS if key != "revision"}
         item["script_id"] = row.get("script_id", 0)
+        item["approach_cells"] = row.get("approach_cells", [])
+        item["native_criterion"] = row.get("native_criterion", "")
+        item["native_effect_reference"] = row.get("native_effect_reference", 0)
+        if (
+            type(item["native_criterion"]) is not str
+            or len(item["native_criterion"]) > 4096
+            or type(item["native_effect_reference"]) is not int
+            or not 0 <= item["native_effect_reference"] < 2**31
+            or item["native_criterion"]
+            and not item["native_effect_reference"]
+        ):
+            raise ValueError("Native interactive criterion lacks its source effect")
         item["revision"] = revision
         for key in ("map_id", "object_id", "quest_id", "objective_id"):
             if type(item[key]) is not int or item[key] <= 0:
@@ -62,6 +116,30 @@ def validate_manifest(document, revision):
                 raise ValueError(f"Invalid {key}")
         if type(item["max_distance"]) is not int or not 1 <= item["max_distance"] <= 4:
             raise ValueError("Invalid interaction distance")
+        approaches = item["approach_cells"]
+        native_positions = _native_activation_positions(row)
+        if (
+            type(approaches) is not list
+            or len(approaches) % 3
+            or len(approaches) > (12288 if native_positions is not None else 27)
+            or any(
+                type(v) is not int or not -(2**31) <= v < 2**31 for v in approaches
+            )
+        ):
+            raise ValueError("Invalid native interaction approach cells")
+        if native_positions is not None and (
+            not native_positions or approaches != native_positions
+        ):
+            raise ValueError(
+                "Quest interaction differs from exact native activation polygon"
+            )
+        if native_positions is None and any(
+            abs(approaches[i] - item["x"]) + abs(approaches[i + 1] - item["y"])
+            > item["max_distance"]
+            or abs(approaches[i + 2] - item["z"]) > 4
+            for i in range(0, len(approaches), 3)
+        ):
+            raise ValueError("Native interaction approach exceeds configured bounds")
         if any(
             type(item[k]) is not int or item[k] < 0
             for k in ("required_item", "required_quantity")

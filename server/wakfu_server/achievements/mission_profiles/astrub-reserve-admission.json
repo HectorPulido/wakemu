@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "id": "astrub-reserve-admission",
+  "evidence": [
+    "Reviewed reconstruction: native entrance23616/2004 from527 to888 is the Mercenary Reserve named by2158/4274. Only the authenticated committed exact native endpoint emits transport_entered; arbitrary map arrivals do not qualify."
+  ],
+  "bindings": [
+    {
+      "id": "enter-mercenary-reserve",
+      "quest_id": 2158,
+      "objective_id": 4274,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 2004
+      },
+      "maps": [
+        888
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": []
+}

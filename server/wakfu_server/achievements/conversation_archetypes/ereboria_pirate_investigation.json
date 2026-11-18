@@ -1,0 +1,133 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Finite continuation of the actual accepted Nao pirate quest: earned5044 starts5045; four real ordered clues and the genuine ambush precede Nao's native debrief. Earned5045 starts5046; actual Pohl victory and Azozu information reading precede the native terminal conversation. No higher-level treasure chapter is activated.",
+  "speakers": [
+    {
+      "actor_id": -2251799934995044,
+      "action_id": 1209,
+      "quest_ids": [
+        5044,
+        5045,
+        5046
+      ],
+      "running_roots": {
+        "5044": 5541,
+        "5045": 5541,
+        "5046": 5541
+      },
+      "objectives": [
+        {
+          "quest_id": 5045,
+          "objective_id": 10390,
+          "node_id": 5555,
+          "choice_id": 12938,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              5541,
+              12936,
+              5554
+            ],
+            [
+              5554,
+              12937,
+              5555
+            ],
+            [
+              5555,
+              12938,
+              0
+            ]
+          ],
+          "running_branch": 5045
+        },
+        {
+          "quest_id": 5046,
+          "objective_id": 10398,
+          "node_id": 5558,
+          "choice_id": 12944,
+          "archetype": "talk",
+          "native_guard_path": [
+            [
+              5541,
+              12940,
+              5556
+            ],
+            [
+              5556,
+              12942,
+              5557
+            ],
+            [
+              5557,
+              12943,
+              5558
+            ],
+            [
+              5558,
+              12944,
+              0
+            ]
+          ],
+          "running_branch": 5046
+        }
+      ],
+      "graph": [
+        [
+          5541,
+          12936,
+          5554
+        ],
+        [
+          5554,
+          12937,
+          5555
+        ],
+        [
+          5555,
+          12938,
+          0
+        ],
+        [
+          5555,
+          12939,
+          0
+        ],
+        [
+          5541,
+          12940,
+          5556
+        ],
+        [
+          5556,
+          12942,
+          5557
+        ],
+        [
+          5557,
+          12943,
+          5558
+        ],
+        [
+          5558,
+          12944,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": [
+    {
+      "after_quest": 5044,
+      "start_quest": 5045,
+      "policy": "reconstructed_narrative",
+      "evidence": "Reviewed finite native Nao narrative continuation after the completed camp-arrival chapter; raw level36 eligibility remains unchanged and is not used as an automatic story grant."
+    },
+    {
+      "after_quest": 5045,
+      "start_quest": 5046,
+      "policy": "reconstructed_narrative",
+      "evidence": "The native5045 terminal Nao text identifies Azozu's adopter Pohl; only actual completed investigation unlocks the Pohl chapter. Native level36 eligibility remains unchanged."
+    }
+  ]
+}

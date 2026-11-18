@@ -1,0 +1,149 @@
+{
+  "schema": "native-generic-reward-batch-v1",
+  "entries": [
+    {
+      "program": {
+        "native_class": "aLl",
+        "descriptor_id": 143,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 162,
+            "clx": 66,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 0,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 162,
+                "criterion": "",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 359,
+                    "effect_type": 1,
+                    "criterion": "GetRealLevel()>=85 && GetItemQuantity(17515) > 0",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 369,
+                    "effect_type": 1,
+                    "criterion": "GetRealLevel()<85",
+                    "parameters": [
+                      "false"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 492,
+                    "effect_type": 4,
+                    "criterion": "GetRealLevel()>=85 && GetItemQuantity(17515) == 0 && IsAchievementComplete(1260)",
+                    "parameters": [
+                      "2316"
+                    ]
+                  },
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2537,
+                    "effect_type": 1,
+                    "criterion": "GetRealLevel()>=85 && GetItemQuantity(17515) == 0 && not IsAchievementComplete(1260)",
+                    "parameters": [
+                      "false"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source": {
+        "x": -2.0,
+        "y": 7.0,
+        "z": 0.0,
+        "id": 18974,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "chunk": "-1_0",
+        "map_id": 458,
+        "payload_hex": "02000000000b010000000d00000101cafffffffe000000070000000101010300010000000331343300000009c10101",
+        "native_parameters": "143",
+        "descriptor_id": 143
+      },
+      "catalog_revision": "e62a0915ea314af6d242031b1261ee758006b37f50d23b6cf4c9d01be3748077",
+      "source_sha256": "652fb00a5b38cfc2a90a4ca969f9b8c4086bfcdc2e3d5934f385402bd4335552",
+      "geometry_sha256": "2b41ab3b96eec06ff68edfd0f9d20ceb92bcb3f0f1c12330a18ec57ab5b9beaa",
+      "approaches": [
+        [
+          -3,
+          7,
+          0
+        ],
+        [
+          -2,
+          8,
+          0
+        ],
+        [
+          -1,
+          7,
+          0
+        ]
+      ],
+      "state": {
+        "id": 18974,
+        "type": "GenericActivableInteractiveElement",
+        "map_id": 458,
+        "payload_hex": "01020000000602000101010001010000000000"
+      },
+      "lifecycle_mode": "NATIVE_INVENTORY_GUARD",
+      "authority": "Original kiosk143 retains effects359/369 feedback,492 original loot2316 and2537 server quest callback. Exact native level85/inventory/Complete criteria are preserved. Missing client2537 is handled only by the same source-guarded interactive binding1260/2389.",
+      "loot_tables": {
+        "2316": {
+          "source_sha256": "be2bec3838894d26bdb38697d63e7788ae1a3aaaf2642f1796a672537c898cd2",
+          "payload": {
+            "czg": 1,
+            "d": 2316,
+            "gBN": [
+              {
+                "aAi": 17515,
+                "bfh": 1,
+                "cmY": 1.0,
+                "cqA": false,
+                "cqy": 1,
+                "cqz": 1,
+                "csE": 1,
+                "czk": "",
+                "czl": 0,
+                "d": 2841,
+                "gBO": [],
+                "native_class": "fFe"
+              }
+            ],
+            "native_class": "fFc"
+          }
+        }
+      },
+      "external_quest_scripts": [
+        {
+          "effect_reference": 2537,
+          "quest_id": 1260,
+          "objective_id": 2389,
+          "native_criterion": "GetRealLevel()>=85 && GetItemQuantity(17515) == 0 && not IsAchievementComplete(1260)"
+        }
+      ],
+      "script_sources": {
+        "359": "5d4f3340c433528c977a4650eec38c92c558b67345f2e6b00dd402f4fc2c1998",
+        "369": "09504eae5f31cc3575bcd084e29b90dc33fb0e1611779ac0573dcb4d63b972e5"
+      }
+    }
+  ]
+}

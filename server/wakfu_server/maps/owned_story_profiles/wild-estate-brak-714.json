@@ -1,0 +1,62 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-estate-brak-714",
+  "map_id": 714,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1621,
+    "objective_id": null,
+    "continuation_quest_id": 1622
+  },
+  "provenance": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed.",
+  "steps": [
+    {
+      "id": "brak-present-inscription",
+      "kind": "interactive",
+      "reference": 20539,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1621,
+          "objective_id": 3021
+        }
+      ],
+      "evidence": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+    },
+    {
+      "id": "brak-journal-read",
+      "kind": "interactive",
+      "reference": 20427,
+      "requires": [
+        "brak-present-inscription"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1622,
+          "objective_id": 3022
+        }
+      ],
+      "evidence": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+    }
+  ],
+  "initial_elements": [],
+  "interaction_approach_policy": "pinned_native_qv",
+  "native_sources": {
+    "path": "wild-estate-brak-714.native.v1.json",
+    "sha256": "da596bf91dc449ceab45705905ee4bc3ac3b7dea8e37f674b96488bee3556117"
+  },
+  "generic_transfers": [
+    {
+      "schema": "owned-generic-transfer-v1",
+      "source_id": 20427,
+      "effect_reference": 473,
+      "target_route_key": "quest-generic-723-20427-473",
+      "requires": [
+        "brak-present-inscription"
+      ],
+      "evidence": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "schema": "owned-story-native-fragment-v1",
+  "id": "zinit-voyage-980",
+  "map_id": 980,
+  "provenance": "Reviewed version relocation: original Lua2015/2018/2016 names removed asset maps290/303/304. Current client980 retains the same boat deck;52 original floor0 cells are reused sequentially. Species/grades/spells are native family779. Counts3birds/5pirates/6tornadoes are guide-corroborated; mixed composition and placements are explicit local reconstruction, not recovered official formation.",
+  "scenario_id": 2015,
+  "scenario_events": [
+    15992,
+    15993,
+    15995,
+    15996,
+    15997,
+    16007,
+    16008,
+    16010,
+    16011,
+    16012,
+    15998,
+    15999,
+    16001,
+    16002,
+    16003
+  ],
+  "scenario_bindings": {
+    "15992": 2015,
+    "15993": 2015,
+    "15995": 2015,
+    "15996": 2015,
+    "15997": 2015,
+    "16007": 2018,
+    "16008": 2018,
+    "16010": 2018,
+    "16011": 2018,
+    "16012": 2018,
+    "15998": 2016,
+    "15999": 2016,
+    "16001": 2016,
+    "16002": 2016,
+    "16003": 2016
+  },
+  "argument_sources": {
+    "15993": {
+      "room_actors": {
+        "room_actor:1:0": {
+          "room_order": 1,
+          "index": 0,
+          "reference": 3771
+        },
+        "room_actor:1:1": {
+          "room_order": 1,
+          "index": 1,
+          "reference": 3771
+        }
+      }
+    },
+    "16008": {
+      "room_actors": {
+        "room_actor:2:0": {
+          "room_order": 2,
+          "index": 0,
+          "reference": 3783
+        },
+        "room_actor:2:1": {
+          "room_order": 2,
+          "index": 1,
+          "reference": 3783
+        }
+      }
+    },
+    "15999": {
+      "room_actors": {
+        "room_actor:3:0": {
+          "room_order": 3,
+          "index": 0,
+          "reference": 3769
+        },
+        "room_actor:3:1": {
+          "room_order": 3,
+          "index": 1,
+          "reference": 3769
+        },
+        "room_actor:3:2": {
+          "room_order": 3,
+          "index": 2,
+          "reference": 3769
+        }
+      }
+    }
+  },
+  "combat_helpers": {
+    "1": "wakemu.zinit.voyage.native-ally.v1",
+    "2": "wakemu.zinit.voyage.native-ally.v1",
+    "3": "wakemu.zinit.voyage.native-ally.v1"
+  },
+  "script_sources": [
+    {
+      "path": "scenario/2015.lua",
+      "sha256": "4fc40be470cd4a5960333e3014bb74e65cbb6fafbc8edfe133bf395d692ee1ff"
+    },
+    {
+      "path": "scenario/2018.lua",
+      "sha256": "e5af932eebfaaadbf7323874a169ae1e370bc78eb4308199ab322a854a6c8789"
+    },
+    {
+      "path": "scenario/2016.lua",
+      "sha256": "999060bc777b2bcca31d4c4ec7d8c7e2b589ad962f8e875abbb6595bdb51169c"
+    }
+  ],
+  "event_signatures": {
+    "15993": {
+      "argument_count": 2
+    },
+    "16008": {
+      "argument_count": 2
+    },
+    "15999": {
+      "argument_count": 3
+    }
+  },
+  "scenes": {},
+  "context_refresh_delays": {
+    "voyage-stage-1-victory": 3500,
+    "voyage-stage-2-victory": 2000,
+    "voyage-stage-3-victory": 2000
+  }
+}

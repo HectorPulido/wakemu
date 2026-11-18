@@ -209,7 +209,7 @@ def resolve_native_pools(db, policy, species_refs, *, catalog=None):
     excluded = {
         r["reference"]
         for r in db.execute(
-            "SELECT reference FROM mount_models WHERE reference=ANY(%s)",
+            "SELECT reference FROM mount_item_models WHERE reference=ANY(%s)",
             (sorted(candidates),),
         ).fetchall()
     }
@@ -263,7 +263,7 @@ def _validate_native(db, policy):
             ):
                 raise ValueError("Unsupported rift reward binding")
             if db.execute(
-                "SELECT 1 FROM mount_models WHERE reference=%s", (ref,)
+                "SELECT 1 FROM mount_item_models WHERE reference=%s", (ref,)
             ).fetchone():
                 raise ValueError("Rift reward mounts require separate native authority")
             cosmetic = db.execute(

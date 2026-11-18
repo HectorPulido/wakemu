@@ -42,12 +42,35 @@ class RiiLessonPresentationTests(unittest.TestCase):
         self.assertIsNone(presentation.begin(1, 2))
         self.assertIsNone(presentation.finish(SimpleNamespace(), []))
 
-    def test_staged_delivery_revision_repairs_old_claim_once_without_packet_changes(
-        self,
-    ):
+    def test_delivery_revision_never_reopens_any_guide_already_seen_by_character(self):
         from wakfu_server.achievements import tutorial_presentation_once as once
 
         seen = set()
+        history = {}
+        for _contract, _objective, event, _end in presentation.LESSONS:
+            for variant in (0, 1):
+                key = f"tutorial-presentation:2543:{event}:{variant}"
+                history.setdefault(1, {})[key] = dict(
+                    kind="tutorial_presentation",
+                    scenario_id=2543,
+                    event_id=event,
+                    variant=variant,
+                )
+
+        class LegacyDB:
+            def execute(self, sql, params):
+                character_id, _length, prefix, expected = params
+                expected = getattr(expected, "obj", expected)
+                found = any(
+                    key.startswith(prefix)
+                    and all(
+                        payload.get(key) == value for key, value in expected.items()
+                    )
+                    for key, payload in history.get(character_id, {}).items()
+                )
+                return SimpleNamespace(
+                    fetchone=lambda: ({"present": 1} if found else None)
+                )
 
         def record(_db, character_id, key, _payload):
             identity = (character_id, key)
@@ -56,20 +79,24 @@ class RiiLessonPresentationTests(unittest.TestCase):
             return fresh
 
         with patch.object(once.storage, "record_event", side_effect=record):
+            db = LegacyDB()
             for index, (contract, _, start, _) in enumerate(presentation.LESSONS):
                 fight = SimpleNamespace(**{contract: {"owner": 1}})
                 choice = (5787, 13322 + index)
                 packet = presentation.begin(*choice)
-                self.assertTrue(once.claim(None, 1, 2543, start, 0))
-                expected = [packet] if index >= 3 else []
                 self.assertEqual(
-                    presentation.claim_admission(None, fight, 1, *choice), expected
+                    presentation.claim_admission(db, fight, 1, *choice), []
                 )
                 self.assertEqual(
-                    presentation.claim_admission(None, fight, 1, *choice), []
+                    presentation.claim_admission(db, fight, 1, *choice), []
                 )
-                if index >= 3:
-                    self.assertIn((1, f"tutorial-presentation:2543:{start}:1"), seen)
+                guide_key = (1, f"tutorial-guide:{presentation.GUIDES[start]}")
+                self.assertIn(guide_key, seen)
+
+                other = SimpleNamespace(**{contract: {"owner": 2}})
+                self.assertEqual(
+                    presentation.claim_admission(db, other, 2, *choice), [packet]
+                )
 
 
 if __name__ == "__main__":

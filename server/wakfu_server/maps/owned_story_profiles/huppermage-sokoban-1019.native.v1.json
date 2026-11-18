@@ -1,0 +1,51 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1019,
+  "objects": [
+    {
+      "chunk": "0_2",
+      "id": 26322,
+      "payload_hex": "02000000000b010000000d00000103fb000000030000002d000000010101010005000000043130313200000000000101",
+      "x": 3.0,
+      "y": 45.0,
+      "map_id": 1019,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "1_2",
+      "id": 26323,
+      "payload_hex": "02000000000b010000000d00000103fb0000001f0000002f000000010101010003000000043130313200000000000101",
+      "x": 31.0,
+      "y": 47.0,
+      "map_id": 1019,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    },
+    {
+      "chunk": "2_1",
+      "id": 26324,
+      "payload_hex": "02000000000b010000000d00000103fb0000002d00000015000000010101010007000000043130313200000000000101",
+      "x": 45.0,
+      "y": 21.0,
+      "map_id": 1019,
+      "z": 0.0,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement"
+    }
+  ],
+  "scenario_id": 2073,
+  "scenario_events": [
+    16734,
+    16736,
+    16739,
+    16742
+  ],
+  "scenes": {},
+  "presentations": [
+    16734
+  ],
+  "event_signatures": {}
+}

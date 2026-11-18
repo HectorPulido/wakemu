@@ -4,6 +4,7 @@ import ast
 from threading import Barrier
 import struct
 import unittest
+from unittest.mock import patch
 from source_view import WorldSourcePath as Path
 
 from psycopg.types.json import Jsonb
@@ -644,10 +645,23 @@ class ResourceHarvestCompletionTests(PostgresCase):
         self.resource["stage"] = 1
         ticket = self.ticket(329)
         self.advance()
-        outcome = complete(self.store, ticket, result_packet())
+        from wakfu_server.achievements import mission_toolkit
+
+        with patch.object(
+            mission_toolkit, "settle", wraps=mission_toolkit.settle
+        ) as settle:
+            outcome = complete(self.store, ticket, result_packet())
+            replay = complete(self.store, ticket, result_packet())
+        self.assertEqual(settle.call_count, 1)
+        self.assertEqual(settle.call_args.kwargs["kind"], "resource_action_completed")
+        self.assertEqual(settle.call_args.kwargs["reference"], 329)
+        self.assertEqual(settle.call_args.kwargs["quantity"], 1)
+        self.assertFalse(replay["applied"])
+        self.assertEqual(replay["packets"], [])
         self.assert_ecology_outcome(
             outcome,
             {"stage": 0, "item_reference": 0, "quantity": 0, "xp": 0},
+            expected_limits=(None, None, "unmanaged_native_family", None),
         )
         self.assertEqual([opcode for opcode, _ in outcome["packets"]], [13574, 349])
         self.assertIsNone(

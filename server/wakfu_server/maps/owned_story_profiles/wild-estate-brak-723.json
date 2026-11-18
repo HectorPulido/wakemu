@@ -1,0 +1,75 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "wild-estate-brak-723",
+  "map_id": 723,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 1623,
+    "objective_id": null,
+    "continuation_quest_id": 1623
+  },
+  "provenance": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed.",
+  "steps": [
+    {
+      "id": "brak-past-introduction",
+      "kind": "world_ready",
+      "reference": 723,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 1650,
+          "event": 13127
+        }
+      ],
+      "evidence": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+    },
+    {
+      "id": "brak-past-inscription",
+      "kind": "interactive",
+      "reference": 20521,
+      "requires": [
+        "brak-past-introduction"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 1623,
+          "objective_id": 3023
+        }
+      ],
+      "evidence": "Reviewed native narrative reconstruction: original714 present/723 past assets, native20379/444 and20427/473 coordinate programs, present unreadable Bwork inscription490, past readable background312, and original1650 journal explanation13127. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ confirms Brakmar flag, camp clues, Lebbocq journal/time transition and explanatory Bwork sign before the staff puzzle. Source-to-objective joins are explicitly reviewed narrative reconstruction; obsolete native waypoints still point outside711 and are not claimed exact current placements. No native enemy win, player transformation or staff/puzzle completion is invented. Quest1677 and later Bworkball remain unassigned until their genuine mechanics are independently reconstructed."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 20429,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20430,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 20431,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    }
+  ],
+  "interaction_approach_policy": "pinned_native_qv",
+  "native_sources": {
+    "path": "wild-estate-brak-723.native.v1.json",
+    "sha256": "33cb0fdc1a2082c71e0cae285dce34b8b3a0456461a44b9a9acd864d83af355a"
+  }
+}

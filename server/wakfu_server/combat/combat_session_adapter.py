@@ -338,6 +338,11 @@ class CombatSessionAdapter:
                     deck_blobs=decks,
                     attachment_authority=attachments,
                     fight_start=bool(fight_start and index == len(actor_order) - 1),
+                    before_fight_start=(
+                        (lambda initialized: initialized.finalize_initial_turn())
+                        if index == len(actor_order) - 1
+                        else None
+                    ),
                 )
                 packets.extend(owned_packets)
             if getattr(preview, "rii_element_lesson_contract", None) is not None:

@@ -1,0 +1,43 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "amakna-urgent-1005",
+  "map_id": 1005,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2708,
+    "objective_id": null,
+    "continuation_quest_id": 2708
+  },
+  "provenance": "Reviewed urgent2708 reconstruction: original public1134 source25481/descriptor959/action0/effect2410 has literal3000ms occupation and original coordinate entry1005(-7,-9,0),direction7. Actual1005 Sm6 floor and25543/3984 native free exit retained. MethodWakfu Chapter2 section12 identifies CrazyLarva3813(50HP) plus two weakened spectral3835(101HP). Two native3813 plus exactly two3835 is explicit reviewed formation because original server count/placement was not recovered; original grades,stats,states,abilities and summon/death programs remain untouched. A genuine owned terminal victory alone earns5343; entry,movement,retreat and unrelated kills do not. Original2044 event bodies are empty and their direct map association was not recovered, so no callback/movie authority is fabricated.",
+  "native_sources": {
+    "path": "amakna-urgent-1005.native.v1.json",
+    "sha256": "4d25a649f841765df2f444e20a0f659f381931b816f6d545f13da27844c211fc"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "urgent-ready",
+      "kind": "world_ready",
+      "reference": 1005,
+      "requires": [],
+      "effects": [],
+      "evidence": "Actual loaded private1005 owner unlocks the authentic group; loading grants no objective."
+    },
+    {
+      "id": "urgent-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "urgent-ready"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2708,
+          "objective_id": 5343
+        }
+      ],
+      "evidence": "Only actual terminal owned victory of original3813/3835 group earns urgent mission5343 once; original summons and transformations remain native combat behavior."
+    }
+  ]
+}

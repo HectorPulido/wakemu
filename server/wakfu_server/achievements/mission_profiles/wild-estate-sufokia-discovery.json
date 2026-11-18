@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "id": "wild-estate-sufokia-discovery",
+  "evidence": [
+    "Reviewed reconstruction of native1678 discovery: original711/source20448 generic475 enters Sufokian storehouse715 at(0,-1,0), with original Complete1677 criterion and no payment; original715/20538/1419 returns to711(-28,-104,-79). Native player Sm6 floor and all source bytes are pinned. The guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ explicitly identifies entering this storehouse as Garbage Day discovery. Objective3110 requires authenticated owned World-ready after that exact committed entrance; public map visits, teleports and NPC opening cannot grant it. This finite slice does not start/credit1679, fabricate an Excarnate victory or replace Bworkball."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-sufokia-discovery-earned",
+      "quest_id": 1678,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1677
+      },
+      "requires_completed": [
+        1677
+      ]
+    },
+    {
+      "id": "wild-sufokia-discovery-recovery",
+      "quest_id": 1678,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1677
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed reconstruction of native1678 discovery: original711/source20448 generic475 enters Sufokian storehouse715 at(0,-1,0), with original Complete1677 criterion and no payment; original715/20538/1419 returns to711(-28,-104,-79). Native player Sm6 floor and all source bytes are pinned. The guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ explicitly identifies entering this storehouse as Garbage Day discovery. Objective3110 requires authenticated owned World-ready after that exact committed entrance; public map visits, teleports and NPC opening cannot grant it. This finite slice does not start/credit1679, fabricate an Excarnate victory or replace Bworkball."
+    }
+  ]
+}

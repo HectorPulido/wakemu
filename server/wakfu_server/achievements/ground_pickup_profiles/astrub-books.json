@@ -1,0 +1,27 @@
+{
+  "schema": "native-quest-ground-pickups-v1",
+  "native_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "bindings": [
+    {
+      "map_id": 527,
+      "object_id": 23033,
+      "object_type": "GenericActivableInteractiveElement",
+      "position": [-121, 64, 0],
+      "native_payload_hex": "02000000000b010000000d000001020fffffff870000004000000001010101000d0000000334343700000000000101",
+      "descriptor_id": 447,
+      "native_action_id": 497,
+      "action": 0,
+      "parameter": 0,
+      "max_distance": 1,
+      "quest_id": 2048,
+      "objective_id": 4135,
+      "item_reference": 18689,
+      "quantity": 1,
+      "loot_list_id": 2435,
+      "loot_entry_id": 3047,
+      "success_script": 1360,
+      "unavailable_script": 1230,
+      "evidence": "Typed aLl447/aLo486/aLn497 emits aLm1231 GIVE_LOOT_LIST2435 only while2048 runs and18689 is absent. Native fFc2435/fFe3047 deterministically grants18689x1. Scripts1360/1230 only show localized player bubbles; no despawn. Native2048 objective4135 names this bag and exact ground location."
+    }
+  ]
+}

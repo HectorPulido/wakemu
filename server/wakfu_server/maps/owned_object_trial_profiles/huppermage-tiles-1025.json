@@ -1,0 +1,500 @@
+{
+  "schema": "owned-object-trials-v1",
+  "id": "huppermage-tiles-1025",
+  "map_id": 1025,
+  "maximum_members": 1,
+  "story_quest_id": 2785,
+  "native_sources": {
+    "path": "huppermage-tiles-1025.native.v1.json",
+    "sha256": "9b414cb9fa25a9abc0a28ffe39439456876027f893926f4b0f369f7d4ab4f3c7"
+  },
+  "provenance": "Reviewed School80 world-trial version: original1025 asset, exact native entry25688/2321 and exit25689/2322. The native15-tile adjacent-swap rule is reconstructed through actual accepted owner movement and durable permutation; standard native information packets show current tile identities/blank and the reviewed row-major target. Original fighting form/state references are provenance, not silently applied to a world actor. Native26175 inspection zone qualifies the flooded-path discovery, separately from its item hand-in and resource round trip. All story objectives still require actual running quests.",
+  "entry_effects": [
+    {
+      "kind": "information",
+      "text": "The recessed board has fifteen numbered tiles and one empty space. Enter its near-right corner, then move one square at a time to swap with a neighboring tile. Arrange 1 to 15 in reading order, leaving the final square empty. Leave the board to cancel this attempt."
+    }
+  ],
+  "allowed_item_transfers": [],
+  "sources": [],
+  "trials": [
+    {
+      "id": "inspect-flooded-entrance",
+      "kind": "zone_checkpoint",
+      "requires": [],
+      "destination_zone_ids": [
+        26175
+      ],
+      "destination_cells": [
+        [
+          -4,
+          -17,
+          2
+        ],
+        [
+          -3,
+          -17,
+          2
+        ],
+        [
+          -3,
+          -18,
+          2
+        ],
+        [
+          -2,
+          -17,
+          2
+        ],
+        [
+          -2,
+          -18,
+          2
+        ],
+        [
+          -2,
+          -19,
+          2
+        ],
+        [
+          -2,
+          -20,
+          2
+        ]
+      ],
+      "effects": {
+        "begin": [],
+        "failure": [],
+        "success": [
+          {
+            "kind": "quest_objective",
+            "quest_id": 2786,
+            "objective_id": 5625
+          }
+        ]
+      }
+    },
+    {
+      "id": "sword-sliding-tiles",
+      "kind": "sliding_tiles",
+      "requires": [],
+      "sources": [],
+      "program": {
+        "schema": "owned-world-tile-trial-v1",
+        "cells": [
+          [
+            -3,
+            -9,
+            -2
+          ],
+          [
+            -2,
+            -9,
+            -2
+          ],
+          [
+            -1,
+            -9,
+            -2
+          ],
+          [
+            0,
+            -9,
+            -2
+          ],
+          [
+            -3,
+            -8,
+            -2
+          ],
+          [
+            -2,
+            -8,
+            -2
+          ],
+          [
+            -1,
+            -8,
+            -2
+          ],
+          [
+            0,
+            -8,
+            -2
+          ],
+          [
+            -3,
+            -7,
+            -2
+          ],
+          [
+            -2,
+            -7,
+            -2
+          ],
+          [
+            -1,
+            -7,
+            -2
+          ],
+          [
+            0,
+            -7,
+            -2
+          ],
+          [
+            -3,
+            -6,
+            -2
+          ],
+          [
+            -2,
+            -6,
+            -2
+          ],
+          [
+            -1,
+            -6,
+            -2
+          ],
+          [
+            0,
+            -6,
+            -2
+          ]
+        ],
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            4
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            6,
+            2
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            11
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            12
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            9,
+            10
+          ],
+          [
+            9,
+            13
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            10,
+            14
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            11,
+            15
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            12,
+            13
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            13,
+            12
+          ],
+          [
+            13,
+            14
+          ],
+          [
+            14,
+            10
+          ],
+          [
+            14,
+            13
+          ],
+          [
+            14,
+            15
+          ],
+          [
+            15,
+            11
+          ],
+          [
+            15,
+            14
+          ]
+        ],
+        "initial": [
+          1,
+          2,
+          4,
+          8,
+          5,
+          7,
+          3,
+          12,
+          9,
+          6,
+          11,
+          10,
+          13,
+          14,
+          15,
+          0
+        ],
+        "goal": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          0
+        ],
+        "display_width": 4,
+        "evidence": "Reviewed world-action reconstruction of original2072/16432 adjacent player/tile swap. Actual1025 depressed floor and edges unchanged. The original3921/4078/4079 native program identifies the trial and swap semantics; no ordinary fight/kill or Sokoban Push replacement. Tile identities/goal/scramble are a reviewed solvable arrangement; original server shuffle/picto assignment was not recovered.",
+        "native_authority": {
+          "controller": 3921,
+          "controller_state": 4078,
+          "player_state": 4079,
+          "player_form_effect": 173883,
+          "player_form_effect_class": 933,
+          "areas": [
+            1026,
+            1027
+          ]
+        },
+        "solution_cells": [
+          [
+            0,
+            -6,
+            -2
+          ],
+          [
+            -1,
+            -6,
+            -2
+          ],
+          [
+            -1,
+            -7,
+            -2
+          ],
+          [
+            0,
+            -7,
+            -2
+          ],
+          [
+            0,
+            -8,
+            -2
+          ],
+          [
+            0,
+            -9,
+            -2
+          ],
+          [
+            -1,
+            -9,
+            -2
+          ],
+          [
+            -1,
+            -8,
+            -2
+          ],
+          [
+            -2,
+            -8,
+            -2
+          ],
+          [
+            -2,
+            -7,
+            -2
+          ],
+          [
+            -1,
+            -7,
+            -2
+          ],
+          [
+            -1,
+            -6,
+            -2
+          ],
+          [
+            0,
+            -6,
+            -2
+          ]
+        ]
+      },
+      "effects": {
+        "begin": [
+          {
+            "kind": "scenario_event",
+            "scenario": 2072,
+            "event": 16432
+          }
+        ],
+        "failure": [],
+        "success": [
+          {
+            "kind": "quest_objective",
+            "quest_id": 2785,
+            "objective_id": 5622
+          },
+          {
+            "kind": "information",
+            "text": "The sword arrangement is complete. Return to Thomass Edwindu."
+          }
+        ]
+      }
+    }
+  ]
+}

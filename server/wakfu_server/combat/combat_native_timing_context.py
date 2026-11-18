@@ -273,8 +273,9 @@ class NativeEffectTimingProvider:
         from .combat_npc_initialization import constructor_stat_context
 
         if constructor_stat_context(preview, invocation):
-            # Actual eZQ/PO constructor PN.bac() is null, including nested
-            # eWu.D state applications. eZk.bbT retains Ts.biM without SU.
+            # Detached eZQ/PO constructors have no PN.bac() clock. The checked
+            # scene SELF publisher also has no turn clock during placement;
+            # its source-pinned indefinite carriers retain the same sentinel.
             timeline = None
             timer = None
         else:
@@ -317,6 +318,14 @@ class NativeEffectTimingProvider:
         )
 
     def stat(self, preview, plan, effect, invocation):
+        from .combat_kill_clone_lifetime import unretained
+
+        if unretained(preview, effect, invocation):
+            # Qe.k marks its eXc clone bfM before execution; eZR.Ty returns
+            # false without consulting duration or scheduling a turn timer.
+            return StatExecutionContext(
+                True, True, None, False, native_time_payload(), None
+            )
         native = native_definition_timing(effect, invocation.level)
         retained = native["retained"]
         timer = None

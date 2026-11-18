@@ -1,0 +1,311 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "kelba-convoy-947-encounters",
+  "map_id": 947,
+  "provenance": "Reviewed reconstruction of native1962 SPECIAL convoy, not original private server graph: six Riktus and three birds are literal Lua actor counts; exact native-family mixtures and escape glyph902 seed cells are explicitly reviewed server data on real Sm6 components. Original Box Carrier3589/3711 initial3478 and spells4849/4850 stay intact; real authenticated escape4850 loses, native1041 last-ally retirement does not. Two real battles only; final Black Crow3586/box3712 are noncombat native render-only actors with actual script arguments. No fabricated third fight, HP/MP override, combat win or native seed-coordinate claim.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "bounds": [
+        -8,
+        -14,
+        3,
+        22
+      ],
+      "z": 0,
+      "arena_seed": [
+        -8,
+        -4,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3565,
+          "count": 2
+        },
+        {
+          "reference": 3566,
+          "count": 2
+        },
+        {
+          "reference": 3567,
+          "count": 2
+        },
+        {
+          "reference": 3589,
+          "count": 1
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.kelba.native-cargo-stage-1.v1",
+        "authority": "authorized_wakemu_native_content_reconstruction",
+        "source_uri": "installed:scenario/1962.lua;native3478/4849/4850/area902",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 3565,
+            "occurrence": 0,
+            "cell": [
+              -5,
+              -11,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3565,
+            "occurrence": 1,
+            "cell": [
+              -4,
+              -12,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3566,
+            "occurrence": 0,
+            "cell": [
+              -2,
+              -12,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3566,
+            "occurrence": 1,
+            "cell": [
+              -3,
+              -9,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3567,
+            "occurrence": 0,
+            "cell": [
+              -4,
+              -9,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3567,
+            "occurrence": 1,
+            "cell": [
+              -3,
+              -13,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3589,
+            "occurrence": 0,
+            "cell": [
+              -4,
+              -11,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          }
+        ],
+        "state_programs": [],
+        "native_initial_glyphs": [
+          {
+            "reference": 902,
+            "level": 0,
+            "cell": [
+              -6,
+              -2,
+              0
+            ]
+          }
+        ],
+        "native_initial_glyph_policy": "wakemu.reviewed-native-convoy-escape-seeds-v1",
+        "native_initial_glyph_authority": "Reviewed reconstruction of native1962 SPECIAL convoy, not original private server graph: six Riktus and three birds are literal Lua actor counts; exact native-family mixtures and escape glyph902 seed cells are explicitly reviewed server data on real Sm6 components. Original Box Carrier3589/3711 initial3478 and spells4849/4850 stay intact; real authenticated escape4850 loses, native1041 last-ally retirement does not. Two real battles only; final Black Crow3586/box3712 are noncombat native render-only actors with actual script arguments. No fabricated third fight, HP/MP override, combat win or native seed-coordinate claim.",
+        "native_initial_glyph_source_url": "installed:scenario/1962.lua;reviewed-original-Sm6-stage-component",
+        "native_escape_failure": {
+          "schema": "owned-native-escape-failure-v1",
+          "actor_reference": 3589,
+          "trigger_effect": 254694,
+          "spell_reference": 4850,
+          "state_reference": 3478,
+          "losing_role": "original_controlled",
+          "evidence": "Actual native3478/254693 ring1 area902\u2192254694 forced4850. Review applies only escape goal seed;1041 last-ally selfkill remains normal outcome."
+        }
+      }
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "convoy-birds-handoff"
+      ],
+      "bounds": [
+        281,
+        -7,
+        306,
+        5
+      ],
+      "z": 0,
+      "arena_seed": [
+        282,
+        0,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3568,
+          "count": 1
+        },
+        {
+          "reference": 3571,
+          "count": 1
+        },
+        {
+          "reference": 3573,
+          "count": 1
+        },
+        {
+          "reference": 3711,
+          "count": 1
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.kelba.native-cargo-stage-2.v1",
+        "authority": "authorized_wakemu_native_content_reconstruction",
+        "source_uri": "installed:scenario/1962.lua;native3478/4849/4850/area902",
+        "full_room_scope": true,
+        "fixed_actor_placements": [
+          {
+            "reference": 3568,
+            "occurrence": 0,
+            "cell": [
+              287,
+              -1,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3571,
+            "occurrence": 0,
+            "cell": [
+              288,
+              0,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3573,
+            "occurrence": 0,
+            "cell": [
+              288,
+              -2,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          },
+          {
+            "reference": 3711,
+            "occurrence": 0,
+            "cell": [
+              288,
+              -1,
+              0
+            ],
+            "direction": 3,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "installed:scenario/1962.lua;reviewed-native-family-association",
+              "sha256": "26e3515bbfe462b6ff77c0dcf97b37192895e45d38d76ccb06f8d16bff1e5067"
+            }
+          }
+        ],
+        "state_programs": [],
+        "native_initial_glyphs": [
+          {
+            "reference": 902,
+            "level": 0,
+            "cell": [
+              295,
+              0,
+              0
+            ]
+          }
+        ],
+        "native_initial_glyph_policy": "wakemu.reviewed-native-convoy-escape-seeds-v1",
+        "native_initial_glyph_authority": "Reviewed reconstruction of native1962 SPECIAL convoy, not original private server graph: six Riktus and three birds are literal Lua actor counts; exact native-family mixtures and escape glyph902 seed cells are explicitly reviewed server data on real Sm6 components. Original Box Carrier3589/3711 initial3478 and spells4849/4850 stay intact; real authenticated escape4850 loses, native1041 last-ally retirement does not. Two real battles only; final Black Crow3586/box3712 are noncombat native render-only actors with actual script arguments. No fabricated third fight, HP/MP override, combat win or native seed-coordinate claim.",
+        "native_initial_glyph_source_url": "installed:scenario/1962.lua;reviewed-original-Sm6-stage-component",
+        "native_escape_failure": {
+          "schema": "owned-native-escape-failure-v1",
+          "actor_reference": 3711,
+          "trigger_effect": 254694,
+          "spell_reference": 4850,
+          "state_reference": 3478,
+          "losing_role": "original_controlled",
+          "evidence": "Actual native3478/254693 ring1 area902\u2192254694 forced4850. Review applies only escape goal seed;1041 last-ally selfkill remains normal outcome."
+        }
+      }
+    }
+  ]
+}

@@ -31,6 +31,24 @@ def bonuses(character, *, include_operations=False):
         if state["remaining_ms"] == 0 and state.get("clock") != "event":
             continue
         metadata = state.get("metadata", {})
+        origin = state.get("native_origin")
+        # Owned story keys use the durable state carrier for their native
+        # marker only; their attested op400 has no characteristic program.
+        if (
+            isinstance(origin, dict)
+            and origin.get("kind") == "owned-story-native-marker"
+            and origin.get("state_id") == state["state_id"]
+            and origin.get("character_id") == character.get("id")
+            and state.get("clock") == "event"
+            and state.get("effect_ids") == []
+            and metadata.get("native_marker_generic") == 400
+            and type(metadata.get("native_marker_effect_id")) is int
+            and metadata["native_marker_effect_id"] > 0
+            and isinstance(metadata.get("source_sha256"), str)
+            and len(metadata["source_sha256"]) == 64
+            and origin.get("source_sha256") == metadata["source_sha256"]
+        ):
+            continue
         effects = metadata.get("native_effects")
         if not isinstance(effects, dict):
             raise ValueError("Missing native consumable characteristic definitions")

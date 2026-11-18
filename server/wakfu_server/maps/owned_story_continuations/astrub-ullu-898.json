@@ -1,0 +1,47 @@
+{
+  "schema": "owned-cinematic-continuation-v1",
+  "id": "astrub-ullu-898",
+  "source_map_id": 887,
+  "quest_id": 2170,
+  "required_story_steps": [
+    "boss-victory",
+    "boss-exit-scene-done"
+  ],
+  "stage": {
+    "map_id": 898,
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "entries": [
+    {
+      "source_id": 23582,
+      "destination_id": 2074
+    },
+    {
+      "source_id": 23614,
+      "destination_id": 2075
+    }
+  ],
+  "presentation": {
+    "scenario": 1731,
+    "event": 14387,
+    "finish_event": 14388,
+    "duration_ms": 40700,
+    "lua_sha256": "9914c6e1b3929b399804ec17f9cb7adee2824ee9faecd74e8124c310e22dc9dc"
+  },
+  "return_anchor": {
+    "source_id": 23582,
+    "destination_id": 2002,
+    "map_id": 527,
+    "x": 44,
+    "y": -54,
+    "z": 8
+  },
+  "provenance": "Reviewed reconstruction, not a recovered official server join: native post-2170 exits 23582/2074 and23614/2075 both lead to cinematic-only map898. Its original environment/POI archives have no objects; native Sm6 has three isolated cells and zero edges. Scenario1731 creates Ullu, gives the prophecy and explicitly names return527 in event14388. The map-to-scenario association and final return coordinates are reviewed reconstruction; return527 anchor44,-54,8 is an existing native destination of the same temple exit23582, not an arbitrary administrator teleport. Native last bubble finishes at1000+8000+27700+4000=40700ms. No quest/object/item/companion reward is assigned by this continuation.",
+  "source_sha256": {
+    "client/contents/maps/env/898.jar": "74965320d7ef80f9495bd18e26cc72c53426c950715972449392c0abe04b5758",
+    "client/contents/maps/tplg/898.jar": "8e3f3d9778e25bd9cc08104b53236f59d138e50de21296b164a22e8bf49f5259",
+    "client/contents/maps/data.jar": "caf937e29fcba5847a43caeb6cf564236864bc6612d4f64198032bc577ba1201"
+  }
+}

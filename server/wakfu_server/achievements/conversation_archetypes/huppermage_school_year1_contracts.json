@@ -1,0 +1,1134 @@
+{
+  "schema": "native-quest-conversation-additive-fragment-v1",
+  "publication": "PRIVATE_REVIEW_ONLY_NOT_ACTIVE",
+  "base_source_sha256": "c169e9d55efe2fc02c5a0c466ab7df0880e6798d112c94118e9caa5691d79131",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2777)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2775,
+      "cjG": 377,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(2776)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -19,
+              "ckh": -68,
+              "cki": 0,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5652,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5652)",
+          "ckd": [
+            {
+              "ckg": -19,
+              "ckh": -68,
+              "cki": 0,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5597,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5597)",
+          "ckd": [
+            {
+              "ckg": -26,
+              "ckh": -2,
+              "cki": 0,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5598,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5598)",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": -35,
+              "cki": -15,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5601,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5601)",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": -35,
+              "cki": -15,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5602,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20040,
+            1
+          ],
+          "d": 4373,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            42000
+          ],
+          "d": 4356,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7292,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 30,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 4,
+      "cka": "ach.377",
+      "d": 2777,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2778)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2775,
+      "cjG": 377,
+      "cjH": true,
+      "cjI": "IsAchievementComplete(2776)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": -35,
+              "cki": -15,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5599,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5599)",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": -35,
+              "cki": -15,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5670,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5670)",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": -35,
+              "cki": -15,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5600,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5600)",
+          "ckd": [
+            {
+              "ckg": 183,
+              "ckh": 3,
+              "cki": 0,
+              "ckj": 1134,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5603,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementObjectiveComplete(5603)",
+          "ckd": [
+            {
+              "ckg": 35,
+              "ckh": -35,
+              "cki": -15,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5604,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            20039,
+            1
+          ],
+          "d": 4372,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            42000
+          ],
+          "d": 4355,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7293,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 30,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 5,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": true,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 5,
+      "cka": "ach.377",
+      "d": 2778,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2780) and IsAchievementComplete(2776)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2775,
+      "cjG": 377,
+      "cjH": true,
+      "cjI": "IsAchievementActive(2773) or IsAchievementActive(2774)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5644,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5645,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5609,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 5610,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "IsAchievementComplete(2775) and IsAchievementComplete(2776) and IsAchievementComplete(2777) and IsAchievementComplete(2778)",
+          "ckd": [
+            {
+              "ckg": -26,
+              "ckh": -2,
+              "cki": 0,
+              "ckj": 1018,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5634,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 16,
+          "ckk": false,
+          "ckl": [
+            5622
+          ],
+          "d": 4382,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7294,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            34425
+          ],
+          "d": 7394,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            26345,
+            1
+          ],
+          "d": 9697,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 30,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 0,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 6,
+      "cka": "ach.377",
+      "d": 2780,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "quest_id": 2777,
+      "objective_id": 5598,
+      "reference_id": 3913,
+      "action_id": 722,
+      "node_id": 3309,
+      "choice_id": 8207,
+      "placement_sha256": "168b0b940334ac047c38164485a59f611d424c8bc3e19919438f87483073887c",
+      "native_definition_sha256": "70abba465ab4caaa917c2a72faacf3950b754e8a9413d9cbeb2dc188ca6afe25"
+    },
+    {
+      "quest_id": 2780,
+      "objective_id": 5634,
+      "reference_id": 3913,
+      "action_id": 722,
+      "node_id": 3309,
+      "choice_id": 8216,
+      "placement_sha256": "168b0b940334ac047c38164485a59f611d424c8bc3e19919438f87483073887c",
+      "native_definition_sha256": "9cabf4081af4494f69d2ace39667af27f4a8672dbb9f2e8500c175e7f0b76cb7"
+    },
+    {
+      "quest_id": 2777,
+      "objective_id": 5601,
+      "reference_id": 3916,
+      "action_id": 724,
+      "node_id": 3311,
+      "choice_id": 8213,
+      "placement_sha256": "e3515610c9bfbb8b2f1677c1481da87d8cc192788b494f938a2d04844570db77",
+      "native_definition_sha256": "70abba465ab4caaa917c2a72faacf3950b754e8a9413d9cbeb2dc188ca6afe25"
+    },
+    {
+      "quest_id": 2777,
+      "objective_id": 5602,
+      "reference_id": 3916,
+      "action_id": 724,
+      "node_id": 3319,
+      "choice_id": 8214,
+      "placement_sha256": "e3515610c9bfbb8b2f1677c1481da87d8cc192788b494f938a2d04844570db77",
+      "native_definition_sha256": "70abba465ab4caaa917c2a72faacf3950b754e8a9413d9cbeb2dc188ca6afe25"
+    },
+    {
+      "quest_id": 2778,
+      "objective_id": 5599,
+      "reference_id": 3916,
+      "action_id": 724,
+      "node_id": 3311,
+      "choice_id": 8184,
+      "placement_sha256": "e3515610c9bfbb8b2f1677c1481da87d8cc192788b494f938a2d04844570db77",
+      "native_definition_sha256": "966b2ae892e7a217e90528ad7afb1ebbeda422ed1ba33265cdd4437e4361ed5d"
+    },
+    {
+      "quest_id": 2778,
+      "objective_id": 5604,
+      "reference_id": 3916,
+      "action_id": 724,
+      "node_id": 3311,
+      "choice_id": 8187,
+      "placement_sha256": "e3515610c9bfbb8b2f1677c1481da87d8cc192788b494f938a2d04844570db77",
+      "native_definition_sha256": "966b2ae892e7a217e90528ad7afb1ebbeda422ed1ba33265cdd4437e4361ed5d"
+    },
+    {
+      "quest_id": 2778,
+      "objective_id": 5600,
+      "reference_id": 3916,
+      "action_id": 724,
+      "node_id": 3311,
+      "choice_id": 8186,
+      "placement_sha256": "e3515610c9bfbb8b2f1677c1481da87d8cc192788b494f938a2d04844570db77",
+      "native_definition_sha256": "966b2ae892e7a217e90528ad7afb1ebbeda422ed1ba33265cdd4437e4361ed5d"
+    }
+  ],
+  "placements": [
+    {
+      "quest_id": 2776,
+      "activation_policy": "already_running",
+      "row": {
+        "actor_id": -2251799934952776,
+        "reference_id": 3913,
+        "map_id": 1018,
+        "instance_id": 0,
+        "x": 1,
+        "y": -3,
+        "z": 0,
+        "direction": 3,
+        "dialogue_root": 3309,
+        "action_ids": [
+          722
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED CURRENT-VERSION RECONSTRUCTION of native registrar3913/action722/root3309 near actual school-entry25675 destination1018(0,0,0). Original2776 waypoint1017(-8,-51,-68) is retained only as native definition evidence, not an asserted reachable actor placement. Native running/objective/item predicates are unchanged."
+      },
+      "interaction_anchor": {
+        "x": 0,
+        "y": -3,
+        "z": 0
+      },
+      "interaction_anchor_evidence": "Actual installed native1018 geometry52c1a0feeb8bb9d17c0eceebf92f80a734d23ba808eaed782c35bdae07237b52: directed floor path from native25675 destination(0,0,0) via(0,-1,0),(0,-2,0) to anchor(0,-3,0) and actor(1,-3,0), proven in school-registrar1018-arrival-native-floor.json. Explicit reviewed version relocation; no captured original NPC placement claim.",
+      "graph": [
+        [
+          3309,
+          8177,
+          0
+        ],
+        [
+          3309,
+          8182,
+          0
+        ],
+        [
+          3309,
+          8179,
+          0
+        ],
+        [
+          3309,
+          8207,
+          3316
+        ],
+        [
+          3316,
+          8208,
+          3318
+        ],
+        [
+          3318,
+          8211,
+          0
+        ],
+        [
+          3309,
+          8216,
+          3321
+        ],
+        [
+          3321,
+          8217,
+          0
+        ]
+      ]
+    },
+    {
+      "quest_id": 2778,
+      "activation_policy": "already_running",
+      "row": {
+        "actor_id": -2251799934952778,
+        "reference_id": 3916,
+        "map_id": 1018,
+        "instance_id": 0,
+        "x": 35,
+        "y": -35,
+        "z": -15,
+        "direction": 3,
+        "dialogue_root": 3311,
+        "action_ids": [
+          724
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION. NativeJanine3916/action724/root3311 and2777 objective5601 marker35,-35,-15 retained; actual native world-player Sm6/0/4 reaches adjacent anchor34,-35,-15. No captured original actor coordinate claim."
+      },
+      "interaction_anchor": {
+        "x": 34,
+        "y": -35,
+        "z": -15
+      },
+      "interaction_anchor_evidence": "Actual native world-player Sm6/0/4 geometry reaches anchor34,-35,-15 from original school entry(0,0,0). Topology46423fabf9b1a858e66da7d81e5e00a09b794635ed1d665f8d0e533a12e41362; checked-in world-floor-proof retains exact actor profile and directed path. Actor marker35,-35,-15 remains blocked as a visual NPC cell; it is not a walking destination. Prepared combat Sm3 geometry is not player exploration authority.",
+      "graph": [
+        [
+          3311,
+          8213,
+          3319
+        ],
+        [
+          3311,
+          8360,
+          3319
+        ],
+        [
+          3319,
+          8214,
+          0
+        ],
+        [
+          3319,
+          8212,
+          0
+        ],
+        [
+          3311,
+          8184,
+          3312
+        ],
+        [
+          3311,
+          8359,
+          3312
+        ],
+        [
+          3312,
+          8197,
+          3313
+        ],
+        [
+          3313,
+          8201,
+          3312
+        ],
+        [
+          3312,
+          8200,
+          0
+        ],
+        [
+          3311,
+          8186,
+          3314
+        ],
+        [
+          3314,
+          8202,
+          0
+        ],
+        [
+          3311,
+          8187,
+          3315
+        ],
+        [
+          3315,
+          8203,
+          0
+        ],
+        [
+          3311,
+          8189,
+          0
+        ],
+        [
+          3312,
+          8198,
+          0
+        ]
+      ],
+      "choice_routes": [
+        {
+          "node_id": 3312,
+          "choice_id": 8198,
+          "route": "quest-npc-1018-3916-724-3312-8198",
+          "evidence": "Actual native8198 seed admission; real controller victory alone grants5670."
+        }
+      ]
+    }
+  ],
+  "turnins": [
+    {
+      "reference_id": 3916,
+      "action_id": 724,
+      "node_id": 3319,
+      "choice_id": 8214,
+      "item_reference": 4441,
+      "quantity": 20
+    }
+  ],
+  "compiler_manifest": "wakfu_server/achievements/conversation_archetypes/huppermage_school_year1.json",
+  "reviewed_literal_bindings": [
+    {
+      "binding": {
+        "quest_id": 2778,
+        "objective_id": 5600,
+        "reference_id": 3916,
+        "action_id": 724,
+        "node_id": 3311,
+        "choice_id": 8186,
+        "placement_sha256": "e3515610c9bfbb8b2f1677c1481da87d8cc192788b494f938a2d04844570db77",
+        "native_definition_sha256": "966b2ae892e7a217e90528ad7afb1ebbeda422ed1ba33265cdd4437e4361ed5d"
+      },
+      "native_choice_criterion": "IsAchievementObjectiveComplete(5670) and not IsAchievementObjectiveComplete(5603) and IsAchievementRunning(2778)",
+      "native_objective_criterion": "IsAchievementObjectiveComplete(5670)",
+      "native_followup_objective_criterion": "IsAchievementObjectiveComplete(5600)",
+      "evidence": "Reviewed unique between-stage acknowledgement: native8186 requires earned seed5670 and running2778 while future dungeon5603 is not complete; actual5600 requires5670 and native5603 requires5600. The existing generic compiler treats native !5603 as its bound target, so only this exact native edge receives a reviewed literal binding. No seed or dungeon completion is emitted by dialogue."
+    }
+  ],
+  "required_choice_criteria": [
+    {
+      "actor_id": -2251799934952776,
+      "node_id": 3309,
+      "choice_id": 8207,
+      "criterion": "IsAchievementObjectiveComplete(5597)",
+      "evidence": "Retain actual5598.ckc and do not turn native5652 bed acknowledgement into a night-combat victory. Native losing-night reply remains held, rather than granting5598 without5597."
+    }
+  ],
+  "external_producers_required": [
+    {
+      "quest_id": 2777,
+      "objective_id": 5652,
+      "producer": "Actual native bed interaction; owned School physical adapter"
+    },
+    {
+      "quest_id": 2777,
+      "objective_id": 5597,
+      "producer": "Actual native night three-foe owned terminal victory"
+    },
+    {
+      "quest_id": 2778,
+      "objective_id": 5670,
+      "producer": "Actual native seed challenge; never dialogue acknowledgement"
+    },
+    {
+      "quest_id": 2778,
+      "objective_id": 5603,
+      "producer": "Actual normal Sureberry Fields final boss victory, with earned5600"
+    },
+    {
+      "quest_id": 2780,
+      "objective_ids": [
+        5644,
+        5645,
+        5609,
+        5610
+      ],
+      "producer": "Owned School generic completed-child links2775/2776/2777/2778"
+    }
+  ],
+  "held_edges": [
+    {
+      "node_id": 3316,
+      "choice_id": 8209,
+      "reason": "Losing-night reply not published by the winning-only5598 producer; no forged victory or progression."
+    }
+  ],
+  "floor_evidence": {
+    "path": ".runtime/quest-archetypes/school-janine1018-native-floor.json",
+    "sha256": "aac926a5ccfbc60a22dd7ac0886adefd8896f628e65f8e3a4aa82876b3bede94",
+    "native_source": "combat-maps/1018.json",
+    "native_source_sha256": "52c1a0feeb8bb9d17c0eceebf92f80a734d23ba808eaed782c35bdae07237b52",
+    "world_player_reachability": {
+      "map_id": 1018,
+      "profile": {
+        "native_class": "Sm",
+        "movement_type": 0,
+        "jump_capacity": 4,
+        "height": 6
+      },
+      "profile_authority": "biB -> bjo -> big -> eGj; bcK=6, bcL=0, bvz=4; faz.fSR reads those actor methods",
+      "topology_sha256": "46423fabf9b1a858e66da7d81e5e00a09b794635ed1d665f8d0e533a12e41362",
+      "source_sha256": "018e9da793eb7580853a124bd630e59230a3b3f7f82e91d0fd22ef5e17513fa1",
+      "directed_path": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          -1,
+          0
+        ],
+        [
+          0,
+          -2,
+          0
+        ],
+        [
+          0,
+          -3,
+          0
+        ],
+        [
+          0,
+          -4,
+          0
+        ],
+        [
+          0,
+          -5,
+          0
+        ],
+        [
+          0,
+          -6,
+          0
+        ],
+        [
+          0,
+          -7,
+          0
+        ],
+        [
+          0,
+          -8,
+          0
+        ],
+        [
+          0,
+          -9,
+          0
+        ],
+        [
+          0,
+          -10,
+          0
+        ],
+        [
+          0,
+          -11,
+          0
+        ],
+        [
+          0,
+          -12,
+          0
+        ],
+        [
+          0,
+          -13,
+          0
+        ],
+        [
+          0,
+          -14,
+          0
+        ],
+        [
+          0,
+          -15,
+          0
+        ],
+        [
+          0,
+          -16,
+          0
+        ],
+        [
+          0,
+          -17,
+          0
+        ],
+        [
+          0,
+          -18,
+          0
+        ],
+        [
+          0,
+          -19,
+          0
+        ],
+        [
+          0,
+          -20,
+          0
+        ],
+        [
+          0,
+          -21,
+          0
+        ],
+        [
+          0,
+          -22,
+          0
+        ],
+        [
+          0,
+          -23,
+          -2
+        ],
+        [
+          0,
+          -24,
+          -6
+        ],
+        [
+          0,
+          -25,
+          -8
+        ],
+        [
+          0,
+          -26,
+          -8
+        ],
+        [
+          0,
+          -27,
+          -8
+        ],
+        [
+          0,
+          -28,
+          -8
+        ],
+        [
+          0,
+          -29,
+          -8
+        ],
+        [
+          0,
+          -30,
+          -8
+        ],
+        [
+          0,
+          -31,
+          -8
+        ],
+        [
+          0,
+          -32,
+          -8
+        ],
+        [
+          0,
+          -33,
+          -8
+        ],
+        [
+          1,
+          -33,
+          -8
+        ],
+        [
+          1,
+          -34,
+          -8
+        ],
+        [
+          1,
+          -35,
+          -8
+        ],
+        [
+          2,
+          -35,
+          -8
+        ],
+        [
+          3,
+          -35,
+          -8
+        ],
+        [
+          4,
+          -35,
+          -8
+        ],
+        [
+          5,
+          -35,
+          -8
+        ],
+        [
+          6,
+          -35,
+          -8
+        ],
+        [
+          7,
+          -35,
+          -8
+        ],
+        [
+          8,
+          -35,
+          -8
+        ],
+        [
+          9,
+          -35,
+          -8
+        ],
+        [
+          10,
+          -35,
+          -6
+        ],
+        [
+          11,
+          -35,
+          -2
+        ],
+        [
+          12,
+          -35,
+          0
+        ],
+        [
+          13,
+          -35,
+          0
+        ],
+        [
+          14,
+          -35,
+          0
+        ],
+        [
+          15,
+          -35,
+          0
+        ],
+        [
+          16,
+          -35,
+          0
+        ],
+        [
+          17,
+          -35,
+          0
+        ],
+        [
+          18,
+          -35,
+          0
+        ],
+        [
+          19,
+          -35,
+          0
+        ],
+        [
+          20,
+          -35,
+          0
+        ],
+        [
+          21,
+          -35,
+          0
+        ],
+        [
+          22,
+          -35,
+          0
+        ],
+        [
+          23,
+          -35,
+          0
+        ],
+        [
+          24,
+          -35,
+          0
+        ],
+        [
+          25,
+          -35,
+          0
+        ],
+        [
+          26,
+          -35,
+          -2
+        ],
+        [
+          27,
+          -35,
+          -6
+        ],
+        [
+          28,
+          -35,
+          -10
+        ],
+        [
+          29,
+          -35,
+          -14
+        ],
+        [
+          30,
+          -35,
+          -15
+        ],
+        [
+          31,
+          -35,
+          -15
+        ],
+        [
+          32,
+          -35,
+          -15
+        ],
+        [
+          33,
+          -35,
+          -15
+        ],
+        [
+          34,
+          -35,
+          -15
+        ]
+      ],
+      "actor": [
+        35,
+        -35,
+        -15
+      ],
+      "anchor": [
+        34,
+        -35,
+        -15
+      ]
+    }
+  }
+}

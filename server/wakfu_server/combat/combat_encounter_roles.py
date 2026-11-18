@@ -206,6 +206,15 @@ def assigned_roles(fight):
     roles = frozen_roles(fight)
     if roles is not None:
         return roles
+    if getattr(fight, "native_order_trial_constructor", None) is not None:
+        from .native_order_trial_encounter import policy_for
+
+        policy = policy_for(fight)
+        # The typed constructor is the authority for this genuinely empty
+        # initial NPC roster. Ordinary role records still forbid empty rosters.
+        from .native_order_trial_encounter import initial_roles
+
+        return initial_roles(policy)
     return _ordinary(None, ())
 
 

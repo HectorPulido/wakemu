@@ -1,11 +1,12 @@
 """Reviewed Wakemu event admission supplements; native catalog stays immutable."""
+
 from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
 from threading import RLock
 
-_SOURCE_SHA256 = "754f6ea5181aedbe72744a265b42051f71e55a255bfebbf4ed49c0432d9c8ea6"
+_SOURCE_SHA256 = "4849ea67314053288752d965e2446d886dc7ebd02ea5e853eeb1e2799d1d1fd7"
 _CACHE = []
 _LOCK = RLock()
 
@@ -46,8 +47,24 @@ def merge_policy(base, *, revision=None):
             raise ValueError("Missing native NPC activation authority")
         source = _supplement()
         if revision != source["native_catalog_revision"]:
-            # Unknown native revisions retain their original admission unchanged.
-            return base
+            if revision != native_catalog.release():
+                return base
+            from wakfu_server.native_catalog_compatibility import (
+                require_source_revision,
+            )
+
+            try:
+                require_source_revision(
+                    source["native_catalog_revision"],
+                    (
+                        "native-npc-spell-effect-trees.json",
+                        "monsters.json",
+                        "combat-state-definitions.json",
+                    ),
+                )
+            except ValueError:
+                # Changed/unavailable source documents retain original admission.
+                return base
         enabled = dict(base["enabled_monsters"])
         for key, row in source["enabled_monsters"].items():
             if type(key) is not str or not key.isdecimal() or str(int(key)) != key:
@@ -69,6 +86,52 @@ def merge_policy(base, *, revision=None):
                 or not 1 <= row["min_level"] <= row["max_level"] <= 32767
             ):
                 raise ValueError("Malformed reviewed NPC admission range")
+            source_digest = row.get("native_source_sha256")
+            if source_digest is not None:
+                if (
+                    key != "2502"
+                    or row["spell_ids"] != [3700]
+                    or row.get("initial_state_triples") != []
+                    or type(source_digest) is not str
+                    or len(source_digest) != 64
+                ):
+                    raise ValueError(
+                        "Malformed reviewed native minigame spell admission"
+                    )
+                from wakfu_server.paths import DATA_ROOT
+
+                native = native_catalog.record(
+                    DATA_ROOT / "monsters.json", "monsters", key
+                )
+                if not isinstance(native, dict):
+                    raise ValueError("Reviewed minigame NPC source is absent")
+                identity = {
+                    field: native.get(field)
+                    for field in ("ref", "min_level", "max_level", "native_abilities")
+                }
+                encoded = json.dumps(
+                    identity, sort_keys=True, separators=(",", ":"), allow_nan=False
+                ).encode()
+                actual_spells = [
+                    ability.get("spell_id")
+                    for ability in native.get("native_abilities", ())
+                    if isinstance(ability, dict)
+                ]
+                if (
+                    hashlib.sha256(encoded).hexdigest() != source_digest
+                    or native.get("ref") != int(key)
+                    or (row["min_level"], row["max_level"])
+                    != (native.get("min_level"), native.get("max_level"))
+                    or row["spell_ids"] != actual_spells
+                ):
+                    raise ValueError(
+                        "Reviewed minigame NPC spell admission differs from native"
+                    )
+                continue
+            if row["spell_ids"]:
+                raise ValueError(
+                    "Non-empty reviewed NPC books require an exact native source pin"
+                )
             for grade in range(row["min_level"], row["max_level"] + 1):
                 if event_controller_record(result, int(key), grade) is None:
                     raise ValueError("Unqualified reviewed event controller")

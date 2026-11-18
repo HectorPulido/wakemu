@@ -1,0 +1,108 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "PRIVATE reviewed finite School80 Child's Play NPC chapter. Literal native quests2781/2782 exclusive introductions retain level80/completed2780 gates; only actual upper-floor arrival earns5613/5612. Native2783 first teacher5614, three real ordered crates5583/5584/5585 and final teacher5615 remain separate producers. No items, puzzle completion or quest admission is invented from visibility.",
+  "speakers": [
+    {
+      "actor_id": -2251799934952783,
+      "action_id": 717,
+      "quest_ids": [
+        2781,
+        2782,
+        2783
+      ],
+      "native_marker": {
+        "quest_id": 2783,
+        "objective_id": 5614
+      },
+      "placement": {
+        "quest_id": 2783,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934952783,
+          "reference_id": 3890,
+          "map_id": 1019,
+          "instance_id": 0,
+          "x": 17,
+          "y": 31,
+          "z": 6,
+          "direction": 3,
+          "dialogue_root": 3307,
+          "action_ids": [
+            717
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION. Native3890/action717;2783 objective5614 teacher marker1019(17,31,6) retained as floating visual waypoint, not a claimed walking floor or original captured actor placement. Actual Sm6/0/4 anchor18,31,4 is connected to18,32,0. Active native root3306 remains guarded by Running2783; unconditional native3307 is a reviewed completed-stage greeting with close-only acknowledgment, not a next-quest activation."
+        },
+        "interaction_anchor": {
+          "x": 18,
+          "y": 31,
+          "z": 4
+        },
+        "interaction_anchor_evidence": "Original map1019 Sm6/0/4 geometry, topology SHA8466007530bf0a8cafaa58625dd2efd55f6a33bcffab4b3142c016ce17a797db; bounded full export school-map1019-sm6-exploration.json SHAa54aa2b0afeb9b9a527315da3c26a7fa81f3f947bf702b2a0217be7d743bd93a. Marker17,31,6 is NOT a native walking cell. Anchor18,31,4 is actual native floor and has direct edge to18,32,0 under original jump4 policy. No invented marker floor or coordinate relocation.",
+        "running_roots": {
+          "2783": 3306
+        },
+        "choice_criteria": [
+          {
+            "node_id": 3308,
+            "choice_id": 8172,
+            "criterion": "(IsAchievementRunning(2783)) and (IsAchievementRunning(2783) and not (IsAchievementObjectiveComplete(5583) and IsAchievementObjectiveComplete(5584) and IsAchievementObjectiveComplete(5585)))",
+            "evidence": "Recheck unchanged native3306 root and8170 choice predicates at the explicitly reviewed task-acceptance8172 terminal. No alternate opening at3308 is published and no crate objective is earned by conversation."
+          }
+        ],
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2783,
+          "objective_id": 5615,
+          "node_id": 3306,
+          "choice_id": 8169,
+          "archetype": "talk",
+          "native_node_qualified": true,
+          "remaining_objective": true,
+          "required_objectives": [
+            5614,
+            5583,
+            5584,
+            5585
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3306,
+          8170,
+          3308
+        ],
+        [
+          3308,
+          8172,
+          0
+        ],
+        [
+          3308,
+          8175,
+          0
+        ],
+        [
+          3306,
+          8169,
+          3307
+        ],
+        [
+          3306,
+          8278,
+          0
+        ],
+        [
+          3307,
+          8171,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": []
+}

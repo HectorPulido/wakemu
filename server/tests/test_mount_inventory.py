@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, timezone
 import uuid
+import struct
 import unittest
 
 import psycopg
 from psycopg.types.json import Jsonb
 from postgres_case import PostgresCase
 from wakfu_server import mount_codec, mount_inventory, mount_state
-from wakfu_server.inventory_items import grant
+from wakfu_server.inventory_items import grant, item_proto
 
 
 class MountInventoryTests(PostgresCase):
@@ -55,7 +56,7 @@ class MountInventoryTests(PostgresCase):
             quantity=quantity,
             container=character["inventory_containers"][0]["uid"],
             slot=slot,
-            allowed_references={18682, 18704, 18705, 18706, 99999},
+            allowed_references={18682, 18704, 18705, 18706, 32993, 32994, 99999},
         )
 
     @staticmethod
@@ -127,6 +128,244 @@ class MountInventoryTests(PostgresCase):
         )
         self.assertEqual(repeated["last_meal_date"], expected_ms)
         self.assertEqual(repeated["last_hungry_date"], expected_ms)
+
+    def test_build_save_rejects_unqualified_mount_without_persisting_any_sheet(self):
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=50 WHERE id=%s", (self.character["id"],)
+            )
+        self.store.save_build(
+            self.account,
+            self.generation,
+            self.character["id"],
+            0,
+            self._build(0, 50),
+        )
+        item = self._grant(reference=32994)
+        for index in (0, 1):
+            with self.subTest(index=index):
+                before = self.store.character(self.account, self.character["id"])
+                with self.assertRaisesRegex(ValueError, "Missing verified mount model"):
+                    self.store.save_build(
+                        self.account,
+                        self.generation,
+                        self.character["id"],
+                        index,
+                        self._build(index, 50, item["uid"]),
+                    )
+                after = self.store.character(self.account, self.character["id"])
+                self.assertEqual(after["builds"], before["builds"])
+                self.assertEqual(
+                    after["active_build_index"], before["active_build_index"]
+                )
+                self.assertEqual(after["inventory_items"], before["inventory_items"])
+                self.assertEqual(after["hp"], before["hp"])
+        selected = self.store.select_character(
+            self.account, self.generation, self.character["id"]
+        )
+        self.assertIsNone(mount_inventory.equipped(selected))
+        mount_inventory.actor_pet(selected)
+
+    def test_legacy_uninitialized_mount_sheet_cannot_be_activated(self):
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=50 WHERE id=%s", (self.character["id"],)
+            )
+        item = self._grant(reference=32994)
+        blobs = self._build(1, 50, item["uid"])
+        with self.store.connection() as db:
+            db.execute(
+                "INSERT INTO character_builds VALUES(%s,%s,%s,%s,%s,%s)",
+                (
+                    self.character["id"],
+                    1,
+                    *(
+                        blobs[key]
+                        for key in ("sheet", "equipment", "deck", "aptitudes")
+                    ),
+                ),
+            )
+        before = self.store.character(self.account, self.character["id"])
+        with self.assertRaisesRegex(ValueError, "no authoritative unit state"):
+            self.store.activate_build(
+                self.account,
+                self.generation,
+                self.character["id"],
+                1,
+                in_fight=False,
+            )
+        after = self.store.character(self.account, self.character["id"])
+        self.assertEqual(after["active_build_index"], 0)
+        self.assertEqual(after["builds"], before["builds"])
+        self.assertEqual(after["inventory_items"], before["inventory_items"])
+        self.assertIsNone(mount_inventory.equipped(after))
+
+    def test_alias_grant_and_legacy_save_equip_ride_and_reselect_preserve_unit(self):
+        from wakfu_server import equipment_stats, wire
+        from wakfu_server.mount_publication import snapshot
+
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE characters SET level=50 WHERE id=%s", (self.character["id"],)
+            )
+        for reference, slot in ((32993, 0), (18682, 1)):
+            with self.subTest(reference=reference):
+                item = self._grant(reference=reference, slot=slot)
+                expected_model = 116 if reference == 32993 else 76
+                self.assertEqual(item["mount"]["model_id"], expected_model)
+                # Reproduce an owned pre-support bag unit, without load-time repair.
+                with self.store.connection() as db:
+                    db.execute(
+                        "DELETE FROM inventory_mounts WHERE uid=%s", (item["uid"],)
+                    )
+                bare = self.store.character(self.account, self.character["id"])
+                self.assertNotIn(
+                    "mount",
+                    next(u for u in bare["inventory_items"] if u["uid"] == item["uid"]),
+                )
+                saved = self.store.save_build(
+                    self.account,
+                    self.generation,
+                    self.character["id"],
+                    0,
+                    self._build(0, 50, item["uid"]),
+                )
+                unit = mount_inventory.equipped(saved)
+                self.assertEqual(
+                    (unit["uid"], unit["reference"], unit["mount"]["model_id"]),
+                    (item["uid"], reference, expected_model),
+                )
+                if reference == 32993:
+                    base_resources = equipment_stats.combat_resources(bare)
+                    resources = equipment_stats.combat_resources(saved)
+                    self.assertEqual(
+                        (
+                            resources["ap"] - base_resources["ap"],
+                            resources["mp"] - base_resources["mp"],
+                        ),
+                        (1, -1),
+                    )
+                with self.store.connection() as db:
+                    db.execute(
+                        "UPDATE inventory_mounts SET name='Preserved',xp=375,health=7 WHERE uid=%s",
+                        (item["uid"],),
+                    )
+                before = mount_inventory.equipped(
+                    self.store.character(self.account, self.character["id"])
+                )["mount"]
+                repeated = self.store.save_build(
+                    self.account,
+                    self.generation,
+                    self.character["id"],
+                    0,
+                    self._build(0, 50, item["uid"]),
+                )
+                self.assertEqual(mount_inventory.equipped(repeated)["mount"], before)
+                code, mounted = mount_state.toggle(
+                    self.store,
+                    self.account,
+                    self.generation,
+                    self.character["id"],
+                    mounted=True,
+                    in_fight=False,
+                    location_allowed=True,
+                    occupation_cancelable=True,
+                )
+                self.assertEqual(code, 0)
+                self.assertTrue(mounted["mount_state"]["mounted"])
+                self.assertEqual(
+                    struct.unpack(">i", mount_inventory.actor_pet(mounted)[-24:-20])[0],
+                    expected_model,
+                )
+                pet = next(
+                    v
+                    for tag, v in wire.proto_fields(
+                        item_proto(mount_inventory.equipped(mounted))
+                    )
+                    if tag == 402
+                )
+                self.assertEqual(dict(wire.proto_fields(pet))[8], expected_model)
+                self.generation = self.store.begin_session(self.account)
+                reselected = self.store.select_character(
+                    self.account, self.generation, self.character["id"]
+                )
+                self.assertEqual(mount_inventory.equipped(reselected)["mount"], before)
+                self.assertEqual(
+                    snapshot(reselected),
+                    [mount_codec.ride_result(self.character["id"], 0)],
+                )
+                mount_state.toggle(
+                    self.store,
+                    self.account,
+                    self.generation,
+                    self.character["id"],
+                    mounted=False,
+                    in_fight=False,
+                    location_allowed=True,
+                    occupation_cancelable=True,
+                )
+                self.first_time += timedelta(seconds=11)
+                self.store.clock = lambda: self.first_time.timestamp()
+
+    def test_alias_feeding_uses_verified_model_without_accepting_another_model(self):
+        from wakfu_server import mount_feeding, mount_feeding_wire
+
+        variant = self._grant(reference=32993)
+        canonical = self._grant(reference=18682, slot=1)
+        food = grant(
+            self.store,
+            self.account,
+            self.generation,
+            self.character["id"],
+            reference=18378,
+            quantity=2,
+            container=self.container,
+            slot=2,
+            allowed_references={18378},
+        )
+        with self.store.connection() as db:
+            db.execute(
+                "UPDATE settings SET value='false'::jsonb WHERE name='pet_feeding_daily_limit_enabled'"
+            )
+        for unit, model in ((variant, 116), (canonical, 76)):
+            body = mount_feeding_wire.encode_request(food["uid"], unit["uid"], 1)
+            result = mount_feeding.feed(
+                self.store,
+                self.account,
+                self.generation,
+                self.character["id"],
+                body,
+                in_fight=False,
+            )
+            current = next(
+                i
+                for i in result["character"]["inventory_items"]
+                if i["uid"] == unit["uid"]
+            )
+            self.assertEqual(
+                (
+                    current["reference"],
+                    current["mount"]["model_id"],
+                    current["mount"]["xp"],
+                ),
+                (unit["reference"], model, 50),
+            )
+            self.assertTrue(result["applied"])
+            replay = mount_feeding.feed(
+                self.store,
+                self.account,
+                self.generation,
+                self.character["id"],
+                body,
+                in_fight=False,
+            )
+            self.assertTrue(replay["replayed"])
+        with self.assertRaises(psycopg.Error):
+            with self.store.connection() as db:
+                db.execute(
+                    "UPDATE inventory_mounts SET model_id=76 WHERE uid=%s",
+                    (variant["uid"],),
+                )
 
     def test_new_mount_item_projects_daily_limit_policy_to_protopet(self):
         from wakfu_server import inventory_items, wire

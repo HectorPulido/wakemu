@@ -1048,9 +1048,9 @@ class CombatActionsMixin:
                                 self.state.abandon_messages,
                                 self.state.body,
                             )
-                            self.state.fight_messages = self.state.shared.runtime = (
-                                self.state.abandon_messages
-                            )
+                            self.state.fight_messages = (
+                                self.state.shared.runtime
+                            ) = self.state.abandon_messages
                         self.state.character.update(
                             self.refresh_owned_character(
                                 self.state.abandoned["character"]
@@ -1591,10 +1591,10 @@ class CombatActionsMixin:
                     self.state.movement_actor_id,
                     self.state.movement_path,
                 ) = self.state.decode_request(self.state.body)
-                self.state.movement_result["diagnostic"] = (
-                    self.runtime.movement_summary(
-                        self.state.movement_actor_id, self.state.movement_path
-                    )
+                self.state.movement_result[
+                    "diagnostic"
+                ] = self.runtime.movement_summary(
+                    self.state.movement_actor_id, self.state.movement_path
                 )
 
                 def shared_move(candidate, runtime):
@@ -1622,12 +1622,12 @@ class CombatActionsMixin:
                         characters,
                         decks,
                     ) as incident:
-                        self.state.movement_result["diagnostic"] = (
-                            self.runtime.movement_summary(
-                                self.state.movement_actor_id,
-                                self.state.movement_path,
-                                candidate.actors.get(self.state.movement_actor_id),
-                            )
+                        self.state.movement_result[
+                            "diagnostic"
+                        ] = self.runtime.movement_summary(
+                            self.state.movement_actor_id,
+                            self.state.movement_path,
+                            candidate.actors.get(self.state.movement_actor_id),
                         )
                         from wakfu_server.combat_owned_movement_step import (
                             owned_native_movement,
@@ -2271,7 +2271,9 @@ class CombatActionsMixin:
 
     def handle_captured_view(self):
         if not self.sync_loaded_world_snapshot(force=True):
-            self.sync_static_world()
+            # Private maps cannot use a public world replay. A client may ask
+            # for their scene after the bounded startup retries have expired.
+            self.sync_static_world(force=True)
         self.runtime.record(
             event="transport_objects_initialized",
             actor_id=self.state.character["id"],

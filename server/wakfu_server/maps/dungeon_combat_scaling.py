@@ -153,6 +153,9 @@ def initialize(db, fight, monsters, *, catalog, runtime_factory):
                                 identity,
                                 identity,
                                 actor.position,
+                                # Constructor scaling targets this exact PV;
+                                # point selection can also see a terrain Qq.
+                                native_explicit_target=True,
                                 native_retained_container={"present": False},
                             )
                         ):

@@ -14,6 +14,41 @@ class AchievementSnapshotTests(unittest.TestCase):
         self.assertFalse(queries["IsAchievementComplete"](5568))
         self.assertFalse(queries["IsAchievementObjectiveComplete"](11515))
 
+    def test_active_uses_independent_active_flags_not_completed_or_client_fields(self):
+        from wakfu_server.maps import dungeon_criteria
+
+        authority = dungeon_achievement_authority.queries_from_snapshot(
+            {"running": [1109], "completed": [1112], "objectives": [], "active": [1109]}
+        )
+        self.assertTrue(authority["IsAchievementActive"](1109))
+        self.assertFalse(authority["IsAchievementActive"](1112))
+        self.assertFalse(authority["IsAchievementActive"](999))
+        self.assertTrue(
+            dungeon_criteria.evaluate(
+                None,
+                "IsAchievementActive(1109) && !IsAchievementComplete(1109)",
+                queries=authority,
+            )
+        )
+        self.assertFalse(
+            dungeon_criteria.evaluate(
+                None,
+                "IsAchievementActive(1112)",
+                queries=authority,
+                character={"running": [1112], "active": [1112]},
+            )
+        )
+        for criterion in ("IsAchievementActive(1109)", "!IsAchievementActive(1109)"):
+            with self.assertRaisesRegex(
+                ValueError, "Missing dungeon predicate authority"
+            ):
+                dungeon_criteria.evaluate(None, criterion)
+        for argument in ("True", "0", "-1", '"1109"'):
+            with self.assertRaises(ValueError):
+                dungeon_criteria.evaluate(
+                    None, "IsAchievementActive(" + argument + ")", queries=authority
+                )
+
     def test_unknown_or_malformed_snapshot_fails_closed(self):
         for snapshot in (
             None,

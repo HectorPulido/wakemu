@@ -1,0 +1,112 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-brak-723",
+  "version": 2,
+  "map_id": 723,
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 9.0,
+      "y": -4.0,
+      "z": 0.0,
+      "id": 20427,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-1",
+      "map_id": 714,
+      "payload_hex": "02000000000b010000000d00000102ca00000009fffffffc0000000101010100080000000332323300000000000101",
+      "native_parameters": "223",
+      "descriptor_id": 223
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 223,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 248,
+          "clx": 83,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 248,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 473,
+                  "effect_type": 3,
+                  "criterion": "",
+                  "parameters": [
+                    "{9,-3,-0}",
+                    "723",
+                    "3"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 473,
+    "approaches": [
+      [
+        9,
+        -3,
+        0
+      ]
+    ],
+    "evidence": "Reviewed reconstruction of native Wild Estate1677: real resource542 action1343 has original aNn.csO loot2355 and2000ms occupation; original native probabilities and products are retained. Six finite East dig placements use connected native723 Sm6 floor and are reconstructed, not captured. Real native2779 kills produce three17851 fragments, native5160 merges three into17821. Actual workshop20460/478 produces17822 after real inputs17820/17821; actual model20428 consumes staff before original1650/19851 and13132 presentation. Actual skeleton-chief2793 victory opens native20429/20430/20431 before note20659 credits3109. Original boss placement/formation and item-input settlement joins are explicitly reviewed server reconstruction. No walk proximity, client callback or ordinary unrelated win grants components or quest completion."
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20658
+  ],
+  "controller_file": "wild-estate-brak-723.v2.json",
+  "exploration_file": "wild-estate-brak-723.exploration.json",
+  "provenance": "Reviewed reconstruction of native Wild Estate1677: real resource542 action1343 has original aNn.csO loot2355 and2000ms occupation; original native probabilities and products are retained. Six finite East dig placements use connected native723 Sm6 floor and are reconstructed, not captured. Real native2779 kills produce three17851 fragments, native5160 merges three into17821. Actual workshop20460/478 produces17822 after real inputs17820/17821; actual model20428 consumes staff before original1650/19851 and13132 presentation. Actual skeleton-chief2793 victory opens native20429/20430/20431 before note20659 credits3109. Original boss placement/formation and item-input settlement joins are explicitly reviewed server reconstruction. No walk proximity, client callback or ordinary unrelated win grants components or quest completion.",
+  "encounters_file": "wild-estate-brak-723-encounters.v2.json",
+  "owned_quest_pools": [
+    {
+      "schema": "owned-quest-pool-v1",
+      "id": "wild-amulet-parts",
+      "quest_id": 1677,
+      "unfinished_objective_id": 3106,
+      "item_reference": 17851,
+      "stop_quantity": 3,
+      "loot_contract": "wild-native-2779-item-17851-v1",
+      "anchor": [
+        -16,
+        -5,
+        0
+      ],
+      "bounds": [
+        -18,
+        -11,
+        -6,
+        1
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2779,
+          "count": 1
+        }
+      ],
+      "evidence": "Reviewed renewable West field on actual723 Sm6/QI floors; original2779statistics and20%quantity-one17851fragment loot remain unchanged. The original server placement/refill policy is absent; finite connected floor placement and respawn after genuine fights are reviewed reconstruction. Actual running1677 and unfinished3106 plus fewer than3fragments authorize the pool; no ordinary boss/main-room progress is granted."
+    }
+  ]
+}

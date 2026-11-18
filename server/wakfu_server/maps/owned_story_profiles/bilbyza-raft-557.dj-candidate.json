@@ -1,0 +1,55 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "bilbyza-raft-557",
+  "map_id": 557,
+  "maximum_members": 1,
+  "provenance": "Reviewed native DJ challenge reconstruction: original raft18981/1289 paid VIP16833 and free18984/1290 return remain literal. Native DJ2502/action343/type4 at an explicitly reconstructed legal Sm6 stage anchor opens the genuine2502 encounter. Native2502 level100/INIT1000/spell3700 and source-pinned consumer2518 innate1895 initialize the solo challenge;1941 and areas527-530 are produced only by the original3700/95219/95845 and native1001 callbacks. No ordinary monster death supplies2393.",
+  "admission": {
+    "quest_id": 1263,
+    "objective_id": null,
+    "continuation_quest_id": 1266
+  },
+  "native_sources": {
+    "path": "bilbyza-raft-557.native.v1.json",
+    "sha256": "699acade94d5568751b01365e76f13748b1e9e8f2c3343ceb2d669e981bd7386"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "raft-loaded",
+      "kind": "world_ready",
+      "reference": 557,
+      "requires": [],
+      "effects": [],
+      "evidence": "Actual paid native1289 arrival; toolkit earns original1263 arrival and exposes1264 only when this complete block is published."
+    },
+    {
+      "id": "dj-requested",
+      "kind": "npc_spoken",
+      "reference": 2502,
+      "requires": [
+        "raft-loaded"
+      ],
+      "effects": [],
+      "evidence": "Actual original2502/type4/action343 accepted near the scoped actor on original legal stage floor; no client callback or menu rendering qualifies."
+    },
+    {
+      "id": "dj-terminal-room",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "dj-requested"
+      ],
+      "effects": [],
+      "evidence": "Required owned-room terminal bookkeeping only. Mission2393 is exclusively the signed four native inputs terminal; this step awards no quest objective for ordinary kills."
+    }
+  ],
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 1,
+    "requires": [
+      "dj-requested"
+    ],
+    "evidence": "Actual native NPC request at stage approach admits the existing pinned original2502 group through normal server automatic attack ownership."
+  }
+}

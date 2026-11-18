@@ -782,6 +782,39 @@ class ObjectivesSessionMixin:
         from psycopg_pool import PoolTimeout as QuestPoolTimeout
 
         try:
+            from . import (
+                npc_owned_entry_dispatch,
+                owned_story_npc_dispatch,
+                owned_physical_offer_dispatch,
+            )
+
+            if owned_physical_offer_dispatch.handle(self):
+                return DispatchResult.CONTINUE
+            if npc_owned_entry_dispatch.handle(self) or owned_story_npc_dispatch.handle(
+                self
+            ):
+                return DispatchResult.CONTINUE
+            if (
+                self.state.fight is None
+                and self.state.spectator_session is None
+                and self.state.bag_session is None
+            ):
+                from wakfu_server.npc_approach_target import approach_cells, resolve
+
+                target = resolve(
+                    self.runtime.STORE,
+                    self.state.character,
+                    self.state.opcode,
+                    self.state.body,
+                )
+                if target is not None:
+                    from wakfu_server.combat_geometry import prepare_geometry
+                    from wakfu_server.combat_terrain import map_geometry
+
+                    geometry = prepare_geometry(map_geometry(target["map_id"]))
+                    goals = approach_cells(geometry, target)
+                    if self.approach_actor(goals.__contains__, geometry=geometry):
+                        return DispatchResult.CONTINUE
             from wakfu_server import ruel_investigation_npc
 
             if ruel_investigation_npc.recognizes(
@@ -989,6 +1022,35 @@ class ObjectivesSessionMixin:
                             self.state.connection, self.state.service, *hunter_packet
                         )
                 return DispatchResult.CONTINUE
+            if (
+                self.state.opcode == 13222
+                and self.state.loaded
+                and self.state.fight is None
+                and self.state.spectator_session is None
+            ):
+                # A captured ordinary NPC may retain its base provider while
+                # one explicitly guarded, published story branch is active.
+                actor_id, action_id = self.state.npc_world.decode_interaction(
+                    self.state.body
+                )
+                with self.runtime.POSITIONS.account_barrier(self.state.account_id):
+                    self.runtime.flush_positions(account_id=self.state.account_id)
+                    overlay = quest_npc.try_native_overlay(
+                        self.runtime.STORE,
+                        self.state.account_id,
+                        self.state.generation,
+                        self.state.character,
+                        actor_id,
+                        action_id,
+                        character_provider=lambda: self.state.character,
+                        provider_field="existing_dialogue_actor",
+                    )
+                if overlay is not None:
+                    if self.state.npc_dialogue_session is not None:
+                        self.state.npc_dialogue_session.close()
+                    self.state.npc_dialogue_session, overlay_packets = overlay
+                    self.publish_settled_quest_packets(overlay_packets)
+                    return DispatchResult.CONTINUE
             qualified_quest = quest_npc.recognizes(
                 self.runtime.STORE,
                 self.state.opcode,

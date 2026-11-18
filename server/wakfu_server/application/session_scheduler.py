@@ -11,6 +11,10 @@ class SessionSchedulerMixin:
     def idle(self):
         if self.runtime.STOPPING.is_set():
             return False
+        self.resume_actor_approach()
+        from . import source_quest_encounter_dispatch
+
+        source_quest_encounter_dispatch.poll(self)
         if (
             self.state.loaded
             and self.state.character is not None
@@ -300,6 +304,7 @@ class SessionSchedulerMixin:
                 return True
             if self.continue_aborted_publication_recovery():
                 return True
+            self.notify_owned_story_refresh()
             self.deliver_rift_transition()
             if (
                 self.state.combat_session is None

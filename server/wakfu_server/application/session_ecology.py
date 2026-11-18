@@ -155,7 +155,12 @@ class EcologySessionMixin:
             self.state.paid_container_ticket = None
             if publish:
                 for packet in result["packets"]:
-                    self.runtime.WORLD.emit_location(*result["location"], *packet)
+                    if result.get("personal_state", False):
+                        self.runtime.send(
+                            self.state.connection, self.state.service, *packet
+                        )
+                    else:
+                        self.runtime.WORLD.emit_location(*result["location"], *packet)
                 self.publish_environment_scene(force=True)
         if self.state.environment_ticket is not None:
             from wakfu_server.environment_interactions import cancel
@@ -200,9 +205,15 @@ class EcologySessionMixin:
             return True
         raise ValueError("Environment actor is outside the owned company")
 
-    def environment_blocked(self, *, allow_seated=False, allow_paid=False):
+    def environment_blocked(
+        self, *, allow_seated=False, allow_paid=False, allow_source=False
+    ):
         if (
             self.state.fight is not None
+            or (
+                getattr(self.state, "quest_source_ticket", None) is not None
+                and not allow_source
+            )
             or self.state.combat_session is not None
             or self.state.spectator_session is not None
             or self.state.bag_session is not None

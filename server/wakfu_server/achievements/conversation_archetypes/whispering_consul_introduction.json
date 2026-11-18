@@ -1,0 +1,81 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "PRIVATE minimal finite native NPC acknowledgment; no activation, item/payment, physical progression or future quest is inferred. Native consul2077/action242 visual1300066/root1902; exact Active4871 and unfinished10041 choice4035 earns only10041. Reviewed native information path1903 describes captured Cracklers and the Whisper Crisper, then4158 closes. Unconditional greeting1902 and type10 exit4034 remain after10041/quest completion; no ghost actor or later branch activation.",
+  "speakers": [
+    {
+      "actor_id": -2251799934994871,
+      "action_id": 242,
+      "quest_ids": [
+        4871
+      ],
+      "native_marker": {
+        "quest_id": 4871,
+        "objective_id": 10041
+      },
+      "placement": {
+        "quest_id": 4871,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934994871,
+          "reference_id": 2077,
+          "map_id": 1295,
+          "instance_id": 0,
+          "x": -5,
+          "y": -2,
+          "z": -78,
+          "direction": 3,
+          "dialogue_root": 1902,
+          "action_ids": [
+            242
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION. Native consul2077/action242 visual1300066/root1902; exact Active4871 and unfinished10041 choice4035 earns only10041. Reviewed native information path1903 describes captured Cracklers and the Whisper Crisper, then4158 closes. Unconditional greeting1902 and type10 exit4034 remain after10041/quest completion; no ghost actor or later branch activation. Native quest navigation marker and actual connected Sm6 anchor supply reviewed placement, not a captured original actor/action/position join."
+        },
+        "interaction_anchor": {
+          "x": -4,
+          "y": -2,
+          "z": -78
+        },
+        "interaction_anchor_evidence": "Actual Sm6/0/4 map1295 evidence whisper-consul-floor.json, file SHAe926b04a434e8318dbccde58b4af1d25bde56a6e085ca90c14574d6614f707a3, topology SHAfaa85de57f3e7cc782c1341fe3ed6b4e955c9ff3c3b66ea63b4a4ef316d068a8. Native marker cell(-5, -2, -78) exists but has zero incident walking edges; adjacent anchor(-4, -2, -78) is real and has native incoming/outgoing connections. Do not invent a movement edge through the blocked NPC tile.",
+        "graph": [],
+        "choice_criteria": [
+          {
+            "node_id": 1902,
+            "choice_id": 4035,
+            "criterion": "IsAchievementRunning(4871)",
+            "evidence": "Reviewed selected native quest branch / final objective requires this owned running quest and earned preceding objectives."
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "quest_id": 4871,
+          "objective_id": 10041,
+          "node_id": 1902,
+          "choice_id": 4035,
+          "archetype": "talk",
+          "running_branch": 4871
+        }
+      ],
+      "graph": [
+        [
+          1902,
+          4035,
+          1903
+        ],
+        [
+          1903,
+          4158,
+          0
+        ],
+        [
+          1902,
+          4034,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": []
+}

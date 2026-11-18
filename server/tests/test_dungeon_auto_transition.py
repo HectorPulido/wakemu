@@ -301,6 +301,118 @@ class AutomaticDungeonTransitionPostgresTests(PostgresCase):
         self.assertEqual(moved["revision"], replay["revision"])
         self.assertEqual(2, len(self.pending_outbox()))
 
+    def test_busy_return_owner_retries_then_advances_two_members_exactly_once(self):
+        from collections import deque
+        from wakfu_server.combat_shared import Registry, Session, SharedFight
+        from wakfu_server.position_buffer import PositionOwnerBusy
+        from wakfu_server.position_lifecycle import PendingPositionReturn
+
+        fight_id, settled = self.make_fight()
+        self.assertTrue(settled["victory"])
+        self.assertEqual(settled["current_room"], 2)
+        sessions = [
+            Session(
+                member["account"],
+                member["character"]["id"],
+                member["generation"],
+                1086,
+                self.instance_id,
+            )
+            for member in self.members
+        ]
+        registry = Registry(live_session=lambda session: session in sessions)
+        shared = SharedFight(
+            fight=SimpleNamespace(
+                id=fight_id,
+                phase="finished",
+                winner=0,
+                actors={
+                    session.character_id: SimpleNamespace(
+                        id=session.character_id,
+                        controlled=True,
+                        owner_id=session.account_id,
+                    )
+                    for session in sessions
+                },
+            ),
+            map_id=1086,
+            instance_id=self.instance_id,
+            runtime=None,
+            participants={session.account_id: session for session in sessions},
+            connected={session.account_id for session in sessions},
+            outboxes={session.account_id: deque() for session in sessions},
+            settlement_ready=True,
+        )
+        registry.fights[fight_id] = shared
+        registry.by_character.update(
+            {session.character_id: fight_id for session in sessions}
+        )
+        registry.by_actor.update(registry.by_character)
+        first, second = sessions
+        self.assertFalse(registry.mark_returned(fight_id, second))
+        self.assertNotIn(second.character_id, registry.by_character)
+        pending = PendingPositionReturn(now=0)
+        calls = []
+
+        def flush():
+            calls.append("flush")
+            if calls.count("flush") == 1:
+                raise PositionOwnerBusy("return position is still owned")
+
+        def complete():
+            self.assertEqual(calls[-1], "flush")
+            calls.append("return")
+            self.assertTrue(registry.mark_returned(fight_id, first))
+
+        before = self.locations()
+        self.assertFalse(
+            pending.attempt(now=0, flush=flush, complete=complete, busy=lambda *_: None)
+        )
+        self.assertEqual(registry.by_character.get(first.character_id), fight_id)
+        deferred = self.advance(
+            fight_id, in_fight=lambda identity: identity in registry.by_character
+        )
+        self.assertTrue(deferred["deferred"])
+        self.assertEqual(deferred["reason"], "members_not_ready")
+        self.assertEqual(before, self.locations())
+        self.assertEqual(self.pending_outbox(), [])
+        with self.store.connection() as db:
+            progress = db.execute(
+                "SELECT current_room FROM dungeon_room_runs WHERE instance_id=%s",
+                (self.instance_id,),
+            ).fetchone()
+        self.assertEqual(progress["current_room"], 2)
+        self.assertTrue(
+            pending.attempt(now=1, flush=flush, complete=complete, busy=lambda *_: None)
+        )
+        self.assertNotIn(fight_id, registry.fights)
+        self.assertEqual(registry.by_character, {})
+        moved = self.advance(
+            fight_id, in_fight=lambda identity: identity in registry.by_character
+        )
+        self.assertFalse(moved["replay"])
+        self.assertEqual(
+            set(moved["members"]), {session.character_id for session in sessions}
+        )
+        self.assertEqual(
+            {(1086, self.instance_id, 152, -10, 0)},
+            {
+                (row["map_id"], row["instance_id"], row["x"], row["y"], row["z"])
+                for row in self.locations()
+            },
+        )
+        self.assertEqual(len(self.pending_outbox()), 2)
+        self.assertTrue(
+            pending.attempt(now=2, flush=flush, complete=complete, busy=lambda *_: None)
+        )
+        replay = self.advance(
+            fight_id, in_fight=lambda identity: identity in registry.by_character
+        )
+        self.assertTrue(replay["replay"])
+        self.assertEqual(replay["revision"], moved["revision"])
+        self.assertEqual(len(self.pending_outbox()), 2)
+        self.assertEqual(calls, ["flush", "flush", "return"])
+
     def test_wrong_instance_member_is_deferred_without_partial_move(self):
         fight_id, _ = self.make_fight()
         member_id = self.members[1]["character"]["id"]

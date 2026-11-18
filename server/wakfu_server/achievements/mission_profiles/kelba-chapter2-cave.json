@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "kelba-chapter2-cave",
+  "evidence": [
+    "Original Kelba chapter2 source943/25138/destination2185 enters952 at(0,0,0); exit25119/2173 returns943(-154,12,-50). Original scenario1967 films15832,15833,15834 require real Kabrok3580 UID and end19799 explicitly validates2547/2548 discovery5046/5047. The existing native dialogue3149/7804 then earns separate talk5065/5064. Reviewed reconstruction: native server actor placement and callback orchestration are absent; use connected original Sm6 floor(-2,0,0), explicit6.5s/7.5s/31.5s delays, no combat or later chapter credit. Mutually exclusive native introductions remain alternatives, never both required.",
+    "Reviewed finite admission: after2544 admit2548; real level65 character-ready onKelba943/952 can admit native alternate2547 only if2548 is notActive. Ordered declarations prefer earned2548 and unchanged native criteria enforce mutual exclusion. Neither completed introduction starts unsupported2549."
+  ],
+  "bindings": [
+    {
+      "id": "kabrok-native-7804-2548",
+      "quest_id": 2548,
+      "objective_id": 5064,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 5064
+      },
+      "maps": [
+        952
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "kabrok-native-7804-2547",
+      "quest_id": 2547,
+      "objective_id": 5065,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 5065
+      },
+      "maps": [
+        952
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-earned-2544-2548",
+      "quest_id": 2548,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2544
+      },
+      "requires_completed": [
+        2544
+      ]
+    },
+    {
+      "id": "kelba-earned-2548-recovery",
+      "quest_id": 2548,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2544
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Original Kelba chapter2 source943/25138/destination2185 enters952 at(0,0,0); exit25119/2173 returns943(-154,12,-50). Original scenario1967 films15832,15833,15834 require real Kabrok3580 UID and end19799 explicitly validates2547/2548 discovery5046/5047. The existing native dialogue3149/7804 then earns separate talk5065/5064. Reviewed reconstruction: native server actor placement and callback orchestration are absent; use connected original Sm6 floor(-2,0,0), explicit6.5s/7.5s/31.5s delays, no combat or later chapter credit. Mutually exclusive native introductions remain alternatives, never both required."
+    },
+    {
+      "id": "kelba-native-alternate-2547",
+      "quest_id": 2547,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "maps": [
+        943,
+        952
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Original Kelba chapter2 source943/25138/destination2185 enters952 at(0,0,0); exit25119/2173 returns943(-154,12,-50). Original scenario1967 films15832,15833,15834 require real Kabrok3580 UID and end19799 explicitly validates2547/2548 discovery5046/5047. The existing native dialogue3149/7804 then earns separate talk5065/5064. Reviewed reconstruction: native server actor placement and callback orchestration are absent; use connected original Sm6 floor(-2,0,0), explicit6.5s/7.5s/31.5s delays, no combat or later chapter credit. Mutually exclusive native introductions remain alternatives, never both required."
+    }
+  ]
+}

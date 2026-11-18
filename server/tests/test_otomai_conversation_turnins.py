@@ -1,4 +1,5 @@
-"""Otomai's ten reconstructed item turn-ins settle only through their offered dialogue edge."""
+"""Otomai item turn-ins settle only through their offered dialogue edge."""
+
 import copy
 import json
 import struct
@@ -10,7 +11,6 @@ from unittest.mock import patch
 
 from wakfu_server.achievements import conversation
 from wakfu_server.maps import quest_npc
-
 
 CONTRACT = (
     Path(__file__).parents[1]
@@ -87,7 +87,9 @@ class OtomaiConversationTurnInTests(unittest.TestCase):
     def setUp(self):
         self.document = json.loads(CONTRACT.read_text())
         self.definitions, self.bindings = conversation.validate_rules(self.document)
-        self.turnins = self.document["turnins"]
+        self.turnins = [
+            entry for entry in self.document["turnins"] if entry["reference_id"] == 2873
+        ]
         self.placement = next(
             p for p in self.document["placements"] if p["quest_id"] == 1695
         )
@@ -154,6 +156,8 @@ class OtomaiConversationTurnInTests(unittest.TestCase):
         ), patch(
             "wakfu_server.achievements.service.drain_rewards", return_value=[]
         ), patch(
+            "wakfu_server.achievements.mission_toolkit.settle", return_value=[]
+        ), patch(
             "wakfu_server.dungeon_criteria.evaluate",
             side_effect=criteria_evaluator or (lambda *_args, **_kwargs: True),
         ), patch(
@@ -187,7 +191,11 @@ class OtomaiConversationTurnInTests(unittest.TestCase):
         )
 
     def _state_for(self, quest_id):
-        completed = {1695: [], 1708: [1695], 1715: [1695, 1708]}[quest_id]
+        completed = {
+            1695: [],
+            1708: [1695],
+            1715: [1695, 1708],
+        }.get(quest_id, [])
         return {
             "variables": {},
             "objectives": [],
@@ -198,10 +206,10 @@ class OtomaiConversationTurnInTests(unittest.TestCase):
             "completion_dates": {},
         }
 
-    def test_all_ten_offered_turnins_debit_the_bound_item_and_advance_only_bound_objective(
+    def test_all_offered_turnins_debit_the_bound_item_and_advance_only_bound_objective(
         self,
     ):
-        self.assertEqual(10, len(self.turnins))
+        self.assertEqual(38, len(self.turnins))
         seen = set()
         for turnin in self.turnins:
             binding = self.bindings[
@@ -235,7 +243,8 @@ class OtomaiConversationTurnInTests(unittest.TestCase):
                 self.assertEqual(1, receipt.call_count)
                 self.assertEqual(0, claim.call_count)
                 self.assertFalse(outcome["completed"])
-        self.assertEqual({1695, 1708, 1715}, seen)
+        self.assertEqual(10, len(seen))
+        self.assertTrue({1717, 1719, 2869, 2870, 2871, 2872, 4733} <= seen)
 
     def test_unoffered_choice_or_missing_chain_prerequisite_rejects_before_payment(
         self,

@@ -1,0 +1,466 @@
+{
+  "evidence": "Exact native quest definitions exported from installed client; localized review labels removed. Native input for unpublished reconstructed mount precursor authoring tests.",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(2013)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "not IsAchievementActive(5594)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -89,
+              "ckh": -59,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4073,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            9100
+          ],
+          "d": 3466,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            18682,
+            1
+          ],
+          "d": 10396,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "ach.515",
+      "d": 2013,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2015)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 35",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -145,
+              "ckh": 123,
+              "cki": -4,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4076,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 25,
+              "ckh": -34,
+              "cki": 4,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4077,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 4,
+              "ckh": 50,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4078,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            22600
+          ],
+          "d": 3469,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 2,
+      "cka": "ach.515",
+      "d": 2015,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2016)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 20,
+              "ckh": -34,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4079,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 4084,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 25,
+              "ckh": -34,
+              "cki": 4,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4140,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            18629,
+            1
+          ],
+          "d": 3467,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            27150
+          ],
+          "d": 3470,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 3,
+      "cka": "ach.515",
+      "d": 2016,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2018)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 35 and IsAchievementComplete(2015)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -89,
+              "ckh": -59,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4086,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            9100
+          ],
+          "d": 3472,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 5,
+      "cka": "ach.515",
+      "d": 2018,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2027)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 35 and IsAchievementComplete(2026)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -89,
+              "ckh": -59,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4102,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            9100
+          ],
+          "d": 3479,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 9,
+      "cka": "ach.515",
+      "d": 2027,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2048)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2013,
+      "cjG": 515,
+      "cjH": true,
+      "cjI": "",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -121,
+              "ckh": 64,
+              "cki": 0,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4135,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -145,
+              "ckh": 123,
+              "cki": -4,
+              "ckj": 527,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 4136,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 5,
+          "ckk": false,
+          "ckl": [
+            18628,
+            1
+          ],
+          "d": 3492,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            18100
+          ],
+          "d": 3491,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 35,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 10,
+      "cka": "ach.515",
+      "d": 2048,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ]
+}

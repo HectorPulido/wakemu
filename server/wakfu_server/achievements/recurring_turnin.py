@@ -4,6 +4,8 @@ Callers authenticate and authorize the offered NPC edge; all writes share their
 transaction. A fixed native anchor is an explicit reconstruction of the reset
 boundary, not a claim about the original server's scheduling.
 """
+
+from . import native_effective_eligibility
 import struct
 from . import recurring_missions, storage, wire
 
@@ -52,14 +54,16 @@ def accept(db, store, character, definition, config):
     before = storage.load_locked(db, character["id"])
     if not can_offer(db, character, definition, config, now_ms=now_ms, state=before):
         raise ValueError("Recurring mission is not available")
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
     from wakfu_server import dungeon_criteria
 
-    authority = queries_from_snapshot(
-        {k: before[k] for k in ("running", "completed", "objectives")}
-    )
+    authority = queries_from_state(before)
     if not dungeon_criteria.evaluate(
-        store, definition["cjI"], character=character, queries=authority, now_ms=now_ms
+        store,
+        native_effective_eligibility.criterion(definition),
+        character=character,
+        queries=authority,
+        now_ms=now_ms,
     ):
         raise ValueError("Recurring mission native eligibility not met")
     prior = _last(db, character["id"], definition["d"])

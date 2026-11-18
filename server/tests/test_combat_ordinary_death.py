@@ -6,6 +6,21 @@ from wakfu_server.combat_state import Actor, Fight
 
 
 class OrdinaryDeathTests(unittest.TestCase):
+    def listener_events(self, fight, actor_authority):
+        from wakfu_server.combat_event_replay import NativeCloneAuthority
+
+        # These unit cases supply synthetic corpse guards rather than the full
+        # ordinary roster adapter. Initialize every constructor-owned field;
+        # an opaque replay deliberately selects the uncached callback path.
+        event = OrdinaryHealingEvents.__new__(OrdinaryHealingEvents)
+        event.preview = fight
+        event.adapter = SimpleNamespace(actor_authority=actor_authority)
+        event.plan = {}
+        event.replay = None
+        event.retention = None
+        event.authority = NativeCloneAuthority(event.executable, event.conditions)
+        return event
+
     def fixture(self):
         first = Actor(7, 0, (0, 0, 0), 50, 6, 3, 10, 1, 3, True)
         target = Actor(-7, 1, (1, 0, 0), 12, 6, 3, 1, 1)
@@ -37,12 +52,8 @@ class OrdinaryDeathTests(unittest.TestCase):
 
     def test_original_group_override_permits_known_corpse_without_exception(self):
         fight, target = self.fixture()
-        event = OrdinaryHealingEvents.__new__(OrdinaryHealingEvents)
-        event.preview = fight
-        event.adapter = SimpleNamespace(
-            actor_authority=lambda *a: SimpleNamespace(
-                targeting={"baG": False, "baK": False}
-            )
+        event = self.listener_events(
+            fight, lambda *a: SimpleNamespace(targeting={"baG": False, "baK": False})
         )
         fight.native_owned_group_effects = {100: {"invocation": {"target_id": -7}}}
         invocation = SimpleNamespace(caster_id=7, target_id=-7, base_uid=100)
@@ -181,12 +192,11 @@ class OrdinaryDeathTests(unittest.TestCase):
         initialize_global_pv_collections(fight, tuple(fight.actors))
         with fight.effect_resolution():
             fight.apply_effect_damage(7, -7, 12)
-        event = OrdinaryHealingEvents.__new__(OrdinaryHealingEvents)
-        event.preview = fight
-        event.adapter = SimpleNamespace(
-            actor_authority=lambda _fight, actor: SimpleNamespace(
+        event = self.listener_events(
+            fight,
+            lambda _fight, actor: SimpleNamespace(
                 targeting={"baG": actor.id == -7, "baK": False}
-            )
+            ),
         )
         fight.native_owned_group_effects = {
             100: {"invocation": {"target_id": -7, "caster_id": 7}}

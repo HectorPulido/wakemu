@@ -8,7 +8,37 @@ this adapter declares only the immutable scene role and excludes ally rewards.
 from dataclasses import dataclass
 
 POLICY = "wakemu.astrub.cat-story.native-ally.v1"
+VOYAGE_POLICY = "wakemu.zinit.voyage.native-ally.v1"
+BOVIS_POLICY = "wakemu.bovis-lair.native-ally.v1"
 DECLARATIONS = {
+    BOVIS_POLICY: {
+        "mission": 2711,
+        "map_id": 1002,
+        "rooms": {3: (3840, 3841), 4: (3845,)},
+        "helpers": (("mimi", 3854, 25, "player", "self"),),
+        "facts": (
+            "Original2045 room3/16175 and room4/16207 declare Mimi in combat",
+            "Native3854 level25, original5509/5511 and4206 initial state retained",
+            "Native3842 has no spellbook and is not fabricated as an ordinary enemy",
+            "Real owned TeamMissile and Bovis victories remain separate story outcomes",
+        ),
+    },
+    VOYAGE_POLICY: {
+        "mission": 2684,
+        "map_id": 980,
+        "rooms": {
+            1: (3771, 3771, 3771),
+            2: (3783, 3783, 3783, 3784, 3784),
+            3: (3769, 3769, 3769, 3770, 3770, 3770),
+        },
+        "helpers": (("sailor", 3781, 15, "player", "self"),),
+        "facts": (
+            "native3781:Micho Pera level15/HP50; sprite177903781; spell5147",
+            "native family779 voyage birds/pirates/tornadoes preserve original grades/spells",
+            "Reviewed relocation of obsolete2015/2018/2016 map290/303/304 onto current980 ship",
+            "Three/five/six formation counts corroborated by journey guide; composition is reviewed reconstruction",
+        ),
+    },
     POLICY: {
         "mission": 5568,
         "map_id": 312,

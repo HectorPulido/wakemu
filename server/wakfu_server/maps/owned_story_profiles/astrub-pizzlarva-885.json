@@ -1,0 +1,43 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "astrub-pizzlarva-885",
+  "map_id": 885,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2149,
+    "objective_id": null,
+    "continuation_quest_id": 2149
+  },
+  "provenance": "Original546 GenericActivable23626/505/effect1457 enters native885(0,0,0), third parameter7 is facing, not instance kind. Solo private ownership is reviewed server policy. Original885 Teleporter23627/2016 returns freely to546(-4,-8,3), facing3. This context declares no battle, temporary form, tutorial, score, quest assignment, objective, item or reward producer; independently authenticated mode actions own gameplay. No invented native room or replayed cinematic.",
+  "steps": [
+    {
+      "id": "order-context-ready",
+      "kind": "world_ready",
+      "reference": 885,
+      "requires": [],
+      "effects": [],
+      "evidence": "Original546 GenericActivable23626/505/effect1457 enters native885(0,0,0), third parameter7 is facing, not instance kind. Solo private ownership is reviewed server policy. Original885 Teleporter23627/2016 returns freely to546(-4,-8,3), facing3. This context declares no battle, temporary form, tutorial, score, quest assignment, objective, item or reward producer; independently authenticated mode actions own gameplay. No invented native room or replayed cinematic."
+    }
+  ],
+  "initial_elements": [],
+  "interaction_approach_policy": "pinned_native_qv",
+  "native_sources": {
+    "path": "astrub-pizzlarva-885.native.json",
+    "sha256": "6c211d49b4957942fcd6de9a20ce7b78439508fa320dbc64c6233a88c19b4c5c"
+  },
+  "native_order_trial_context": {
+    "schema": "owned-native-order-context-v1",
+    "id": "astrub-pizzlarva-native-context",
+    "quest_id": 2149,
+    "scenario_id": 1719,
+    "ready_step": "order-context-ready",
+    "admission_source": {
+      "path": "astrub_pizzlarva_admission.json",
+      "sha256": "546afc532186962d18478d49b2a483b224c59afda7d04ed52474b8ad71717c32"
+    },
+    "geometry_source": {
+      "path": "astrub_pizzlarva.geometry.json",
+      "sha256": "7563892ab718f53da902cd1c12331dfa12048febc43e60f2b0085f050a1d9077"
+    }
+  }
+}

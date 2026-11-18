@@ -1,0 +1,137 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Finite Goomy family firstchapter5047: original level36 explicit acceptance, ten actual Deathburn defeats, real return conversation. Later5051/5052 remain held until their physical producers exist; no5046 prerequisite, necklaceitemgrant or notebook completion is inferred from text.",
+  "speakers": [
+    {
+      "actor_id": -2251799934995047,
+      "action_id": 1210,
+      "quest_ids": [
+        5047
+      ],
+      "native_marker": {
+        "quest_id": 5047,
+        "objective_id": 10412
+      },
+      "placement": {
+        "quest_id": 5047,
+        "activation_policy": "explicit_choice",
+        "row": {
+          "actor_id": -2251799934995047,
+          "reference_id": 5408,
+          "map_id": 1359,
+          "instance_id": 0,
+          "x": 15,
+          "y": -36,
+          "z": -42,
+          "direction": 3,
+          "dialogue_root": 5543,
+          "action_ids": [
+            1210
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION from nativeGoomy5408/action1210 and5047 objective10412 marker on actual world-player Sm6/0/4 floor. Dialogue edges are reconstructed from original native narrative, not captured server transitions."
+        },
+        "interaction_anchor": {
+          "x": 15,
+          "y": -35,
+          "z": -42
+        },
+        "interaction_anchor_evidence": "Fresh original1359 world-player Sm6/0/4 export ereboria-1359-public.exploration.json contains the marker and adjacent15,-35,-42 native floor. This is an explicitly reviewed waypoint placement, not captured actor coordinates.",
+        "graph": [],
+        "start_on_choice": [
+          5586,
+          13014
+        ],
+        "running_root": 5543,
+        "choice_criteria": [
+          {
+            "node_id": 5586,
+            "choice_id": 13014,
+            "criterion": "GetRealLevel() >= 36 && !IsAchievementComplete(5047) && !IsAchievementActive(5047)",
+            "evidence": "Exact native acceptance guard from5543/13007 is rechecked on the terminal accepted path5543→5583→5584→5585→5586; no completed5046 requirement is invented."
+          }
+        ]
+      },
+      "objectives": [
+        {
+          "quest_id": 5047,
+          "objective_id": 10412,
+          "node_id": 5587,
+          "choice_id": 13017,
+          "archetype": "talk",
+          "running_branch": 5047,
+          "native_guard_path": [
+            [
+              5543,
+              13016,
+              5587
+            ],
+            [
+              5587,
+              13017,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          5543,
+          13007,
+          5583
+        ],
+        [
+          5583,
+          13008,
+          5584
+        ],
+        [
+          5583,
+          13024,
+          0
+        ],
+        [
+          5584,
+          13010,
+          5585
+        ],
+        [
+          5584,
+          13011,
+          0
+        ],
+        [
+          5585,
+          13012,
+          5586
+        ],
+        [
+          5585,
+          13013,
+          0
+        ],
+        [
+          5586,
+          13014,
+          0
+        ],
+        [
+          5543,
+          13016,
+          5587
+        ],
+        [
+          5587,
+          13017,
+          0
+        ],
+        [
+          5543,
+          13006,
+          0
+        ]
+      ]
+    }
+  ]
+}

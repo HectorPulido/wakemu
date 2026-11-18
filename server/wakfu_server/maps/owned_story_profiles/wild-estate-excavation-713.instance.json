@@ -1,0 +1,107 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-excavation-713",
+  "version": 1,
+  "map_id": 713,
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 45.0,
+      "y": -23.0,
+      "z": -80.0,
+      "id": 20378,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "2_-2",
+      "map_id": 711,
+      "payload_hex": "02000000000b010000000d00000102c70000002dffffffe9ffb0000101010100ff0000000332303200000000000101",
+      "native_parameters": "202",
+      "descriptor_id": 202
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 202,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 225,
+          "clx": 203,
+          "cod": 0,
+          "coe": 0,
+          "cof": true,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 225,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 443,
+                  "effect_type": 3,
+                  "criterion": "IsAchievementComplete(1617)",
+                  "parameters": [
+                    "{0,0,0}",
+                    "713",
+                    "1"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 443,
+    "approaches": [
+      [
+        44,
+        -24,
+        -81
+      ],
+      [
+        46,
+        -24,
+        -81
+      ],
+      [
+        44,
+        -23,
+        -81
+      ],
+      [
+        44,
+        -22,
+        -81
+      ],
+      [
+        45,
+        -22,
+        -82
+      ],
+      [
+        46,
+        -22,
+        -81
+      ]
+    ],
+    "evidence": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+  },
+  "native_entry_criterion": "IsAchievementComplete(1617)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20384
+  ],
+  "controller_file": "wild-estate-excavation-713.json",
+  "encounters_file": "wild-estate-excavation-713-encounters.json",
+  "exploration_file": "wild-estate-excavation-713.exploration.json",
+  "provenance": "Reviewed reconstruction, not recovered original server formations or rock visuals: native map713 and exact three corpse/item programs are retained. Original1646 names corpse fight13226, rubble fight13093, foreman-corpse fight13087, final victory13088 and solid-rock destruction13089. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates three actual Gobball fights for1618/1631/1632. Missing original server solid-rock identity is NOT fabricated: reviewed item-qualified owned stage gates represent excavation access, and actual bomb payment is bound to authenticated native exit after all three victories. Native family582 levels, stats, spells and innates unchanged; only finite species/count/arena and source-to-stage joins are reconstructed."
+}

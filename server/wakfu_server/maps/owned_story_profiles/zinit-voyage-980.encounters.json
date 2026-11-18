@@ -1,0 +1,327 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "zinit-voyage-980",
+  "map_id": 980,
+  "sequential_arenas": true,
+  "provenance": "Reviewed version relocation: original Lua2015/2018/2016 names removed asset maps290/303/304. Current client980 retains the same boat deck;52 original floor0 cells are reused sequentially. Species/grades/spells are native family779. Counts3birds/5pirates/6tornadoes are guide-corroborated; mixed composition and placements are explicit local reconstruction, not recovered official formation.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [],
+      "bounds": [
+        -5,
+        -4,
+        5,
+        0
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -3,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3771,
+          "count": 3
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-voyage-reviewed-deck-stage-1-v1",
+        "authority": "authorized_native_content_reconstruction",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+        "fixed_actor_placements": [
+          {
+            "reference": 3771,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3771,
+            "occurrence": 1,
+            "cell": [
+              4,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3771,
+            "occurrence": 2,
+            "cell": [
+              2,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 2,
+      "physical_room": 1,
+      "requires": [
+        "voyage-stage-1-victory"
+      ],
+      "bounds": [
+        -5,
+        -4,
+        5,
+        0
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -3,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3783,
+          "count": 3
+        },
+        {
+          "reference": 3784,
+          "count": 2
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-voyage-reviewed-deck-stage-2-v1",
+        "authority": "authorized_native_content_reconstruction",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+        "fixed_actor_placements": [
+          {
+            "reference": 3783,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3783,
+            "occurrence": 1,
+            "cell": [
+              4,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3783,
+            "occurrence": 2,
+            "cell": [
+              2,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3784,
+            "occurrence": 0,
+            "cell": [
+              4,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3784,
+            "occurrence": 1,
+            "cell": [
+              2,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "order": 3,
+      "physical_room": 1,
+      "requires": [
+        "voyage-stage-2-victory"
+      ],
+      "bounds": [
+        -5,
+        -4,
+        5,
+        0
+      ],
+      "z": 0,
+      "arena_seed": [
+        0,
+        -3,
+        0
+      ],
+      "monsters": [
+        {
+          "reference": 3769,
+          "count": 3
+        },
+        {
+          "reference": 3770,
+          "count": 3
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "full_room_scope": true,
+        "policy_id": "zinit-voyage-reviewed-deck-stage-3-v1",
+        "authority": "authorized_native_content_reconstruction",
+        "source_uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+        "fixed_actor_placements": [
+          {
+            "reference": 3769,
+            "occurrence": 0,
+            "cell": [
+              2,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3769,
+            "occurrence": 1,
+            "cell": [
+              4,
+              -4,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3769,
+            "occurrence": 2,
+            "cell": [
+              2,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3770,
+            "occurrence": 0,
+            "cell": [
+              4,
+              -2,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3770,
+            "occurrence": 1,
+            "cell": [
+              2,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          },
+          {
+            "reference": 3770,
+            "occurrence": 2,
+            "cell": [
+              4,
+              0,
+              0
+            ],
+            "direction": 5,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "server/wakfu_server/maps/owned_story_profiles/zinit-voyage-980.reconstructed-placements.v1.json",
+              "sha256": "851b1fda9ceedc23e6f04ca244d9c07673d4681c955a0a9b285bc7dec52b5c70"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

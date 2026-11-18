@@ -192,7 +192,7 @@ class PersistentGroups:
 
     def available(self, map_id, instance_id):
         with self.store.connection() as db:
-            return [
+            result = [
                 dict(
                     key=(r["map_id"], r["instance_id"], r["group_id"]),
                     members=deepcopy(self._members(r)),
@@ -226,6 +226,15 @@ class PersistentGroups:
                 )
                 if self._members(r)
             ]
+            from wakfu_server import owned_quest_pools
+
+            keys = {row["key"] for row in result}
+            result.extend(
+                row
+                for row in owned_quest_pools.available(db, map_id, instance_id)
+                if row["key"] not in keys
+            )
+            return result
 
     def claim(self, key, generation, fight_id):
         if (

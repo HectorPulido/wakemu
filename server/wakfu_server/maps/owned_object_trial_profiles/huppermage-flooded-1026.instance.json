@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "content_policy": "owned-object-trials-v1",
+  "id": "huppermage-flooded-1026",
+  "version": 1,
+  "map_id": 1026,
+  "entry": {
+    "map_id": 1025,
+    "object_id": 26174,
+    "destination_id": 2351
+  },
+  "native_entry_criterion": "IsAchievementActive(2786) and IsAchievementObjectiveComplete(5631)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    25797
+  ],
+  "controller_file": "huppermage-flooded-1026.json",
+  "exploration_file": "huppermage-flooded-1026.exploration.json",
+  "provenance": "Original2076 callbacks/981 chest program and native1026 floor. Combat oxygen turn timing becomes reviewed one-cell world movement; initial oxygen4 and finite bubble layout are explicit reviewed reconstruction, never ordinary fight victory."
+}

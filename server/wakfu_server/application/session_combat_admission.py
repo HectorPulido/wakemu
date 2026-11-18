@@ -528,9 +528,9 @@ class CombatAdmissionMixin:
                 auto_lock,
             ) = struct.unpack(">qiihB", self.state.body)
         else:
-            self.state.target = self.state.x = self.state.y = self.state.z = (
-                auto_lock
-            ) = None
+            self.state.target = (
+                self.state.x
+            ) = self.state.y = self.state.z = auto_lock = None
         if (
             self.state.fight is not None
             or (self.state.bag_session is not None and self.state.ranch_session is None)
@@ -606,8 +606,72 @@ class CombatAdmissionMixin:
                     ),
                     "members": self.state.members,
                 }
+            from wakfu_server import owned_story_ambush_admission
+
+            authored_ambush = (
+                self.state.rift_start_run is None
+                and self.state.encounter_world_action is None
+                and owned_story_ambush_admission.consume(self)
+            )
+            if (
+                self.state.rift_start_run is None
+                and self.state.encounter_world_action is None
+                and not authored_ambush
+            ):
+                from wakfu_server.combat_actor_snapshot import native_actor_catalog
+                from wakfu_server.actor_approach import combat_approach
+                from wakfu_server.combat_geometry import prepare_geometry
+                from wakfu_server.combat_terrain import map_geometry
+
+                geometry = prepare_geometry(
+                    map_geometry(self.state.character["map_id"])
+                )
+                profiles = native_actor_catalog()
+                final_cell_allowed = None
+                if (
+                    self.runtime.DUNGEON_ROOM_RUNTIME_AVAILABLE
+                    and self.runtime.is_dungeon_run(
+                        self.state.character.get("instance_id", 0)
+                    )
+                ):
+                    from wakfu_server.combat_walk_surface_policy import (
+                        ordinary_owned_attack_goal_filter,
+                    )
+
+                    with self.runtime.STORE.connection() as approach_db:
+                        final_cell_allowed = ordinary_owned_attack_goal_filter(
+                            approach_db,
+                            self.state.character,
+                            self.state.selected_group["key"],
+                            self.state.selected_group["members"],
+                            profiles["default_actor_radius"],
+                        )
+                approach_cells, blocked = combat_approach(
+                    geometry,
+                    self.state.selected_group["members"],
+                    self.state.target,
+                    profiles,
+                    final_cell_allowed=final_cell_allowed,
+                )
+                if self.approach_actor(
+                    approach_cells.__contains__,
+                    blocked=blocked,
+                    geometry=geometry,
+                    allow_unreachable=True,
+                ):
+                    return DispatchResult.CONTINUE
             self.state.TEST_GROUP_KEY = self.state.selected_group["key"]
             self.state.TEST_MONSTERS = tuple(self.state.selected_group["members"])
+            from wakfu_server.achievements import source_quest_encounters
+
+            if source_quest_encounters.candidate_monsters(self.state.TEST_MONSTERS):
+                with self.runtime.STORE.connection() as source_db:
+                    source_quest_encounters.admit(
+                        source_db,
+                        self.state.character,
+                        self.state.TEST_MONSTERS,
+                        self.state.TEST_GROUP_KEY,
+                    )
             rii_orientation_owned = False
             rii_lesson_objective = None
             rii_guardian_owned = None
@@ -727,6 +791,26 @@ class CombatAdmissionMixin:
                 )
 
                 mission_helper_options = {}
+                if self.runtime.is_dungeon_run(
+                    self.state.character.get("instance_id", 0)
+                ):
+                    from wakfu_server.owned_story_admission import (
+                        prepare as prepare_owned_stage,
+                    )
+
+                    owned_stage = prepare_owned_stage(
+                        self.runtime.STORE,
+                        self.state.character,
+                        self.state.TEST_MONSTERS,
+                    )
+                    for packet in owned_stage["packets"]:
+                        self.runtime.send(
+                            self.state.connection, self.state.service, *packet
+                        )
+                    if owned_stage["mission_allies"] is not None:
+                        mission_helper_options["mission_allies"] = owned_stage[
+                            "mission_allies"
+                        ]
                 if self.state.character.get(
                     "map_id"
                 ) == 312 and self.runtime.is_dungeon_run(
@@ -843,6 +927,15 @@ class CombatAdmissionMixin:
                     room_cells=arena_room_scene["room_cells"],
                 )
             )
+            from wakfu_server.combat_scripted_fixed_surfaces import (
+                complete_fixed_roster,
+            )
+
+            scripted_fixed_birth = complete_fixed_roster(
+                arena_room_scene,
+                self.state.TEST_MONSTERS,
+                helper_manifest=scene_helper_manifest,
+            )
             tutorial_arena = None
             if self.state.character["map_id"] == 1361:
                 from wakfu_server.achievements import incarnam_encounters
@@ -898,7 +991,12 @@ class CombatAdmissionMixin:
                     ordinary_npc_placement=(
                         tutorial_arena["ordinary_npc_placement"]
                         if tutorial_arena
-                        else True
+                        else not scripted_fixed_birth
+                    ),
+                    ordinary_generated_placement=(
+                        arena_room_scene is None
+                        and not tutorial_arena
+                        and not rii_orientation_owned
                     ),
                     member_radii=tuple(
                         self.state.formation_catalog["npc_profiles"][str(m["ref"])][
@@ -933,9 +1031,9 @@ class CombatAdmissionMixin:
                     adapt_helper_placement,
                 )
 
-                self.state.arena["native_encounter_scene_helpers"] = (
-                    scene_helper_manifest
-                )
+                self.state.arena[
+                    "native_encounter_scene_helpers"
+                ] = scene_helper_manifest
                 self.state.arena = adapt_helper_placement(
                     self.state.character, self.state.TEST_MONSTERS, self.state.arena
                 )
@@ -1045,6 +1143,16 @@ class CombatAdmissionMixin:
                     freeze_fight_configuration,
                 )
 
+                if source_quest_encounters.candidate_monsters(self.state.TEST_MONSTERS):
+                    source_quest_encounters.bind_fight(
+                        db,
+                        self.runtime.STORE,
+                        self.state.character,
+                        identity,
+                        self.state.TEST_MONSTERS,
+                        self.state.TEST_GROUP_KEY,
+                    )
+
                 if self.state.dungeon_binding is not None:
                     self.state.dungeon_binding(db, identity)
                     from wakfu_server.dungeon_optional_votes import (
@@ -1053,9 +1161,9 @@ class CombatAdmissionMixin:
                     )
 
                     if scene_enabled(self.state.character["map_id"]):
-                        self.state.entry_boundary["optional_ballot_challenge"] = (
-                            freeze_challenge(db, identity)
-                        )
+                        self.state.entry_boundary[
+                            "optional_ballot_challenge"
+                        ] = freeze_challenge(db, identity)
                 self.state.entry_boundary["health"] = db.execute(
                     "SELECT id,account_id,hp,max_hp,hp_damage,health_dead,hp_zero_valid "
                     "FROM characters WHERE id=%s AND account_id=%s",
@@ -1063,16 +1171,16 @@ class CombatAdmissionMixin:
                 ).fetchone()
                 configuration = SimpleNamespace()
                 freeze_fight_configuration(db, configuration)
-                self.state.entry_boundary["configuration"] = (
-                    configuration.native_system_configuration
-                )
+                self.state.entry_boundary[
+                    "configuration"
+                ] = configuration.native_system_configuration
                 from wakfu_server.combat_protector_fight_condition import (
                     capture_world_registry_record,
                 )
 
-                self.state.entry_boundary["protector_registry"] = (
-                    capture_world_registry_record(db, self.state.character, identity)
-                )
+                self.state.entry_boundary[
+                    "protector_registry"
+                ] = capture_world_registry_record(db, self.state.character, identity)
 
             from wakfu_server.combat_encounter_roles import (
                 assigned_roles,
@@ -1936,6 +2044,18 @@ class CombatAdmissionMixin:
                     13249,
                     struct.pack(">qiih", m["id"], m["x"], m["y"], m["z"]),
                 )
+            if source_quest_encounters.candidate_monsters(self.state.TEST_MONSTERS):
+                with self.runtime.STORE.connection() as source_db:
+                    source_packet = source_quest_encounters.started_packet(
+                        source_db,
+                        self.state.character,
+                        self.state.fight,
+                        self.state.TEST_MONSTERS,
+                    )
+                if source_packet is not None:
+                    self.runtime.send(
+                        self.state.connection, self.state.service, *source_packet
+                    )
             if self.state.encounter_world_action is not None:
                 # The actual group and durable placement already exist.
                 # Preserve original cyl12421 completion. aNq197/FightStart

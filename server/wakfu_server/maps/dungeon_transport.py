@@ -4,12 +4,14 @@ Only configured native routes are intercepted. The caller must provide
 authoritative implementations of both the native criterion and source
 interaction checks; there is deliberately no default for IsNeoServer().
 """
+
 from __future__ import annotations
+
+from contextlib import nullcontext
 
 import struct
 
 from wakfu_server import dungeon_instances, generic_transports
-
 
 _REQUEST = struct.Struct(">qiBi")
 
@@ -24,6 +26,19 @@ def resolve_request(entry_map_id, body):
     ):
         raise ValueError("Invalid native teleporter request length")
     object_id, destination_id, flag, mode = _REQUEST.unpack(body)
+    return resolve_route(entry_map_id, object_id, destination_id, flag=flag, mode=mode)
+
+
+def resolve_route(entry_map_id, object_id, destination_id, *, flag=0, mode=2):
+    """Resolve an actual native route from source-bound server interaction facts."""
+    if (
+        any(
+            type(value) is not int
+            for value in (entry_map_id, object_id, destination_id, flag, mode)
+        )
+        or entry_map_id <= 0
+    ):
+        raise ValueError("Invalid native route identity")
     configured = dungeon_instances.route_for_entry(
         entry_map_id, object_id, destination_id
     )
@@ -64,9 +79,11 @@ def resolve_request(entry_map_id, body):
     return {
         "route": configured,
         "source": source,
-        "difficulty_selection": None
-        if (flag, mode) == (0, 2)
-        else dict(stasis_level=mode, competitive=bool(flag)),
+        "difficulty_selection": (
+            None
+            if (flag, mode) == (0, 2)
+            else dict(stasis_level=mode, competitive=bool(flag))
+        ),
         "native_destination": destination,
         "destination": {
             "map_id": destination["map_id"],
@@ -91,6 +108,7 @@ def _enter(
     initialize_instance=None,
     resolve_destination=None,
     allowed_position_accounts=None,
+    _db=None,
 ):
     """Authorize and atomically create/reuse a party run plus move its roster.
 
@@ -103,6 +121,36 @@ def _enter(
     resolved = resolve_request(entry_map_id, body)
     if resolved is None:
         return None
+    return enter_resolved(
+        store,
+        account_id,
+        generation,
+        character_id,
+        resolved,
+        criterion_allowed=criterion_allowed,
+        source_allowed=source_allowed,
+        initialize_instance=initialize_instance,
+        resolve_destination=resolve_destination,
+        allowed_position_accounts=allowed_position_accounts,
+        _db=_db,
+    )
+
+
+def enter_resolved(
+    store,
+    account_id,
+    generation,
+    character_id,
+    resolved,
+    *,
+    criterion_allowed,
+    source_allowed,
+    initialize_instance=None,
+    resolve_destination=None,
+    allowed_position_accounts=None,
+    _db=None,
+):
+    """Shared transaction for independently source-qualified native entry adapters."""
     if not callable(criterion_allowed):
         raise ValueError("Authoritative dungeon criterion evaluator required")
     if not callable(source_allowed):
@@ -111,18 +159,32 @@ def _enter(
     source = resolved["source"]
     route = resolved["route"]
 
+    from wakfu_server import owned_physical_entry
+
+    entry_policy = owned_physical_entry.entry_policy(store, route, db=_db)
+
     def authorize(character, selected_route):
         return (
             selected_route == route
             and source_allowed(character, dict(source)) is True
-            and criterion_allowed(character, route.criterion) is True
+            and (
+                owned_physical_entry.allowed(
+                    store,
+                    character,
+                    route,
+                    enforce_native_entry_criterion=entry_policy == "native",
+                )
+                if entry_policy is not None
+                else criterion_allowed(character, route.criterion)
+            )
+            is True
         )
 
     difficulty_selection = resolved["difficulty_selection"]
     if difficulty_selection is None:
         from wakfu_server import dungeon_difficulty
 
-        with store.connection() as db:
+        with store.connection() if _db is None else nullcontext(_db) as db:
             try:
                 native = dungeon_difficulty.definition(db, route.definition_id)
             except ValueError:
@@ -133,6 +195,25 @@ def _enter(
             )
 
     def initialize_paid_instance(db, session):
+        from wakfu_server.achievements import owned_quest_encounters
+
+        owned_quest_encounters.initialize(db, session, resolved, store=store)
+        # Story instances use their own multi-quest/room admission contract.
+        # Import only an actually declared controller; absent code must never
+        # downgrade a published story profile to an ordinary dungeon fight.
+        story = db.execute(
+            "SELECT 1 FROM dungeon_runtime_configurations WHERE route_key=%s "
+            "AND policy_version=%s "
+            "AND configuration->'topology'->'owned_story_controller' IS NOT NULL",
+            (
+                dungeon_instances.canonical_context_key(route),
+                session["context_policy_version"],
+            ),
+        ).fetchone()
+        if story is not None:
+            from wakfu_server import owned_story_controller
+
+            owned_story_controller.initialize(db, session, resolved, store=store)
         native = resolved["native_destination"]
         if (
             not session["reused"]
@@ -147,24 +228,61 @@ def _enter(
         from .special_instance_admission import initialize as initialize_special
 
         initialize_special(db, session, resolved)
+        trials = db.execute(
+            "SELECT 1 FROM dungeon_runtime_configurations WHERE route_key=%s "
+            "AND policy_version=%s "
+            "AND configuration->'topology'->'owned_object_trials' IS NOT NULL",
+            (
+                dungeon_instances.canonical_context_key(route),
+                session["context_policy_version"],
+            ),
+        ).fetchone()
+        if trials is not None:
+            from wakfu_server.application import owned_object_trial_dispatch
+
+            owned_object_trial_dispatch.initialize(db, session, resolved, store=store)
         if initialize_instance is not None:
             initialize_instance(db, session)
 
-    session = dungeon_instances.create_or_reuse(
-        store,
-        account_id,
-        generation,
-        character_id,
-        route.key,
-        authorize_entry=authorize,
-        difficulty_selection=difficulty_selection,
-        initialize_instance=initialize_paid_instance,
-        resolve_destination=resolve_destination,
-        transition_destination={
-            key: resolved["destination"][key] for key in ("map_id", "x", "y", "z")
-        },
-        allowed_position_accounts=allowed_position_accounts,
-    )
+    with store.connection() if _db is None else nullcontext(_db) as db:
+        native = resolved["native_destination"]
+        if native.get("cyW", 0) > 0 and native.get("item_reference", 0) > 0:
+            candidate = db.execute(
+                "SELECT q.configuration FROM dungeon_runtime_active_configurations a "
+                "JOIN dungeon_runtime_configurations q ON q.route_key=a.route_key "
+                "AND q.policy_version=a.policy_version WHERE a.route_key=%s "
+                "AND q.configuration->'topology'->>'policy'='owned-story-narrative-v1' "
+                "AND q.configuration->'topology'->'rooms'='[]'::jsonb",
+                (dungeon_instances.canonical_context_key(route),),
+            ).fetchone()
+            if candidate is not None:
+                from wakfu_server import owned_story_reentry
+
+                owned_story_reentry.prepare(
+                    db,
+                    store,
+                    account_id,
+                    generation,
+                    character_id,
+                    resolved,
+                    candidate["configuration"],
+                )
+        session = dungeon_instances.create_or_reuse(
+            store,
+            account_id,
+            generation,
+            character_id,
+            route.key,
+            authorize_entry=authorize,
+            difficulty_selection=difficulty_selection,
+            initialize_instance=initialize_paid_instance,
+            resolve_destination=resolve_destination,
+            transition_destination={
+                key: resolved["destination"][key] for key in ("map_id", "x", "y", "z")
+            },
+            allowed_position_accounts=allowed_position_accounts,
+            _db=db,
+        )
     return {
         **session,
         "destination": {

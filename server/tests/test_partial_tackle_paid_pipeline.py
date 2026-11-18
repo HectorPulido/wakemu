@@ -225,7 +225,58 @@ class PartialTacklePaidPipelineTests(unittest.TestCase):
                     self.assertEqual(runtime.action_id, 0)
                     continue
                 packets, event = move()
+                from wakfu_server.combat_effect_removal import _identity_fields
+
+                observed_losses = []
+                wire_ap, wire_mp = ap, mp
+                loss_indices = []
+                movement_indices = []
+                for index, (opcode, payload) in enumerate(packets):
+                    if (
+                        opcode == 13624
+                        and struct.unpack_from(">q", payload, 12)[0] == 7
+                    ):
+                        movement_indices.append(index)
+                        wire_mp -= (len(payload) - 22) // 10 - 1
+                    if opcode != 12613:
+                        continue
+                    family = struct.unpack_from(">i", payload, 13)[0]
+                    if family not in (1077, 1078):
+                        continue
+                    loss_indices.append(index)
+                    fields = _identity_fields(payload[19:])
+                    self.assertEqual(
+                        (fields[1], fields[2], fields[3]), ((1 << 64) - 1,) * 3
+                    )
+                    self.assertNotIn(
+                        6, fields
+                    )  # The native tackle runner has no caster PV.
+                    self.assertEqual(fields[7], 7)
+                    observed_losses.append((family, fields[4]))
+                    if family == 1077:
+                        wire_ap -= fields[4]
+                    else:
+                        wire_mp -= fields[4]
+                self.assertEqual(
+                    observed_losses,
+                    [
+                        (family, value)
+                        for family, value in zip((1077, 1078), tax)
+                        if value
+                    ],
+                )
+                if loss_indices:
+                    self.assertLess(max(movement_indices), min(loss_indices))
+                    final_stats = [
+                        index
+                        for index, (opcode, _) in enumerate(packets)
+                        if opcode == 12873
+                    ]
+                    self.assertLess(max(loss_indices), max(final_stats))
                 moved = runtime.fight.actors[7]
+                # Replay the same standard move and native AP/MP tackle losses
+                # the client consumes, before authoritative final snapshots.
+                self.assertEqual((wire_ap, wire_mp), (moved.ap, moved.mp))
                 self.assertEqual(
                     (moved.ap, moved.mp, moved.position),
                     (ap - tax[0], mp - 1 - tax[1], path[0]),

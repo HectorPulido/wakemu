@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "id": "whispering-kingdom-final-candidate",
+  "evidence": [
+    "LOCAL SOURCE CANDIDATE4874. Genuine completed4873 admission; original native reallevel96 and original rewards remain unchanged. King10056 requires actual final dungeon53 victory, whose real admitted frozen final roster includes native2100.",
+    "Independent Organasm10057 requires four distinct current members simultaneously performing actual native Airwhisp20106/Waterwhisp20107/Firewhisp20108/Earthwhisp20109 on four reviewed legal Sm6 floors near the original Organasm. Actual movement, session loss, wrong emote or native duration expiry invalidates current occupancy; sequential single-player events never qualify. Native dungeon-achievement693 supplies Earthwhisp only through the real final dungeon53 result and original level25/completed2192 guard.",
+    "Parent migration387 preserves one instance/profile destruction receipt. Source maps/party_action_pad_profiles/whisper-organasm448.json pins original1451 events and reviewed server placements. Original server pad declarations were absent; positions are explicitly reconstructed, not captured."
+  ],
+  "bindings": [
+    {
+      "id": "whisper-genuine-king-final-victory",
+      "quest_id": 4874,
+      "objective_id": 10056,
+      "event": {
+        "kind": "owned_dungeon_boss_completed",
+        "reference": 53
+      },
+      "maps": [
+        448
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "whisper-four-current-elemental-pads",
+      "quest_id": 4874,
+      "objective_id": 10057,
+      "event": {
+        "kind": "party_pad_completed",
+        "reference": 1451
+      },
+      "maps": [
+        448
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "whisper-earned-4873-to-4874",
+      "quest_id": 4874,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 4873
+      },
+      "requires_completed": [
+        4873
+      ]
+    },
+    {
+      "id": "whisper-earned-final-recovery",
+      "quest_id": 4874,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        4873
+      ],
+      "minimum_level": 96,
+      "admission_evidence": "Only genuine completed4873 owners recover the native level96 final chapter. Publish only with complete native King/693/current-party-pad producers."
+    }
+  ]
+}

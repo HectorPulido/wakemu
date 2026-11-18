@@ -27,9 +27,14 @@ from wakfu_server.store import Store
 
 
 class ObservedPeer(LocalPeer):
+    GAMEPLAY_TRACE_OPCODES = frozenset(
+        (13205, 13312, 13832, 13422, 13371, 13295, 12471, 13879)
+    )
+
     def __init__(self):
         self.records = []
         self.observation_lock = threading.Lock()
+        self.observation_changed = threading.Condition(self.observation_lock)
         super().__init__()
 
     def _read(self):
@@ -40,8 +45,9 @@ class ObservedPeer(LocalPeer):
                     raise AssertionError("Invalid World frame length")
                 packet = self._exact(size - 4)
                 row = struct.unpack_from(">H", packet)[0], packet[2:]
-                with self.observation_lock:
+                with self.observation_changed:
                     self.records.append(row)
+                    self.observation_changed.notify_all()
                 self.events.put(row)
         except Exception as error:
             if not self.closed.is_set():
@@ -67,6 +73,31 @@ class ObservedPeer(LocalPeer):
             ("Missing World packet", opcode, [op for op, _ in rows[-25:]])
         )
 
+    def matching_any(
+        self, opcodes, start=0, predicate=lambda opcode, body: True, timeout=15
+    ):
+        """Wait for one actual received opcode without polling or consuming the queue."""
+        wanted = frozenset(opcodes)
+        if not wanted:
+            raise ValueError("matching_any requires at least one opcode")
+        deadline = time.monotonic() + timeout
+        with self.observation_changed:
+            while True:
+                rows = self.records[start:]
+                for opcode, body in rows:
+                    if opcode in wanted and predicate(opcode, body):
+                        return opcode, body
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or self.closed.is_set():
+                    raise AssertionError(
+                        (
+                            "Missing World packet",
+                            sorted(wanted),
+                            [op for op, _ in rows[-25:]],
+                        )
+                    )
+                self.observation_changed.wait(remaining)
+
     def scenario(self, event, start=0):
         return self.matching(
             13411,
@@ -74,6 +105,110 @@ class ObservedPeer(LocalPeer):
             lambda body: len(body) >= 10
             and struct.unpack_from(">i", body, 1)[0] == event,
         )
+
+    def gameplay_trace(self, start=0, opcodes=None):
+        """Return metadata-only decoded gameplay packets, never login frames.
+
+        The allowlist is intentionally narrow so private QA receipts can prove
+        mission/objective and item notifications without storing credentials,
+        chat, full inventory records, or unrelated map/bootstrap payloads.
+        """
+        from protocol_codec import decode_body
+
+        selected = (
+            self.GAMEPLAY_TRACE_OPCODES if opcodes is None else frozenset(opcodes)
+        )
+        selected &= self.GAMEPLAY_TRACE_OPCODES
+        with self.observation_lock:
+            rows = tuple(self.records[start:])
+        trace = []
+        for sequence, (opcode, body) in enumerate(rows, start=start):
+            if opcode not in selected:
+                continue
+            row = {"sequence": sequence, "opcode": opcode, "body_bytes": len(body)}
+            if opcode == 13879:
+                # Quest-inventory deltas carry only actor/reference/quantity;
+                # retain those fields without keeping the frame body.
+                try:
+                    if len(body) < 8:
+                        raise ValueError("Short quest-inventory update")
+                    actor_id = struct.unpack_from(">q", body)[0]
+                    offset, updates = 8, []
+                    while offset < len(body):
+                        operation = body[offset]
+                        offset += 1
+                        if operation not in (0, 1, 2):
+                            raise ValueError("Unknown quest-inventory operation")
+                        required = 4 if operation == 1 else 6
+                        if len(body) - offset < required:
+                            raise ValueError("Truncated quest-inventory update")
+                        reference = struct.unpack_from(">i", body, offset)[0]
+                        offset += 4
+                        quantity = None
+                        if operation != 1:
+                            quantity = struct.unpack_from(">h", body, offset)[0]
+                            offset += 2
+                        updates.append(
+                            dict(
+                                operation=operation,
+                                reference_id=reference,
+                                quantity=quantity,
+                            )
+                        )
+                    row["fields"] = {
+                        "actor_id": actor_id,
+                        "quest_item_updates": updates,
+                    }
+                except (TypeError, ValueError, struct.error) as error:
+                    row["decode_error"] = type(error).__name__
+                trace.append(row)
+                continue
+            try:
+                # protocol_codec names directions from the client endpoint;
+                # observed World sends arrive on its "in" side.
+                decoded = decode_body("in", opcode, body)
+            except (TypeError, ValueError, struct.error) as error:
+                row["decode_error"] = type(error).__name__
+            else:
+                if opcode == 12471:
+                    # Keep only the ProtoItem identity and stack count; never
+                    # persist its opaque payload or appearance/equipment data.
+                    from wakfu_server.wire import proto_fields
+
+                    item = {
+                        tag >> 3: value
+                        for tag, value in proto_fields(
+                            bytes.fromhex(decoded["item_binary_hex"])
+                        )
+                    }
+                    row["item_update"] = {
+                        "container_id": decoded["container_id"],
+                        "slot": decoded["destination_position"],
+                        "uid": item.get(1),
+                        "reference_id": item.get(2),
+                        "quantity": item.get(3),
+                        "mAB": decoded["mAB"],
+                    }
+                else:
+                    row["fields"] = decoded
+            trace.append(row)
+        return trace
+
+    def persist_gameplay_trace(self, path, start=0, opcodes=None):
+        """Persist a safe packet summary only under private local QA storage."""
+        target = Path(path).resolve()
+        repository = Path(__file__).resolve().parents[2]
+        private_roots = (
+            repository / ".runtime",
+            repository / ".local-state" / "wakemu" / "qa",
+        )
+        if not any(target == root or root in target.parents for root in private_roots):
+            raise ValueError("Gameplay traces must stay in private local QA storage")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(self.gameplay_trace(start, opcodes), indent=2) + "\n"
+        )
+        return target
 
 
 def login(store, peer, account, character):

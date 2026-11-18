@@ -1,0 +1,133 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-mobbit-store-720",
+  "version": 1,
+  "map_id": 720,
+  "content_policy": "owned-story-narrative-v1",
+  "entry": {
+    "kind": "native_generic_choice",
+    "source": {
+      "x": 11.0,
+      "y": -28.0,
+      "z": 80.0,
+      "id": 21060,
+      "auto": false,
+      "type": "GenericActivableInteractiveElement",
+      "chunk": "0_-2",
+      "map_id": 720,
+      "payload_hex": "02000000000b010000000d00000102d00000000bffffffe40050000101010100020000000332343300000000000101",
+      "native_parameters": "243",
+      "descriptor_id": 243
+    },
+    "program": {
+      "native_class": "aLl",
+      "descriptor_id": 243,
+      "groups": [
+        {
+          "native_class": "aLo",
+          "id": 270,
+          "clx": 87,
+          "cod": 0,
+          "coe": 0,
+          "cof": false,
+          "cnd": 0,
+          "cog": 0,
+          "actions": [
+            {
+              "native_class": "aLn",
+              "wire_action": 0,
+              "native_id": 270,
+              "criterion": "",
+              "raw_cob": 1.0,
+              "effects": [
+                {
+                  "native_class": "aLm",
+                  "action_reference": 491,
+                  "effect_type": 1,
+                  "criterion": "",
+                  "parameters": [
+                    "false"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "wire_action": 0,
+    "effect_reference": 491,
+    "approaches": [
+      [
+        10,
+        -28,
+        80
+      ]
+    ],
+    "scripted_trial": {
+      "schema": "owned-native-script-entry-v1",
+      "map_id": 720,
+      "arrival": [
+        12,
+        -28,
+        80
+      ],
+      "direction": 7,
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    },
+    "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    20444
+  ],
+  "controller_file": "wild-estate-mobbit-store-720.json",
+  "exploration_file": "wild-estate-mobbit-store-720.exploration.json",
+  "owned_quest_pools": [
+    {
+      "schema": "owned-quest-pool-v1",
+      "id": "wild-mobbits",
+      "quest_id": 1640,
+      "unfinished_objective_id": 3086,
+      "item_reference": 17829,
+      "stop_quantity": 10,
+      "loot_contract": "wild-native-2812-item-17829-v1",
+      "anchor": [
+        18,
+        -30,
+        80
+      ],
+      "bounds": [
+        12,
+        -40,
+        22,
+        -25
+      ],
+      "z": 80,
+      "monsters": [
+        {
+          "reference": 2812,
+          "count": 2
+        },
+        {
+          "reference": 2816,
+          "count": 1
+        },
+        {
+          "reference": 2817,
+          "count": 1
+        },
+        {
+          "reference": 2818,
+          "count": 1
+        }
+      ],
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    }
+  ],
+  "provenance": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+}

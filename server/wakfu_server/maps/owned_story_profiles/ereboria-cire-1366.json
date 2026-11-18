@@ -1,0 +1,92 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "ereboria-cire-1366",
+  "map_id": 1366,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 5059,
+    "objective_id": null,
+    "continuation_quest_id": 5059
+  },
+  "provenance": "Reviewed reconstruction of5059 final confrontation on actual1366, reached only through original33814/4558 after10466. Native5357 is original Cire Momore230 with98,765,432HP and initiative1000; all native spells/states/statistics stay unchanged. The single-original-boss formation, position and door-to-encounter join are reviewed reconstruction, not serialized original server composition. Actual33379/1489/1908/effect3375 opens the real door; only authenticated settled defeat caused by this original5357 native917 lethal effect earns10539. A withdrawal, early death, summon, ordinary unrelated defeat or intervention5416/5417 does not. No2528 presentation or scenario-map association is invented. Final10540 is the separate original Cyross return branch.",
+  "native_sources": {
+    "path": "ereboria-cire-1366.native.v1.json",
+    "sha256": "72aa195371ac0f8f1400b10f8030093d556e605692aedad8be6640e262d7be12"
+  },
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 33379,
+      "state": 1,
+      "visible": true,
+      "usable": true,
+      "blocks_movement": true
+    }
+  ],
+  "terminal_returns": {
+    "schema": "owned-story-terminal-return-v1",
+    "room_order": 1,
+    "victory": {
+      "kind": "recorded_entry"
+    },
+    "defeat": {
+      "kind": "recorded_entry"
+    },
+    "evidence": "Normal victory or defeat returns to recorded exterior entry. Only the source-qualified native917 defeat earns story10539; ordinary losses may leave without credit and retry."
+  },
+  "defeat_qualification": [
+    {
+      "room_order": 1,
+      "original_monster_reference": 5357,
+      "native_effect_references": [
+        333860,
+        335180,
+        333863,
+        333864,
+        335171,
+        335172,
+        333867,
+        335175
+      ],
+      "cause_kind": "native_damage",
+      "minimum_actor_turn": 1,
+      "evidence": "Exact native917 damage leaves from original5357 spellbook7529/7530/7531 closures; require the owner actualHP0/death and validated original-caster native death provenance, never an arbitrary battle loss."
+    }
+  ],
+  "steps": [
+    {
+      "id": "cire-door-open",
+      "kind": "interactive",
+      "reference": 33379,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "element_state",
+          "object_id": 33379,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Original generic33379/descriptor1489/action1908/effect3375 free not-Hero door; reviewed server mechanical join, no cinematic callback grants progress."
+    },
+    {
+      "id": "cire-confrontation-earned",
+      "kind": "room_defeat",
+      "reference": 1,
+      "requires": [
+        "cire-door-open"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 5059,
+          "objective_id": 10539
+        }
+      ],
+      "evidence": "Only original5357 actual native917 lethal damage on the owner in this owned encounter; source-qualified defeat guard rejects withdrawal, ordinary other cause, copied actor, early loss and unrelated fight."
+    }
+  ],
+  "enforce_native_entry_criterion": true
+}

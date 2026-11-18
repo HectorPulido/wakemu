@@ -1,0 +1,21 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "kelba-convoy-947",
+  "version": 1,
+  "map_id": 947,
+  "entry": {
+    "map_id": 943,
+    "object_id": 25104,
+    "destination_id": 2199
+  },
+  "native_entry_criterion": "IsAchievementRunning(2537)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [],
+  "controller_file": "kelba-convoy-947.json",
+  "encounters_file": "kelba-convoy-947.encounters.json",
+  "exploration_file": "kelba-convoy-947.exploration.json",
+  "provenance": "Reviewed reconstruction of native1962 SPECIAL convoy, not original private server graph: six Riktus and three birds are literal Lua actor counts; exact native-family mixtures and escape glyph902 seed cells are explicitly reviewed server data on real Sm6 components. Original Box Carrier3589/3711 initial3478 and spells4849/4850 stay intact; real authenticated escape4850 loses, native1041 last-ally retirement does not. Two real battles only; final Black Crow3586/box3712 are noncombat native render-only actors with actual script arguments. No fabricated third fight, HP/MP override, combat win or native seed-coordinate claim."
+}

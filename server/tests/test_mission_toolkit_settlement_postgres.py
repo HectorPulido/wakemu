@@ -179,7 +179,31 @@ class MissionToolkitSettlementPostgresTests(PostgresCase):
                     "INSERT INTO native_quest_metadata_definitions(revision,definition_id,data) VALUES(%s,%s,%s)",
                     (revision, identity, Jsonb({"native": row})),
                 )
+            # Keep independently authored archetypes in separate immutable
+            # publications. The source's completion must reach the parent and
+            # follow-up without requiring another harvest or a reconnect.
+            continuation = dict(
+                profile,
+                id="non-rii-sql-continuation",
+                bindings=[
+                    row for row in profile["bindings"] if row["quest_id"] == follow
+                ],
+                activations=[
+                    row for row in profile["activations"] if row["quest_id"] != first
+                ],
+            )
+            profile = dict(
+                profile,
+                bindings=[
+                    row for row in profile["bindings"] if row["quest_id"] == first
+                ],
+                links=[],
+                activations=[
+                    row for row in profile["activations"] if row["quest_id"] == first
+                ],
+            )
             toolkit.install(db, profile, activate=True)
+            toolkit.install(db, continuation, activate=True)
             toolkit.install_rii(db, activate=True)
             initial = toolkit.settle(
                 db, self.store, character, "arrival-1", "map_enter", 777

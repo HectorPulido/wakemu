@@ -129,6 +129,7 @@ def room_members(
     player_slots=0,
     actor_id_base=None,
     fixed_actor_placements=(),
+    configuration=None,
 ):
     """Prepare actors without writes; caller registers them transactionally.
 
@@ -155,6 +156,8 @@ def room_members(
         player_slots=player_slots,
         actor_id_base=actor_id_base,
         fixed_actor_placements=fixed_actor_placements,
+        configuration=configuration,
+        room_order=order,
     )
 
 
@@ -172,6 +175,8 @@ def roster_members(
     player_slots=0,
     actor_id_base=None,
     fixed_actor_placements=(),
+    configuration=None,
+    room_order=None,
 ):
     """Construct an admitted roster on real terrain independently of progression."""
     if type(instance_id) is not int or not 0 < instance_id < 2**63:
@@ -183,6 +188,13 @@ def roster_members(
     from wakfu_server.dungeon_monster_admission import current_policy, require
 
     admission_policy = current_policy()
+    if configuration is not None and (
+        not isinstance(configuration, dict)
+        or configuration.get("topology", {}).get("asset_map_id") != asset_map_id
+        or type(room_order) is not int
+        or room_order <= 0
+    ):
+        raise ValueError("Dungeon constructor differs from its pinned room authority")
     selected = {}
     expanded = []
     for row in roster:
@@ -193,7 +205,21 @@ def roster_members(
         ):
             raise ValueError("Frozen dungeon roster differs from native level bounds")
         level = select_level(native, row)
-        require(admission_policy, row["ref_id"], level, level, native=native)
+        from wakfu_server.combat_scene_box_goals import passive_admission
+
+        # Publication and real room construction use the same source-qualified
+        # passive constructor. Ordinary actors retain their original guard.
+        passive = configuration is not None and passive_admission(
+            configuration, room_order, row["ref_id"], level, native
+        )
+        if configuration is not None and not passive:
+            from wakfu_server.combat_scene_ball_goals import native_admission
+
+            passive = native_admission(
+                configuration, room_order, row["ref_id"], level, native
+            )
+        if not passive:
+            require(admission_policy, row["ref_id"], level, level, native=native)
         selected[id(row)] = level
         count = row["count"]
         if type(count) is not int or count <= 0:
@@ -273,11 +299,11 @@ def roster_members(
     if fixed:
         from copy import deepcopy
 
-        declarations_by_reference = {
-            row["reference"]: row for row in fixed_actor_placements
+        declarations_by_cell = {
+            tuple(row["cell"]): row for row in fixed_actor_placements
         }
         for index in fixed:
             members[index]["fixed_actor_placement"] = deepcopy(
-                declarations_by_reference[members[index]["ref"]]
+                declarations_by_cell[fixed[index]]
             )
     return members

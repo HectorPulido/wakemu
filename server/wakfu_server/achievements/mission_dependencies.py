@@ -5,6 +5,8 @@ the links must therefore be published from independent evidence.  Call this
 inside the transaction that records a qualified objective or quest completion.
 """
 
+from . import native_effective_eligibility
+
 from copy import deepcopy
 import struct
 
@@ -79,7 +81,7 @@ def reconcile(state, definitions, links, *, character, store, now_ms):
     activated, and unrelated parents or incomplete children are untouched.
     """
     from wakfu_server import dungeon_criteria
-    from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+    from wakfu_server.dungeon_achievement_authority import queries_from_state
 
     links = tuple(links)
     targets = set()
@@ -91,9 +93,9 @@ def reconcile(state, definitions, links, *, character, store, now_ms):
         ):
             raise ValueError("Invalid mission dependency")
         parent, objective_id, child = link
-        if parent == child or (parent, objective_id) in targets:
+        if parent == child or (parent, objective_id, child) in targets:
             raise ValueError("Conflicting mission dependency")
-        targets.add((parent, objective_id))
+        targets.add((parent, objective_id, child))
         definition = definitions.get(parent)
         child_definition = definitions.get(child)
         if (
@@ -127,9 +129,7 @@ def reconcile(state, definitions, links, *, character, store, now_ms):
             objective = next(
                 row for row in definition["cjJ"] if row["d"] == objective_id
             )
-            queries = queries_from_snapshot(
-                {key: current[key] for key in ("running", "completed", "objectives")}
-            )
+            queries = queries_from_state(current)
             try:
                 eligible = all(
                     dungeon_criteria.evaluate(
@@ -140,7 +140,7 @@ def reconcile(state, definitions, links, *, character, store, now_ms):
                         now_ms=now_ms,
                     )
                     for criterion in (
-                        definition["cjI"],
+                        native_effective_eligibility.criterion(definition),
                         objective["ckc"],
                         objective["cke"],
                     )
@@ -166,7 +166,18 @@ def reconcile(state, definitions, links, *, character, store, now_ms):
             return current, all_intents, all_objectives, all_completed
 
 
-def settle(db, store, character, before, planned, definitions, links, *, now_ms):
+def settle(
+    db,
+    store,
+    character,
+    before,
+    planned,
+    definitions,
+    links,
+    *,
+    now_ms,
+    publish_completions=True,
+):
     """Commit a qualified producer's plan together with dependent objectives.
 
     ``planned`` is the four-tuple returned by a producer that already checked
@@ -206,6 +217,19 @@ def settle(db, store, character, before, planned, definitions, links, *, now_ms)
     )
     packets = _dependency_packet_order(packets, definitions, links)
     packets.extend(drain_rewards(db, store, character))
+    if publish_completions and completed:
+        from . import mission_toolkit
+
+        packets.extend(
+            mission_toolkit.settle_completions(db, store, character, completed)
+        )
+        after = storage.load_locked(db, character["id"])
+        objectives = sorted(
+            set(objectives) | (set(after["objectives"]) - set(before["objectives"]))
+        )
+        completed = sorted(
+            set(completed) | (set(after["completed"]) - set(before["completed"]))
+        )
     return {
         "state": after,
         "packets": packets,

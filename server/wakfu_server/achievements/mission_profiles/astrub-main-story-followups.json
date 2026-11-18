@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "astrub-main-story-followups",
+  "evidence": [
+    "Reviewed native2165.cjI=IsAchievementComplete(5568),2166.cjI=IsAchievementComplete(2165),2170.cjI=IsAchievementComplete(2166). Only fresh earned quest_completed events activate the automatic bootstrap; qualifiedPappyavailability remains a fallback for older earned5568 completions. Native visibility/display levels never grant progress.",
+    "2165/11546 is Pappy native dialogue15270;4286 is qualified owned camp747 admission and4298 is actual owned native3249 victory.2166/4288 is qualified paid owned temple887 admission;2170/4291 is the authenticated owned temple controller victory. No arbitrary map entry, UI preview or fabricated victory qualifies."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "earned-goultard-to-pappy",
+      "quest_id": 2165,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 5568
+      },
+      "requires_completed": [
+        5568
+      ]
+    },
+    {
+      "id": "earned-camp-to-temple-entry",
+      "quest_id": 2166,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2165
+      },
+      "requires_completed": [
+        2165
+      ]
+    },
+    {
+      "id": "earned-temple-entry-to-search",
+      "quest_id": 2170,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2166
+      },
+      "requires_completed": [
+        2166
+      ]
+    }
+  ]
+}

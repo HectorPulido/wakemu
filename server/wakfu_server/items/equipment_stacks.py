@@ -76,7 +76,7 @@ def ensure_singleton(db, character_id, uid):
     )
     for table, columns in (
         ("inventory_item_elements", "damage_elements,resistance_elements"),
-        ("inventory_item_bindings", "bound,template_reference"),
+        ("inventory_item_bindings", "bound,template_reference,binding_type"),
         ("inventory_item_recycling_state", "unidentified,socketed"),
         ("inventory_item_shards", "shard_state"),
         ("inventory_item_appearances", "appearance_ref"),
@@ -157,7 +157,7 @@ def normalize(db, character_id, *, uids=None):
             )
             for table, columns in (
                 ("inventory_item_elements", "damage_elements,resistance_elements"),
-                ("inventory_item_bindings", "bound,template_reference"),
+                ("inventory_item_bindings", "bound,template_reference,binding_type"),
                 ("inventory_item_recycling_state", "unidentified,socketed"),
                 ("inventory_item_shards", "shard_state"),
                 ("inventory_item_appearances", "appearance_ref"),

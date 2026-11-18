@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "id": "huppermage-school-first-year",
+  "evidence": [
+    "UNPUBLISHED complete first-year continuation after actual registration2776. Native2777 night and2778 seed are parallel lessons;2780 certificate aggregates four real completed quests and requires actual offered registrar final conversation. No visible objective, dialogue opening or cinematic acknowledgment substitutes for a victory, seed collection or final dungeon completion.",
+    "Native first-year aggregate mapping follows literal objective labels:5644\u21922775,5645\u21922776,5609\u21922777,5610\u21922778. Normal mission dependencies reconcile existing genuine child completions when the parent starts.",
+    "Sleep5652 is produced by original dormitory1020 typed trigger25692 after authentic25682entry. Original2070 actual3actor choreography and native3918/4083 backstab behavior qualify the night encounter. Seed5670 requires original native3907/player4072 form mechanics and actual collection victory, not an ordinary class fight.",
+    "Native2778/5603 navigation1134(183,3,0) exactly equals actual source14571 approach; destination2069 enters910 and native template27 maps to active definition25, not the templateID. Only authenticated final dungeon_completed25 credits5603. Current native Dungeon25 has four rooms and final1636 DandelionUniversal at nativelevel45; old CarnivorousPlant dialog/guide naming is retained as a documented version boundary, not a reason to replace the current native boss or lower its level."
+  ],
+  "bindings": [
+    {
+      "id": "school-authentic-sureberry-dungeon-completion",
+      "quest_id": 2778,
+      "objective_id": 5603,
+      "event": {
+        "kind": "dungeon_completed",
+        "reference": 25
+      },
+      "maps": [
+        910
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [
+    {
+      "parent_quest_id": 2780,
+      "objective_id": 5644,
+      "child_quest_id": 2775
+    },
+    {
+      "parent_quest_id": 2780,
+      "objective_id": 5645,
+      "child_quest_id": 2776
+    },
+    {
+      "parent_quest_id": 2780,
+      "objective_id": 5609,
+      "child_quest_id": 2777
+    },
+    {
+      "parent_quest_id": 2780,
+      "objective_id": 5610,
+      "child_quest_id": 2778
+    }
+  ],
+  "activations": [
+    {
+      "id": "school-registration-earned-2777",
+      "quest_id": 2777,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2776
+      },
+      "requires_completed": [
+        2776
+      ]
+    },
+    {
+      "id": "school-registration-earned-2778",
+      "quest_id": 2778,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2776
+      },
+      "requires_completed": [
+        2776
+      ]
+    },
+    {
+      "id": "school-registration-earned-2780",
+      "quest_id": 2780,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2776
+      },
+      "requires_completed": [
+        2776
+      ]
+    },
+    {
+      "id": "school-registration-ready-2777",
+      "quest_id": 2777,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 30,
+      "requires_completed": [
+        2776
+      ],
+      "admission_evidence": "Actual completed native registration2776 qualifies new continuation admission for an existing character after publication; native eligibility and completed-state reward guards remain authoritative."
+    },
+    {
+      "id": "school-registration-ready-2778",
+      "quest_id": 2778,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 30,
+      "requires_completed": [
+        2776
+      ],
+      "admission_evidence": "Actual completed native registration2776 qualifies new continuation admission for an existing character after publication; native eligibility and completed-state reward guards remain authoritative."
+    },
+    {
+      "id": "school-registration-ready-2780",
+      "quest_id": 2780,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 30,
+      "requires_completed": [
+        2776
+      ],
+      "admission_evidence": "Actual completed native registration2776 qualifies new continuation admission for an existing character after publication; native eligibility and completed-state reward guards remain authoritative."
+    }
+  ]
+}

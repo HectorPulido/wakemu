@@ -14,6 +14,8 @@ from wakfu_server.combat_state_ledger import RunningState, StateLedger
 from wakfu_server.combat_state import Actor, Fight
 from wakfu_server.combat_native_container import capture_owned_state_container
 from wakfu_server.combat_running_container import running_container_scope
+from wakfu_server.combat_state_parameters import pack_state_identity
+from wakfu_server.combat_retained_source_provenance import capture_state_source
 
 from wakfu_server import combat_state_cleanup as module
 
@@ -24,7 +26,104 @@ FIXTURE = json.loads(
 )
 
 
+def natural_class310_binding_fixture():
+    """Original natural eZk ancestry: state8916 -> parent state7553."""
+    actor = Actor(7, 0, (0, 0, 0), 50, 6, 3, 10, 1, 3, True)
+    opponent = Actor(-7, 1, (1, 0, 0), 50, 6, 3, 5, 1)
+    fight = Fight(
+        89,
+        [actor, opponent],
+        {actor.position, opponent.position},
+        {0: {actor.position}, 1: {opponent.position}},
+    )
+    actor.state_ledger = StateLedger(7)
+    parent = RunningState(7, 7553, 1, 7, 7, -1, "target", False, (), -1000, True, None)
+    foreign = RunningState(8, 7554, 1, 7, 7, -1, "target", False, (), -1000, True, None)
+    child = RunningState(25, 8916, 1, 7, 7, -1, "target", False, (), -1000, True, None)
+    actor.state_ledger._entries = (parent, foreign, child)
+    fight.state_wire_payloads = {}
+
+    absent = dict(
+        container_present=False,
+        container_type=None,
+        container_id=None,
+        container_kind=None,
+        container_is_spell=None,
+        spell_protected=None,
+    )
+
+    def write_payload(state, container, identity=None):
+        with running_container_scope(container, identity):
+            payload = state_carrier_payload(
+                uid=state.uid,
+                base_uid=state.uid,
+                caster_id=state.caster_id,
+                target_id=state.target_id,
+                state_id=state.reference,
+                level=state.level,
+                native_turn_clock=-1,
+                native_realtime_remaining=-1000,
+            )
+        fight.state_wire_payloads[state.uid] = payload.hex()
+
+    for state in (parent, foreign):
+        write_payload(state, absent)
+        capture_state_source(fight, state, SimpleNamespace(state_uid=None), absent)
+
+    parent_identity = pack_state_identity(parent.reference, parent.level)
+    child_container = dict(
+        container_present=True,
+        container_type=1,
+        container_id=parent_identity,
+        container_kind="state",
+        container_is_spell=False,
+        spell_protected=None,
+    )
+    write_payload(child, child_container, parent_identity)
+    capture_state_source(
+        fight, child, SimpleNamespace(state_uid=parent.uid), child_container
+    )
+    entry = RetainedEffect(
+        child.uid,
+        child.target_id,
+        310,
+        -1,
+        owner_uid=None,
+        manager_id=7,
+        container_present=True,
+        container_type=1,
+        container_id=parent_identity,
+        container_kind="state",
+        container_is_spell=False,
+    )
+    return fight, entry
+
+
 class CleanupRuntimeTests(unittest.TestCase):
+    def test_natural_class310_uses_captured_parent_without_removal_owner(self):
+        fight, entry = natural_class310_binding_fixture()
+        self.assertIsNone(entry.owner_uid)
+        cleanup = module.RetainedCleanupAuthority(SimpleNamespace(fight=fight), 7)
+        self.assertEqual(
+            cleanup.container(entry),
+            module.NativeContainerKey(1, pack_state_identity(7553, 1)),
+        )
+
+    def test_natural_class310_rejects_unknown_or_foreign_captured_parent(self):
+        fight, entry = natural_class310_binding_fixture()
+        fight.native_state_source_provenance["entries"]["25"]["parent_state_uid"] = 999
+        cleanup = module.RetainedCleanupAuthority(SimpleNamespace(fight=fight), 7)
+        with self.assertRaisesRegex(ValueError, "Unknown state source parent UID"):
+            cleanup.container(entry)
+
+        fight, entry = natural_class310_binding_fixture()
+        fight.native_state_source_provenance["entries"]["25"]["parent_state_uid"] = 8
+        cleanup = module.RetainedCleanupAuthority(SimpleNamespace(fight=fight), 7)
+        with self.assertRaisesRegex(
+            ValueError, "State source parent UID contradicts its actual native PL"
+        ):
+            cleanup.container(entry)
+
     def fixture(self, *, second_flag=False, container_kind=25, container_identity=500):
         ledger = StateLedger(7)
         first = RunningState(

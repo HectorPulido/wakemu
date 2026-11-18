@@ -1,0 +1,246 @@
+{
+  "schema": "reviewed-owned-quest-complex-loot-v1",
+  "contracts": [
+    {
+      "id": "astrub-grambo-native-temple-key-v1",
+      "quest_id": 2165,
+      "map_id": 747,
+      "monster_reference": 3249,
+      "item_reference": 18747,
+      "native_row_sha256": "67a6786da3a6bb3e4edc5e5ffe69ea034d8dfc6ec5f9517111c8c02c31ceb8c2",
+      "consumer": {
+        "object_id": 23621,
+        "destination_id": 4029,
+        "quantity": 1
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Native aMf.csH is m_hasComplexCriteria, not a client condition expression. Breed3249 has the unique native18747 key row (chance1, qty1); exact native747/23621/4029 consumes that key. Only an actual admitted solo quest2165 encounter and its original-enemy victory authorize the row; all other complex rows remain closed."
+    },
+    {
+      "id": "frigost-native-2398-item-16072-v1",
+      "quest_id": 1110,
+      "map_id": 529,
+      "monster_reference": 2398,
+      "item_reference": 16072,
+      "native_row_sha256": "9a4bb9ba4933e6200e1b216fb569b96a02f224cdf7df9b049dfe8dcb77eae8a8",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2358,
+        "action_id": 275,
+        "node_id": 1985,
+        "choice_id": 4594,
+        "objective_id": 2047,
+        "quantity": 10,
+        "native_source_sha256": "155f92f8b13c5ce8abaf7a7ae2d0f68ce33db3171c65b8d09bc5b1f30abc6fe5"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "frigost-native-2400-item-16072-v1",
+      "quest_id": 1110,
+      "map_id": 529,
+      "monster_reference": 2400,
+      "item_reference": 16072,
+      "native_row_sha256": "9a4bb9ba4933e6200e1b216fb569b96a02f224cdf7df9b049dfe8dcb77eae8a8",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2358,
+        "action_id": 275,
+        "node_id": 1985,
+        "choice_id": 4594,
+        "objective_id": 2047,
+        "quantity": 10,
+        "native_source_sha256": "155f92f8b13c5ce8abaf7a7ae2d0f68ce33db3171c65b8d09bc5b1f30abc6fe5"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "frigost-native-2401-item-16072-v1",
+      "quest_id": 1110,
+      "map_id": 529,
+      "monster_reference": 2401,
+      "item_reference": 16072,
+      "native_row_sha256": "9a4bb9ba4933e6200e1b216fb569b96a02f224cdf7df9b049dfe8dcb77eae8a8",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2358,
+        "action_id": 275,
+        "node_id": 1985,
+        "choice_id": 4594,
+        "objective_id": 2047,
+        "quantity": 10,
+        "native_source_sha256": "155f92f8b13c5ce8abaf7a7ae2d0f68ce33db3171c65b8d09bc5b1f30abc6fe5"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "frigost-native-2402-item-16070-v1",
+      "quest_id": 1226,
+      "map_id": 528,
+      "monster_reference": 2402,
+      "item_reference": 16070,
+      "native_row_sha256": "299e6ad1628a5004745217f2be953e54232188e33802af7e186e09e5ae443604",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2394,
+        "action_id": 277,
+        "node_id": 2047,
+        "choice_id": 4740,
+        "objective_id": 2212,
+        "quantity": 10,
+        "native_source_sha256": "bce344553b984bf0694a6be61f9ad2dc68a2ca4f3ddb195e8aae87c31e031b7e"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "frigost-native-2403-item-16070-v1",
+      "quest_id": 1226,
+      "map_id": 528,
+      "monster_reference": 2403,
+      "item_reference": 16070,
+      "native_row_sha256": "299e6ad1628a5004745217f2be953e54232188e33802af7e186e09e5ae443604",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2394,
+        "action_id": 277,
+        "node_id": 2047,
+        "choice_id": 4740,
+        "objective_id": 2212,
+        "quantity": 10,
+        "native_source_sha256": "bce344553b984bf0694a6be61f9ad2dc68a2ca4f3ddb195e8aae87c31e031b7e"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "frigost-native-2404-item-16070-v1",
+      "quest_id": 1226,
+      "map_id": 528,
+      "monster_reference": 2404,
+      "item_reference": 16070,
+      "native_row_sha256": "299e6ad1628a5004745217f2be953e54232188e33802af7e186e09e5ae443604",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2394,
+        "action_id": 277,
+        "node_id": 2047,
+        "choice_id": 4740,
+        "objective_id": 2212,
+        "quantity": 10,
+        "native_source_sha256": "bce344553b984bf0694a6be61f9ad2dc68a2ca4f3ddb195e8aae87c31e031b7e"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "frigost-native-2405-item-16070-v1",
+      "quest_id": 1226,
+      "map_id": 528,
+      "monster_reference": 2405,
+      "item_reference": 16070,
+      "native_row_sha256": "299e6ad1628a5004745217f2be953e54232188e33802af7e186e09e5ae443604",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2394,
+        "action_id": 277,
+        "node_id": 2047,
+        "choice_id": 4740,
+        "objective_id": 2212,
+        "quantity": 10,
+        "native_source_sha256": "bce344553b984bf0694a6be61f9ad2dc68a2ca4f3ddb195e8aae87c31e031b7e"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Exact native guaranteed quantity-one combat row and original type8 dialogue require ten real items and the running quest. Only the actual admitted solo owned encounter and genuine original-enemy victory authorize this row. Native chance, quantity, monster statistics and paid NPC settlement remain unchanged; unrelated complex rows stay closed."
+    },
+    {
+      "id": "wild-native-2779-item-17851-v1",
+      "quest_id": 1677,
+      "map_id": 723,
+      "monster_reference": 2779,
+      "item_reference": 17851,
+      "native_row_sha256": "9e9a8b768befd397b830b09be6be6524b42e99fcdf7081c498c4edf34177d302",
+      "consumer": {
+        "kind": "native_item_merge",
+        "action_id": 5160,
+        "quantity": 3,
+        "output_reference": 17821,
+        "output_quantity": 1,
+        "unfinished_objective_id": 3106,
+        "native_source_sha256": "6b9c045d00b7fd1cf7ffdfd22a72444bb1df575616ec4bb8b4ffa9d69a7e25ed"
+      },
+      "evidence": "Reviewed reconstruction of unrecovered original server complex eligibility. Original2779 row grants17851 with native probability0.2 and quantity1; original bHS5160 consumes exactly3 parts in723 to produce17821 through the existing item-use transaction. Only a source-qualified genuine owned2779 victory while1677 runs and3106 is unfinished may authorize this exact row. Native chance, caps, quantities and merge delivery remain unchanged; combat never fabricates the assembled medallion."
+    },
+    {
+      "id": "wild-native-2812-item-17829-v1",
+      "quest_id": 1640,
+      "map_id": 720,
+      "monster_reference": 2812,
+      "item_reference": 17829,
+      "native_row_sha256": "1a927ef1ce3fe2c0b437347ed0ff291dc318294812bfe0650829e68fb0726dd1",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2800,
+        "action_id": 439,
+        "node_id": 2320,
+        "choice_id": 5619,
+        "objective_id": 3086,
+        "quantity": 10,
+        "native_source_sha256": "dbb24188ee05cb3908af0a43bb04f576777c898af93f076394fe71c4b33cb905"
+      },
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    },
+    {
+      "id": "wild-native-2816-item-17829-v1",
+      "quest_id": 1640,
+      "map_id": 720,
+      "monster_reference": 2816,
+      "item_reference": 17829,
+      "native_row_sha256": "1a927ef1ce3fe2c0b437347ed0ff291dc318294812bfe0650829e68fb0726dd1",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2800,
+        "action_id": 439,
+        "node_id": 2320,
+        "choice_id": 5619,
+        "objective_id": 3086,
+        "quantity": 10,
+        "native_source_sha256": "dbb24188ee05cb3908af0a43bb04f576777c898af93f076394fe71c4b33cb905"
+      },
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    },
+    {
+      "id": "wild-native-2817-item-17829-v1",
+      "quest_id": 1640,
+      "map_id": 720,
+      "monster_reference": 2817,
+      "item_reference": 17829,
+      "native_row_sha256": "1a927ef1ce3fe2c0b437347ed0ff291dc318294812bfe0650829e68fb0726dd1",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2800,
+        "action_id": 439,
+        "node_id": 2320,
+        "choice_id": 5619,
+        "objective_id": 3086,
+        "quantity": 10,
+        "native_source_sha256": "dbb24188ee05cb3908af0a43bb04f576777c898af93f076394fe71c4b33cb905"
+      },
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    },
+    {
+      "id": "wild-native-2818-item-17829-v1",
+      "quest_id": 1640,
+      "map_id": 720,
+      "monster_reference": 2818,
+      "item_reference": 17829,
+      "native_row_sha256": "1a927ef1ce3fe2c0b437347ed0ff291dc318294812bfe0650829e68fb0726dd1",
+      "consumer": {
+        "kind": "native_dialogue_payment",
+        "reference_id": 2800,
+        "action_id": 439,
+        "node_id": 2320,
+        "choice_id": 5619,
+        "objective_id": 3086,
+        "quantity": 10,
+        "native_source_sha256": "dbb24188ee05cb3908af0a43bb04f576777c898af93f076394fe71c4b33cb905"
+      },
+      "evidence": "Reviewed reconstruction: actual native720/21060 descriptor243/group270/wire0 invokes original script491 with literal false. Original server491 and storeroom formation were not recovered; source-to-private720 arrival and five-actor formation are explicitly reviewed. Original2812 twice and2816/2817/2818 once retain unchanged statistics and native100% quantity-one Mobbit17829 drops. Existing renewable owned pools require actual running1640, unfinished3086 and fewer than ten owned Mobbits. Entrance grants no objective; only real loot claims count variable371 and actual Cook5619 debits ten. The normal original20444/1418 exit remains available. No original scenario or captured placements are claimed."
+    }
+  ]
+}

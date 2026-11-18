@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "id": "ereboria-harbor-pirates-intro",
+  "evidence": [
+    "Native5059requiresreallevel36; reviewed authentic arrival1360 activates harbor introduction and earns10462. No later-level main objective is fabricated.",
+    "Native5044variable746 nbPiratesKilled>=10; only actual defeated native pirate breeds5373/5374/5375 on public Pirate Beach1358 count."
+  ],
+  "bindings": [
+    {
+      "id": "ereboria-harbor-arrival",
+      "quest_id": 5059,
+      "objective_id": 10462,
+      "event": {
+        "kind": "map_enter",
+        "reference": 1360
+      },
+      "maps": [
+        1360
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    },
+    {
+      "id": "ereboria-beach-pirate-5373",
+      "quest_id": 5044,
+      "objective_id": 10382,
+      "variable_id": 746,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5373
+      },
+      "maps": [
+        1358
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-beach-pirate-5374",
+      "quest_id": 5044,
+      "objective_id": 10382,
+      "variable_id": 746,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5374
+      },
+      "maps": [
+        1358
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    },
+    {
+      "id": "ereboria-beach-pirate-5375",
+      "quest_id": 5044,
+      "objective_id": 10382,
+      "variable_id": 746,
+      "event": {
+        "kind": "monster_defeat",
+        "reference": 5375
+      },
+      "maps": [
+        1358
+      ],
+      "instances": [
+        0
+      ],
+      "count": "quantity"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "ereboria-main-harbor-admission",
+      "quest_id": 5059,
+      "event": {
+        "kind": "map_enter",
+        "reference": 1360
+      },
+      "maps": [
+        1360
+      ],
+      "instances": [
+        0
+      ]
+    }
+  ]
+}

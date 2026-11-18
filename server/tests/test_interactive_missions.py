@@ -8,7 +8,13 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from wakfu_server.achievements import interactive_missions
+import wakfu_server
+from wakfu_server.achievements import (
+    interactive_missions,
+    mission_toolkit,
+    service,
+    wire,
+)
 
 
 class FakeDB:
@@ -58,8 +64,8 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
             "d": 91,
             "native_class": "aJM",
             "aqb": False,
-            "cjI": {"always": True},
-            "cjJ": [{"d": 901, "ckc": {"always": True}, "cke": {"always": True}}],
+            "cjI": "true",
+            "cjJ": [{"d": 901, "ckc": "true", "cke": "true"}],
             "cjK": [{"d": 77, "aeV": 5, "ckl": [100, 1]}],
         }
         self.row = {
@@ -107,7 +113,8 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
         body=None,
         loaded=True,
         blocked=False,
-        real_wire=False
+        real_wire=False,
+        criterion_result=True,
     ):
         store = FakeStore(
             self.row if row is None else row, self.state if state is None else state
@@ -117,18 +124,51 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
             for key in ("map_id", "instance_id", "x", "y", "z")
         }
         interaction = {"type": "bBH", "x": 4, "y": 8, "z": -1}
-        wire_changes = interactive_missions.wire.changes
+        wire_changes = wire.changes
+
+        def settle(
+            db, store, character, before, planned, definitions, links, *, now_ms
+        ):
+            after, intents, objectives, completed = planned
+            from wakfu_server.achievements import storage
+
+            for identity, reward in intents:
+                storage.claim_reward(
+                    db, character["id"], identity, "once", reward["d"], reward
+                )
+            storage.store(db, character["id"], after)
+            packets = wire.changes(
+                character["id"],
+                before,
+                after,
+                objectives,
+                completed,
+                now_ms,
+                definitions=definitions,
+            )
+            packets.extend(service.drain_rewards(db, store, character))
+            if completed:
+                packets.extend(
+                    mission_toolkit.settle_completions(db, store, character, completed)
+                )
+            return dict(
+                state=after,
+                packets=packets,
+                completed=completed,
+                new_objectives=objectives,
+            )
+
         with patch("wakfu_server.paid_containers._leased_owner"), patch(
             "wakfu_server.environment_interactions._guard"
-        ), patch.dict(
-            sys.modules,
-            {
-                "wakfu_server.world_static": types.SimpleNamespace(
-                    interaction=lambda *args: interaction
-                )
-            },
+        ), patch.object(
+            wakfu_server,
+            "world_static",
+            types.SimpleNamespace(interaction=lambda *args: interaction),
+            create=True,
         ), patch(
             "wakfu_server.achievements.interactive_missions._owner"
+        ), patch(
+            "wakfu_server.achievements.service._owner"
         ), patch(
             "wakfu_server.native_generic_rewards._payment",
             return_value=(
@@ -157,11 +197,17 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
             side_effect=wire_changes if real_wire else None,
             return_value=[b"progress"],
         ) as changes, patch(
-            "wakfu_server.achievements.interactive_missions.drain_rewards",
+            "wakfu_server.achievements.service.drain_rewards",
             return_value=[b"reward"],
         ) as drain, patch(
-            "wakfu_server.dungeon_criteria.evaluate", return_value=True
-        ):
+            "wakfu_server.dungeon_criteria.evaluate", return_value=criterion_result
+        ) as criterion_evaluate, patch(
+            "wakfu_server.achievements.mission_toolkit.settle_completions",
+            return_value=[],
+        ), patch(
+            "wakfu_server.achievements.mission_dependencies.settle",
+            side_effect=settle,
+        ) as settlement:
             result = interactive_missions.interact(
                 store,
                 6,
@@ -171,6 +217,8 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
                 loaded=loaded,
                 blocked=blocked,
             )
+        self.last_settlement = settlement
+        self.last_criterion_evaluate = criterion_evaluate
         return result, store, record, persist, claim, changes, drain, payment
 
     def test_intermediate_fresco_refreshes_the_tracked_quest(self):
@@ -207,6 +255,7 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
         self.assertEqual("quest-interactive:91:901", record.call_args.args[2])
         self.assertEqual(91, claim.call_args.args[2])
         self.assertEqual(("once", 77), claim.call_args.args[3:5])
+        self.last_settlement.assert_called_once()
         persist.assert_called_once()
         changes.assert_called_once()
         drain.assert_called_once()
@@ -258,6 +307,19 @@ class InteractiveMissionAdapterTests(unittest.TestCase):
                     loaded=True,
                     blocked=False,
                 )
+
+    def test_configured_native_approach_accepts_floor_and_rejects_other_cells(self):
+        approach = {**self.location, "z": -5}
+        row = {**self.row, "approach_cells": [5, 8, -5]}
+        result, *_ = self.invoke(row=row, location=approach)
+        self.assertTrue(result["applied"])
+        for invalid in ({**approach, "x": 6}, {**approach, "z": -4}):
+            with self.subTest(position=invalid), self.assertRaisesRegex(
+                ValueError, "out of range"
+            ):
+                self.invoke(row=row, location=invalid)
+        with self.assertRaisesRegex(ValueError, "out of range"):
+            self.invoke(location=approach)
 
     def test_inactive_and_replayed_objective_are_noop_without_receipt_or_reward(self):
         inactive = copy.deepcopy(self.state)

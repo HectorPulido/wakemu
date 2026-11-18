@@ -150,6 +150,113 @@ class DungeonRuntimeConfigurationPostgresTests(PostgresCase):
         self.assertEqual(1, pinned["version"])
         self.assertEqual(party_id, run["party_id"])
 
+    def test_progressive_generated_candidate_is_canonical_installable_and_keeps_run_pinned(
+        self,
+    ):
+        from tools import prepare_progressive_generated_dungeons as progressive
+        from wakfu_server import dungeon_monster_admission, monsters
+
+        members, party_id = self.party(2)
+        old_run = self.create(members[0])
+        self.assertEqual(old_run["context_policy_version"], 1)
+        plan = copy.deepcopy(self.config["compiled_plan"])
+        plan.update(official=False, reviewed_official=False)
+        plan["roster_policy_evidence"] = dict(
+            policy_mode=progressive.GENERATED,
+            boss_references=[44],
+            species_pool_provenance="synthetic generated regression source",
+        )
+        source = dungeon_runtime_config.prepare_configuration(
+            plan,
+            self.config["topology"],
+            self.config["route"],
+            version=2,
+            provenance="isolated generated-candidate install regression",
+            level_policy=self.config["level_policy"],
+        )
+        references = sorted(
+            {row["ref_id"] for room in plan["rooms"] for row in room["monsters"]}
+        )
+        native = [monsters.reference(reference) for reference in references]
+        candidate = progressive.prepare(
+            source,
+            native,
+            version=3,
+            admission_policy=dungeon_monster_admission.current_policy(),
+        )
+        expected = dungeon_runtime_config.prepare_configuration(
+            candidate["compiled_plan"],
+            candidate["topology"],
+            candidate["route"],
+            version=3,
+            provenance=candidate["provenance"],
+            level_policy=candidate["level_policy"],
+        )
+        self.assertEqual(candidate, expected)
+        self.assertEqual(candidate["topology"], source["topology"])
+        self.assertEqual(candidate["level_policy"], source["level_policy"])
+        self.assertEqual(
+            [
+                sum(row["count"] for row in room["monsters"])
+                for room in candidate["compiled_plan"]["rooms"]
+            ],
+            [2, 4, 6],
+        )
+
+        class RollbackProbe(Exception):
+            pass
+
+        with self.store.connection() as db:
+            before = db.execute(
+                "SELECT * FROM dungeon_instances WHERE instance_id=%s",
+                (old_run["instance_id"],),
+            ).fetchone()
+            with self.assertRaises(RollbackProbe):
+                with db.transaction():
+                    dungeon_runtime_config.install_configuration(db, source)
+                    dungeon_runtime_config.install_configuration(db, candidate)
+                    active = dungeon_runtime_config.active_configuration(
+                        db, "jalato_normal"
+                    )
+                    run, pinned = dungeon_runtime.configuration_for_instance(
+                        db, old_run["instance_id"]
+                    )
+                    self.assertEqual(active, candidate)
+                    self.assertEqual(
+                        (
+                            run["context_policy_version"],
+                            pinned["version"],
+                            run["party_id"],
+                        ),
+                        (1, 1, party_id),
+                    )
+                    self.assertEqual(pinned, self.config)
+                    self.assertEqual(
+                        db.execute(
+                            "SELECT * FROM dungeon_instances WHERE instance_id=%s",
+                            (old_run["instance_id"],),
+                        ).fetchone(),
+                        before,
+                    )
+                    raise RollbackProbe()
+            self.assertEqual(
+                dungeon_runtime_config.active_configuration(db, "jalato_normal"),
+                self.config,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) AS n FROM dungeon_runtime_configurations WHERE route_key='jalato_normal' AND policy_version IN (2,3)"
+                ).fetchone()["n"],
+                0,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT * FROM dungeon_instances WHERE instance_id=%s",
+                    (old_run["instance_id"],),
+                ).fetchone(),
+                before,
+            )
+
     def test_114_migrates_legacy_versions_and_pointer_without_touching_pinned_run(self):
         members, _party_id = self.party(2)
         session = self.create(members[0])

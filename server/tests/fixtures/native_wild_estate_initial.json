@@ -1,0 +1,1693 @@
+{
+  "evidence": "Unmodified installed native category187 definitions and original indexed clue programs; reviewed serverobjective joins are separate data.",
+  "definitions": [
+    {
+      "aHe": "IsAchievementActive(1612)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetInstanceId()!=711  && GetInstanceId()!=712  && GetInstanceId()!=713  && GetInstanceId()!=714  && GetInstanceId()!=715 && GetInstanceId()!=716  && GetInstanceId()!=717  && GetInstanceId()!=718 && GetInstanceId()!=719  && GetInstanceId()!=720  && GetInstanceId()!=722  && GetInstanceId()!=723 && GetInstanceId()!=726 && !IsAchievementRunning(1616) && !IsAchievementActive(1686)  ",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3012,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            60000
+          ],
+          "d": 2799,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 0,
+      "cka": "ach.187",
+      "d": 1612,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1686)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50 and GetInstanceId()!=711  && GetInstanceId()!=712  && GetInstanceId()!=713  && GetInstanceId()!=714  && GetInstanceId()!=715 && GetInstanceId()!=716  && GetInstanceId()!=717  && GetInstanceId()!=718 && GetInstanceId()!=719  && GetInstanceId()!=720  && GetInstanceId()!=722  && GetInstanceId()!=723 && GetInstanceId()!=726 && !IsAchievementRunning(1616) && !IsAchievementActive(1612)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3170,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            50000
+          ],
+          "d": 2968,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.187",
+      "d": 1686,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1616)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 7,
+              "ckh": 11,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3024,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 7,
+              "ckh": 11,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3025,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 7,
+              "ckh": 11,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3026,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            80918
+          ],
+          "d": 2803,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7308,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 2,
+      "cka": "ach.187",
+      "d": 1616,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1617)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel()>=50",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 8,
+              "ckh": -14,
+              "cki": -80,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3017,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 15,
+              "ckh": -33,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3030,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 21,
+              "ckh": -27,
+              "cki": -80,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3031,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 36,
+              "ckh": -29,
+              "cki": -79,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3032,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            80000
+          ],
+          "d": 2804,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7309,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 3,
+      "cka": "ach.187",
+      "d": 1617,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    }
+  ],
+  "labels": [
+    {
+      "quest_id": 1612,
+      "name_en": "Relic Hunt",
+      "name_es": "La caza de las reliquias",
+      "objectives": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3012,
+          "native_class": "aJN",
+          "label_en": "Go to the Wild Estate",
+          "label_es": "Ir a Tierras Salvajes"
+        }
+      ]
+    },
+    {
+      "quest_id": 1686,
+      "name_en": "Relic Hunt",
+      "name_es": "La caza de las reliquias",
+      "objectives": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [],
+          "cke": "",
+          "ckf": [],
+          "d": 3170,
+          "native_class": "aJN",
+          "label_en": "Go to the Wild Estate",
+          "label_es": "Ir a Tierras Salvajes"
+        }
+      ]
+    },
+    {
+      "quest_id": 1616,
+      "name_en": "A Deserted Camp",
+      "name_es": "Un campamento desierto",
+      "objectives": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 7,
+              "ckh": 11,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3024,
+          "native_class": "aJN",
+          "label_en": "Find the clue that explains where you are",
+          "label_es": "Encontrar la pista que indique en qu\u00e9 lugar est\u00e1s"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 7,
+              "ckh": 11,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3025,
+          "native_class": "aJN",
+          "label_en": "Find the clue that explains who was here",
+          "label_es": "Encontrar la pista que indique qui\u00e9n estuvo aqu\u00ed"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 7,
+              "ckh": 11,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3026,
+          "native_class": "aJN",
+          "label_en": "Find the clue that explains what happened",
+          "label_es": "Encontrar una pista que indique qu\u00e9 ha ocurrido"
+        }
+      ]
+    },
+    {
+      "quest_id": 1617,
+      "name_en": "Where's Gobbaldo?",
+      "name_es": "\u00bfD\u00f3nde est\u00e1 Waldo?",
+      "objectives": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 8,
+              "ckh": -14,
+              "cki": -80,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3017,
+          "native_class": "aJN",
+          "label_en": "Find the Bwork footprints",
+          "label_es": "Encontrar las huellas de pasos de bwork"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 15,
+              "ckh": -33,
+              "cki": -78,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3030,
+          "native_class": "aJN",
+          "label_en": "Find the humanoid footprints",
+          "label_es": "Encontrar las huellas de pasos de humanoides"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 21,
+              "ckh": -27,
+              "cki": -80,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3031,
+          "native_class": "aJN",
+          "label_en": "Find the Enraged Gobball tracks",
+          "label_es": "Encontrar las huellas del jalat\u00f3 rabioso"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 36,
+              "ckh": -29,
+              "cki": -79,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3032,
+          "native_class": "aJN",
+          "label_en": "Find out where the footprints lead",
+          "label_es": "Descubrir hasta d\u00f3nde conducen las huellas de pasos"
+        }
+      ]
+    }
+  ],
+  "native_sources": {
+    "map_id": 711,
+    "native_profile": {
+      "native_class": "Sm",
+      "height": 6,
+      "jump_capacity": 4,
+      "movement_type": 0
+    },
+    "topology_sha256": "f78eb4a26cdde55a2c5c513edc2ed738f5d6ca8572d6538302991292cc38f063",
+    "client_sha256": "e3eb8b9b6a1fa0d42d2f06f0af3e841ed783b2998f5c81d3cd8312294106d3cd",
+    "geometry_export_sha256": "13c66cbbad3d793bb8b9f9ca5ed733f117af1d706ef80ea4d082027ed241a17c",
+    "boat_arrival": [
+      3,
+      22,
+      -74
+    ],
+    "all_approaches_reachable_from_boat": true,
+    "approach_policy": "Original QVmask255 eightneighbors, VA.a native_approach_height on original ordered Vy surfaces; actualSm6 walking and boat-reachable component; no guessed heights",
+    "sources": {
+      "20377": {
+        "source": {
+          "x": 8.0,
+          "y": 0.0,
+          "z": -80.0,
+          "id": 20377,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000000800000000ffb0000101010100ff0000000332303700000000000000",
+          "native_parameters": "207",
+          "descriptor_id": 207
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 207,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 232,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 232,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 451,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            9,
+            -1,
+            -80
+          ],
+          [
+            9,
+            0,
+            -80
+          ],
+          [
+            9,
+            1,
+            -80
+          ],
+          [
+            8,
+            1,
+            -80
+          ],
+          [
+            7,
+            1,
+            -80
+          ],
+          [
+            7,
+            0,
+            -80
+          ],
+          [
+            7,
+            -1,
+            -80
+          ],
+          [
+            8,
+            -1,
+            -80
+          ]
+        ]
+      },
+      "20380": {
+        "source": {
+          "x": 36.0,
+          "y": -29.0,
+          "z": -80.0,
+          "id": 20380,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "2_-2",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c700000024ffffffe3ffb00001010103013d0000000332303400000000000101",
+          "native_parameters": "204",
+          "descriptor_id": 204
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 204,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 227,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 227,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 445,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            37,
+            -29,
+            -80
+          ],
+          [
+            37,
+            -28,
+            -80
+          ],
+          [
+            36,
+            -28,
+            -80
+          ],
+          [
+            35,
+            -28,
+            -80
+          ],
+          [
+            35,
+            -29,
+            -80
+          ],
+          [
+            35,
+            -30,
+            -80
+          ]
+        ]
+      },
+      "20389": {
+        "source": {
+          "x": 1.0,
+          "y": 12.0,
+          "z": -85.0,
+          "id": 20389,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c7000000010000000cffab000101010100090000000332303600000000000101",
+          "native_parameters": "206",
+          "descriptor_id": 206
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 206,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 231,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 231,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 450,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            2,
+            12,
+            -85
+          ],
+          [
+            2,
+            13,
+            -88
+          ],
+          [
+            1,
+            13,
+            -88
+          ],
+          [
+            0,
+            13,
+            -88
+          ]
+        ]
+      },
+      "20390": {
+        "source": {
+          "x": 0.0,
+          "y": 2.0,
+          "z": -80.0,
+          "id": 20390,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000000000000002ffb00001010101003d0000000332303100000000000101",
+          "native_parameters": "201",
+          "descriptor_id": 201
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 201,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 224,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 224,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 442,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            1,
+            1,
+            -80
+          ],
+          [
+            1,
+            2,
+            -80
+          ],
+          [
+            1,
+            3,
+            -80
+          ],
+          [
+            0,
+            3,
+            -80
+          ]
+        ]
+      },
+      "20392": {
+        "source": {
+          "x": -4.0,
+          "y": -30.0,
+          "z": -80.0,
+          "id": 20392,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "-1_-2",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c7fffffffcffffffe2ffb0000101010100ff000000033231340000004fa70000",
+          "native_parameters": "214",
+          "descriptor_id": 214
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 214,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 239,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 239,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 458,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            -3,
+            -31,
+            -78
+          ],
+          [
+            -3,
+            -30,
+            -80
+          ],
+          [
+            -3,
+            -29,
+            -80
+          ],
+          [
+            -4,
+            -29,
+            -80
+          ],
+          [
+            -5,
+            -29,
+            -80
+          ],
+          [
+            -5,
+            -30,
+            -80
+          ],
+          [
+            -5,
+            -31,
+            -77
+          ],
+          [
+            -4,
+            -31,
+            -78
+          ]
+        ]
+      },
+      "20393": {
+        "source": {
+          "x": 8.0,
+          "y": -14.0,
+          "z": -80.0,
+          "id": 20393,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_-1",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c700000008fffffff2ffb0000101010100ff000000033231310000004fa70000",
+          "native_parameters": "211",
+          "descriptor_id": 211
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 211,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 236,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 236,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 455,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            9,
+            -15,
+            -80
+          ],
+          [
+            9,
+            -14,
+            -80
+          ],
+          [
+            9,
+            -13,
+            -80
+          ],
+          [
+            8,
+            -13,
+            -80
+          ],
+          [
+            7,
+            -13,
+            -80
+          ],
+          [
+            7,
+            -14,
+            -80
+          ],
+          [
+            7,
+            -15,
+            -80
+          ],
+          [
+            8,
+            -15,
+            -80
+          ]
+        ]
+      },
+      "20395": {
+        "source": {
+          "x": 13.0,
+          "y": -28.0,
+          "z": -80.0,
+          "id": 20395,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_-2",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000000dffffffe4ffb0000101010100ff000000033231320000004fa70000",
+          "native_parameters": "212",
+          "descriptor_id": 212
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 212,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 237,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 237,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 456,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            14,
+            -29,
+            -80
+          ],
+          [
+            14,
+            -28,
+            -80
+          ],
+          [
+            14,
+            -27,
+            -80
+          ],
+          [
+            13,
+            -27,
+            -80
+          ],
+          [
+            12,
+            -27,
+            -80
+          ],
+          [
+            12,
+            -28,
+            -80
+          ],
+          [
+            12,
+            -29,
+            -80
+          ],
+          [
+            13,
+            -29,
+            -80
+          ]
+        ]
+      },
+      "20396": {
+        "source": {
+          "x": 20.0,
+          "y": -35.0,
+          "z": -78.0,
+          "id": 20396,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "1_-2",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c700000014ffffffddffb2000101010100ff000000033231350000004fa70000",
+          "native_parameters": "215",
+          "descriptor_id": 215
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 215,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 240,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 240,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 459,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            21,
+            -36,
+            -78
+          ],
+          [
+            21,
+            -35,
+            -78
+          ],
+          [
+            21,
+            -34,
+            -78
+          ],
+          [
+            20,
+            -34,
+            -78
+          ],
+          [
+            19,
+            -34,
+            -78
+          ],
+          [
+            19,
+            -35,
+            -78
+          ],
+          [
+            19,
+            -36,
+            -78
+          ],
+          [
+            20,
+            -36,
+            -78
+          ]
+        ]
+      },
+      "20398": {
+        "source": {
+          "x": 29.0,
+          "y": -28.0,
+          "z": -80.0,
+          "id": 20398,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "1_-2",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000001dffffffe4ffb0000101010100ff000000033231330000004fa70000",
+          "native_parameters": "213",
+          "descriptor_id": 213
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 213,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 238,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 238,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 457,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            30,
+            -29,
+            -80
+          ],
+          [
+            30,
+            -28,
+            -80
+          ],
+          [
+            30,
+            -27,
+            -80
+          ],
+          [
+            29,
+            -27,
+            -80
+          ],
+          [
+            28,
+            -27,
+            -80
+          ],
+          [
+            28,
+            -28,
+            -80
+          ],
+          [
+            28,
+            -29,
+            -80
+          ],
+          [
+            29,
+            -29,
+            -80
+          ]
+        ]
+      },
+      "20399": {
+        "source": {
+          "x": 7.0,
+          "y": -35.0,
+          "z": -80.0,
+          "id": 20399,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_-2",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c700000007ffffffddffb0000101010100ff000000033231360000004fa70000",
+          "native_parameters": "216",
+          "descriptor_id": 216
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 216,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 241,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 241,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 460,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            8,
+            -36,
+            -80
+          ],
+          [
+            8,
+            -35,
+            -80
+          ],
+          [
+            8,
+            -34,
+            -80
+          ],
+          [
+            7,
+            -34,
+            -80
+          ],
+          [
+            6,
+            -34,
+            -78
+          ],
+          [
+            6,
+            -35,
+            -78
+          ],
+          [
+            6,
+            -36,
+            -78
+          ],
+          [
+            7,
+            -36,
+            -80
+          ]
+        ]
+      },
+      "20400": {
+        "source": {
+          "x": 12.0,
+          "y": 15.0,
+          "z": -80.0,
+          "id": 20400,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000000c0000000fffb00001010101000f0000000332303900000000000101",
+          "native_parameters": "209",
+          "descriptor_id": 209
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 209,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 234,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 234,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 453,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            13,
+            14,
+            -80
+          ],
+          [
+            13,
+            15,
+            -80
+          ],
+          [
+            13,
+            16,
+            -80
+          ],
+          [
+            12,
+            16,
+            -80
+          ],
+          [
+            11,
+            16,
+            -80
+          ],
+          [
+            11,
+            15,
+            -80
+          ],
+          [
+            11,
+            14,
+            -80
+          ],
+          [
+            12,
+            14,
+            -80
+          ]
+        ]
+      },
+      "20401": {
+        "source": {
+          "x": 15.0,
+          "y": 12.0,
+          "z": -80.0,
+          "id": 20401,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000000f0000000cffb00001010101000f0000000332303800000000000101",
+          "native_parameters": "208",
+          "descriptor_id": 208
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 208,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 233,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 233,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 452,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            16,
+            11,
+            -80
+          ],
+          [
+            16,
+            12,
+            -80
+          ],
+          [
+            16,
+            13,
+            -80
+          ],
+          [
+            15,
+            13,
+            -80
+          ],
+          [
+            14,
+            13,
+            -80
+          ],
+          [
+            14,
+            12,
+            -80
+          ],
+          [
+            14,
+            11,
+            -80
+          ],
+          [
+            15,
+            11,
+            -80
+          ]
+        ]
+      },
+      "20402": {
+        "source": {
+          "x": 1.0,
+          "y": 5.0,
+          "z": -80.0,
+          "id": 20402,
+          "auto": false,
+          "type": "GenericActivableInteractiveElement",
+          "chunk": "0_0",
+          "map_id": 711,
+          "payload_hex": "02000000000b010000000d00000102c70000000100000005ffb00001010101000f0000000332313000000000000101",
+          "native_parameters": "210",
+          "descriptor_id": 210
+        },
+        "descriptor": {
+          "native_class": "aLl",
+          "descriptor_id": 210,
+          "groups": [
+            {
+              "native_class": "aLo",
+              "id": 235,
+              "clx": 203,
+              "cod": 0,
+              "coe": 0,
+              "cof": true,
+              "cnd": 0,
+              "cog": 0,
+              "actions": [
+                {
+                  "native_class": "aLn",
+                  "wire_action": 0,
+                  "native_id": 235,
+                  "criterion": "",
+                  "raw_cob": 1.0,
+                  "effects": [
+                    {
+                      "native_class": "aLm",
+                      "action_reference": 454,
+                      "effect_type": 1,
+                      "criterion": "",
+                      "parameters": [
+                        "false"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "approaches": [
+          [
+            2,
+            4,
+            -80
+          ],
+          [
+            2,
+            5,
+            -80
+          ],
+          [
+            2,
+            6,
+            -80
+          ],
+          [
+            1,
+            6,
+            -80
+          ],
+          [
+            0,
+            6,
+            -80
+          ],
+          [
+            0,
+            5,
+            -80
+          ],
+          [
+            0,
+            4,
+            -80
+          ],
+          [
+            1,
+            4,
+            -80
+          ]
+        ]
+      }
+    }
+  }
+}

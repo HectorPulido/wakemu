@@ -691,6 +691,9 @@ def initialize_fight_snapshots(
 
         scene_state_declarations = declared_scene_states(fight, monsters)
     scene_plans = prepare_scene_states(fight, monsters, scene_state_declarations)
+    from .combat_scene_controlled_states import prepare as prepare_controlled_states
+
+    controlled_plans = prepare_controlled_states(fight, characters)
     plans = initial_plans(fight, monsters)
     properties = initial_property_counts(monsters)
     from .combat_npc_ai_initialization import initial_ai_actors
@@ -706,7 +709,7 @@ def initialize_fight_snapshots(
 
     environment_qi_needed = needs_fresh_environment_qi(fight)
     original_fight = fight
-    if plans or scene_plans or environment_qi_needed:
+    if plans or scene_plans or controlled_plans or environment_qi_needed:
         from copy import deepcopy
 
         # Constructor children may reject. Never publish partial actor/state
@@ -730,13 +733,17 @@ def initialize_fight_snapshots(
             fight.actors[identity].native_resource_numeric_observers = {4: ()}
     fight.native_npc_ai_actors = ai_actors
     install_root_manifest(fight, root_manifest)
-    if plans or scene_plans:
+    if plans or scene_plans or controlled_plans:
         fight.native_effect_uid_next = initial_effect_uid
     if plans:
         initialize_ordinary_npcs(fight, monsters, plans)
     if scene_plans:
         install_scene_states(fight, monsters, scene_plans)
     install_fresh_actor_slots(fight, qi_registry)
+    if controlled_plans:
+        from .combat_scene_controlled_states import install as install_controlled_states
+
+        install_controlled_states(fight, characters, monsters, controlled_plans)
     if environment_qi_needed:
         ensure_environment_glyphs(fight)
     from .combat_pr_completion import fresh_pr_completion_authority
@@ -746,7 +753,7 @@ def initialize_fight_snapshots(
         # observer policy. Restored fights must restore their own provenance;
         # they do not inherit this constructor choice implicitly.
         fight.native_pr_completion_authority = fresh_pr_completion_authority()
-    if not plans and not scene_plans:
+    if not plans and not scene_plans and not controlled_plans:
         fight.native_effect_uid_next = initial_effect_uid
     if fight is not original_fight:
         from .combat_pointer_qi_commit import prepare_pointer_commit
@@ -777,3 +784,55 @@ def _adopt_initialized_fight(destination, preview, pointer_binding):
         pointer_binding.publish()
     for stats in bindings:
         stats._fight = destination
+
+
+def install_native_profile_resource_pool(actor, reference, level, *, catalog=None):
+    """Construct only resource PAs from original bbo/ffx profile operands.
+
+    This is a server-selected controlled-form constructor join, not eWG933
+    behavior. Other characteristics, retained runners and the player's role are
+    preserved. The caller owns the authenticated encounter/initialization gate.
+    """
+    from .combat_maximum_resource import _snapshot, _write
+    from .combat_resource_pa_notifications import RAW_SOURCE
+    from .combat_hp_raw import install_fresh_hp_operand, SOURCE as HP_SOURCE
+
+    catalog = native_actor_catalog() if catalog is None else catalog
+    values = native_npc_creation_values(reference, level, catalog=catalog)
+    resource_ids = (1, 2, 3, 4)
+    for stat in resource_ids:
+        _snapshot(actor, stat)  # Reject unknown or inconsistent existing PAs.
+        row = values[stat]
+        if (
+            set(row) != {"minimum", "maximum", "current", "frozen"}
+            or any(
+                type(row[key]) is not int for key in ("minimum", "maximum", "current")
+            )
+            or not row["minimum"] <= row["current"] <= row["maximum"]
+        ):
+            raise ValueError("Native resource profile has incomplete PA operands")
+    actor.effect_frozen = frozenset(
+        (set(actor.effect_frozen) - set(resource_ids))
+        | {stat for stat in resource_ids if values[stat]["frozen"]}
+    )
+    for stat in resource_ids:
+        row = values[stat]
+        actor.effect_minima[stat] = actor.effect_base_minima[stat] = row["minimum"]
+        actor.effect_percentages[stat] = 0  # Native fresh ffX constructor operand.
+        _write(actor, stat, row["current"], row["maximum"], row["maximum"])
+    actor.effect_resource_raw_currents = {
+        **getattr(actor, "effect_resource_raw_currents", {}),
+        **{stat: values[stat]["current"] for stat in (2, 3)},
+    }
+    actor.native_resource_raw_current_source = RAW_SOURCE
+    if getattr(actor, "native_copy_pa_source", None) is not None:
+        for stat in resource_ids:
+            actor.effect_characteristic_raw_currents[stat] = values[stat]["current"]
+    if 1 not in actor.effect_frozen:
+        install_fresh_hp_operand(
+            actor,
+            dict(
+                producer=HP_SOURCE, actor_id=actor.id, raw_current=values[1]["current"]
+            ),
+        )
+    return {str(stat): dict(values[stat]) for stat in resource_ids}

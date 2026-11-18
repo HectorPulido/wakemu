@@ -1,0 +1,83 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed native Hadibal confrontation after actual three investigation sites. Exact native Running2540 branch and original proof-question path remain authoritative; no hideout entry or accomplice battle is completed by this public conversation.",
+  "speakers": [
+    {
+      "actor_id": -2251799934952534,
+      "action_id": 61,
+      "quest_ids": [
+        2540
+      ],
+      "objectives": [
+        {
+          "quest_id": 2540,
+          "objective_id": 5039,
+          "node_id": 3105,
+          "choice_id": 7721,
+          "archetype": "talk",
+          "single_objective": true,
+          "running_branch": 2540,
+          "native_guard_path": [
+            [
+              278,
+              7715,
+              3102
+            ],
+            [
+              3102,
+              7716,
+              3104
+            ],
+            [
+              3104,
+              7720,
+              3105
+            ],
+            [
+              3105,
+              7721,
+              0
+            ]
+          ]
+        }
+      ],
+      "graph": [
+        [
+          278,
+          7715,
+          3102
+        ],
+        [
+          3102,
+          7716,
+          3104
+        ],
+        [
+          3104,
+          7720,
+          3105
+        ],
+        [
+          3105,
+          7721,
+          0
+        ],
+        [
+          3102,
+          7718,
+          3103
+        ],
+        [
+          3103,
+          7719,
+          0
+        ],
+        [
+          3102,
+          7717,
+          0
+        ]
+      ]
+    }
+  ]
+}

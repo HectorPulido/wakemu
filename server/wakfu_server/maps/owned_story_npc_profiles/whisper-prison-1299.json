@@ -1,0 +1,109 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "whisper-prison-1299",
+  "controller_id": "whisper-prison-1299",
+  "map_id": 1299,
+  "policy_version": 1,
+  "quest_id": 4873,
+  "physical_visit": true,
+  "requires": [
+    "prison-door-open"
+  ],
+  "render_requires": [
+    "prison-arrival"
+  ],
+  "native_action_source": {
+    "path": "whisper-prison-1299.native-actions.json",
+    "sha256": "a4f202313ea71031411b70b1bd6347142bf8bcbec795738b362973c7fdd2a31e"
+  },
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 2099,
+      "controller_reference": 2099,
+      "controller_target_id": 1,
+      "action_ids": [
+        252
+      ],
+      "action_type": 1,
+      "action_criterion": "IsAchievementActive(4872)",
+      "x": -22,
+      "y": -1,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -21,
+        "y": -1,
+        "z": 0
+      },
+      "provenance": "Reviewed captive infantry role on original legal native1299 floor. Actual native2099/type1/252 and Active4872 criterion unchanged; four independent scoped actor UIDs, not four credits from one prototype click."
+    },
+    {
+      "template_id": 2,
+      "reference_id": 2099,
+      "controller_reference": 2099,
+      "controller_target_id": 2,
+      "action_ids": [
+        252
+      ],
+      "action_type": 1,
+      "action_criterion": "IsAchievementActive(4872)",
+      "x": -20,
+      "y": -1,
+      "z": 0,
+      "direction": 1,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -20,
+        "y": 0,
+        "z": 0
+      },
+      "provenance": "Reviewed captive infantry role on original legal native1299 floor. Actual native2099/type1/252 and Active4872 criterion unchanged; four independent scoped actor UIDs, not four credits from one prototype click."
+    },
+    {
+      "template_id": 3,
+      "reference_id": 2099,
+      "controller_reference": 2099,
+      "controller_target_id": 3,
+      "action_ids": [
+        252
+      ],
+      "action_type": 1,
+      "action_criterion": "IsAchievementActive(4872)",
+      "x": -22,
+      "y": 1,
+      "z": 0,
+      "direction": 7,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -21,
+        "y": 1,
+        "z": 0
+      },
+      "provenance": "Reviewed captive infantry role on original legal native1299 floor. Actual native2099/type1/252 and Active4872 criterion unchanged; four independent scoped actor UIDs, not four credits from one prototype click."
+    },
+    {
+      "template_id": 4,
+      "reference_id": 2099,
+      "controller_reference": 2099,
+      "controller_target_id": 4,
+      "action_ids": [
+        252
+      ],
+      "action_type": 1,
+      "action_criterion": "IsAchievementActive(4872)",
+      "x": -20,
+      "y": 1,
+      "z": 0,
+      "direction": 1,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": -20,
+        "y": 0,
+        "z": 0
+      },
+      "provenance": "Reviewed captive infantry role on original legal native1299 floor. Actual native2099/type1/252 and Active4872 criterion unchanged; four independent scoped actor UIDs, not four credits from one prototype click."
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+{
+  "schema": "owned-story-encounters-v1",
+  "id": "wild-temple-718-encounters",
+  "map_id": 718,
+  "provenance": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape.",
+  "rooms": [
+    {
+      "order": 1,
+      "physical_room": 1,
+      "requires": [
+        "temple-entered"
+      ],
+      "arena_seed": [
+        28,
+        -18,
+        0
+      ],
+      "bounds": [
+        20,
+        -30,
+        34,
+        -12
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2798,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2799,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "physical_room": 2,
+      "requires": [
+        "air-prison-opened"
+      ],
+      "arena_seed": [
+        12,
+        -32,
+        0
+      ],
+      "bounds": [
+        8,
+        -46,
+        18,
+        -22
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2798,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2799,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 3,
+      "physical_room": 3,
+      "requires": [
+        "earth-passage-three"
+      ],
+      "arena_seed": [
+        -153,
+        3,
+        0
+      ],
+      "bounds": [
+        -159,
+        -3,
+        -146,
+        9
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2798,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2799,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 4,
+      "physical_room": 4,
+      "requires": [
+        "temple-entered"
+      ],
+      "arena_seed": [
+        -28,
+        -14,
+        0
+      ],
+      "bounds": [
+        -38,
+        -24,
+        -20,
+        -7
+      ],
+      "z": 0,
+      "monsters": [
+        {
+          "reference": 2798,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2799,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 5,
+      "physical_room": 5,
+      "requires": [
+        "four-gems-passage-opened"
+      ],
+      "arena_seed": [
+        -14,
+        -35,
+        12
+      ],
+      "bounds": [
+        -20,
+        -46,
+        -6,
+        -23
+      ],
+      "z": 12,
+      "monsters": [
+        {
+          "reference": 2826,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2798,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 6,
+      "physical_room": 6,
+      "requires": [
+        "artifact-passage-opened"
+      ],
+      "arena_seed": [
+        -12,
+        32,
+        -12
+      ],
+      "bounds": [
+        -18,
+        24,
+        -5,
+        43
+      ],
+      "z": -12,
+      "monsters": [
+        {
+          "reference": 2826,
+          "count": 1,
+          "role": "monster"
+        },
+        {
+          "reference": 2799,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 7,
+      "physical_room": 7,
+      "requires": [
+        "first-temple-guardian-defeated"
+      ],
+      "arena_seed": [
+        -14,
+        55,
+        -24
+      ],
+      "bounds": [
+        -22,
+        45,
+        -4,
+        64
+      ],
+      "z": -24,
+      "monsters": [
+        {
+          "reference": 2825,
+          "count": 1,
+          "role": "monster"
+        }
+      ]
+    },
+    {
+      "order": 8,
+      "physical_room": 8,
+      "requires": [
+        "corridor-started"
+      ],
+      "arena_seed": [
+        12,
+        60,
+        -36
+      ],
+      "bounds": [
+        8,
+        59,
+        37,
+        61
+      ],
+      "z": -36,
+      "monsters": [
+        {
+          "reference": 2806,
+          "count": 1,
+          "role": "monster"
+        }
+      ],
+      "encounter_scene": {
+        "schema_version": 1,
+        "policy_id": "wakemu.wild-temple-native-boulder-escape.v1",
+        "authority": "Original718 corridor Sm6 floor, ZoneTrigger20702 and free physical exit20685/1445. Original Boulder2806 level70, MP3,4065 and innate2390/AURA634/107416 lethal contact are unchanged. Original private actor placement and escape-result join are unavailable: Boulder(8,60,-36), owner(12,60,-36) and the successful paid arrival at the literal native exit are explicit reviewed reconstruction. Native area callbacks settle first; catch/death/displacement wins. An ordinary kill, win command, requested endpoint, teleport or timer cannot count as escape.",
+        "source_uri": "client/contents/scripts/scripts.jar:scenario/1654.lua;native2806/2390/634;native718/20685",
+        "full_room_scope": true,
+        "native_movement_escape": {
+          "schema": "owned-native-movement-escape-v1",
+          "pursuer_reference": 2806,
+          "pursuer_state": 2390,
+          "pursuer_state_sha256": "5961dce1447ffc90dc670d9a6cd4725613e5a65b12acc0cb84132a2b6314b85a",
+          "exit_map_id": 718,
+          "exit_source_id": 20685,
+          "exit_destination_id": 1445,
+          "exit_source_sha256": "ef9f5a5424f250894436cd54e98f864a71e53de730c5e1ebec8382cb49d1eab6",
+          "exit_cell": [
+            37,
+            59,
+            -36
+          ],
+          "evidence": "Original718 corridor Sm6 floor, ZoneTrigger20702 and free physical exit20685/1445. Original Boulder2806 level70, MP3,4065 and innate2390/AURA634/107416 lethal contact are unchanged. Original private actor placement and escape-result join are unavailable: Boulder(8,60,-36), owner(12,60,-36) and the successful paid arrival at the literal native exit are explicit reviewed reconstruction. Native area callbacks settle first; catch/death/displacement wins. An ordinary kill, win command, requested endpoint, teleport or timer cannot count as escape."
+        },
+        "fixed_actor_placements": [
+          {
+            "reference": 2806,
+            "cell": [
+              8,
+              60,
+              -36
+            ],
+            "direction": 1,
+            "source": {
+              "kind": "authorized_native_content_reconstruction",
+              "uri": "native718Sm6;scenario1654",
+              "sha256": "3044e70c11d822d757bca6bfff9e51c81303c6493a6d02eb16afbffc1aaf3e00"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

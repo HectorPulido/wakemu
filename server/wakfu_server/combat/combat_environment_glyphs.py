@@ -126,6 +126,12 @@ def verify_environment_glyph(fight, row):
         != expected_cells
     ):
         raise ValueError("Missing environmental area constructor authority")
+    if original.get("neutral_faw_constructor") is not None:
+        if (
+            "native_faw_stored_direction" not in row
+            or row["native_faw_stored_direction"] is not None
+        ):
+            raise ValueError("Changed fresh neutral faW stored facing")
     if definition.get("type") == "FAKE_FIGHTER":
         from .combat_fake_fighter import verified_fake_fighter
 
@@ -167,7 +173,11 @@ def ensure_environment_glyphs(fight):
         definition = native_effect_areas().get(str(source["reference"]), {})
         declared = bool(source.get("authority"))
         if declared:
-            validate_environment_prototype(definition, level=source.get("level", 0))
+            validate_environment_prototype(
+                definition,
+                level=source.get("level", 0),
+                neutral_faw_constructor=source.get("neutral_faw_constructor"),
+            )
             if not source.get("policy", "").startswith("wakemu."):
                 raise ValueError("Missing declared native glyph placement policy")
         expected_source = constructor_source(definition)
@@ -236,3 +246,42 @@ def environment_sections(fight, *, viewer_id=None):
             )
         )
     return sections
+
+
+def registered_environment_kill_source(fight, event):
+    """Authenticate a native28 root emitted by an actual neutral scene PV.
+
+    A glyph is not a fighter. Its existing typed constructor, registered PV,
+    exact root definition and PL identity together prove this source; an area
+    UID or an arbitrary root number alone grants no corpse authority.
+    """
+    from .combat_state_managers import retained_area_pv_row, registered_area_pv
+    from .combat_effect_area import native_effect_areas
+    from .combat_effect_area_catalog import area_effect_catalog
+
+    identity = event.get("source_id")
+    container = event.get("native_container") or {}
+    if (
+        event.get("kind") != "kill_hp_minimum_update"
+        or event.get("effect_class") != 28
+        or type(identity) is not int
+        or container.get("present") is not True
+        or container.get("type") != 3
+        or container.get("native_kind") != "effect_area"
+        or container.get("id") != identity
+    ):
+        return False
+    row = retained_area_pv_row(fight, identity)
+    if row is None or row.get("native_environment_source") is None:
+        return False
+    verify_environment_glyph(fight, row)
+    if registered_area_pv(fight, identity) is None:
+        return False
+    definition = native_effect_areas().get(str(row["reference"]), {})
+    root = event.get("generic_effect")
+    if definition.get("type") != "GLYPH" or root not in definition.get(
+        "effect_ids", ()
+    ):
+        return False
+    effect = area_effect_catalog()["effects"].get(str(root))
+    return effect is not None and effect.get("effect_class") == 28

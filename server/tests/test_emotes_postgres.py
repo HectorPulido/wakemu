@@ -133,15 +133,8 @@ class NativeEmotePostgresTests(PostgresCase):
         self.assertEqual(1, self._quantity(duplicate_uid))
 
     def test_native_untargeted_and_targeted_play_checks_scope_and_combat(self):
-        character = {
-            "id": self.character["id"],
-            "map_id": 527,
-            "instance_id": 0,
-            "x": 1,
-            "y": 2,
-            "z": 0,
-            "hp": 100,
-        }
+        character = self.store.character(self.account, self.character["id"])
+        character["hp"] = 100
         allowed = emotes.prepare_play(
             self.store,
             self.account,

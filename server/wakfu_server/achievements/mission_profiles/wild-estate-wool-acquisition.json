@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "id": "wild-estate-wool-acquisition",
+  "evidence": [
+    "Reviewed native quest supply join: original LootChest definition314 is Worn Wild Gobball Wool, native ehu Running1646 and13 actual711 placements; original1646/3055 counter368 counts10 acquired17832 wool, and original2811/2331/5634 requires10 actual17832 before essence debrief. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates ground gathering, not ordinary monster kills. Each actual one-second server occupation on one native source grants one existing quest wool once per character/source, preserving original native positions/QV/VA.a floors and the exact running quest gate. Item-output association and1000ms occupation are explicit reviewed reconstruction; efm20 is not claimed duration."
+  ],
+  "bindings": [
+    {
+      "id": "wild-real-worn-wool-acquisition",
+      "quest_id": 1646,
+      "objective_id": 3055,
+      "event": {
+        "kind": "chest_loot",
+        "reference": 17832
+      },
+      "count": "quantity",
+      "variable_id": 368,
+      "maps": [
+        711
+      ],
+      "instances": [
+        0
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-wool-earned-after-help",
+      "quest_id": 1646,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1679
+      },
+      "requires_completed": [
+        1679
+      ]
+    },
+    {
+      "id": "wild-wool-earned-recovery",
+      "quest_id": 1646,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1679
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed native quest supply join: original LootChest definition314 is Worn Wild Gobball Wool, native ehu Running1646 and13 actual711 placements; original1646/3055 counter368 counts10 acquired17832 wool, and original2811/2331/5634 requires10 actual17832 before essence debrief. Guide https://oropoproject.wordpress.com/guide/quest-achievements/questline-wild-estate/ corroborates ground gathering, not ordinary monster kills. Each actual one-second server occupation on one native source grants one existing quest wool once per character/source, preserving original native positions/QV/VA.a floors and the exact running quest gate. Item-output association and1000ms occupation are explicit reviewed reconstruction; efm20 is not claimed duration."
+    }
+  ]
+}

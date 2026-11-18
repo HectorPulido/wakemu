@@ -1,0 +1,80 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "wild-estate-sufokia-715-start",
+  "controller_id": "wild-estate-sufokia-715",
+  "map_id": 715,
+  "policy_version": 2,
+  "quest_id": 1679,
+  "physical_visit": true,
+  "requires": [
+    "sufokian-storehouse-discovered"
+  ],
+  "until": [
+    "sufokian-ghosts-defeated"
+  ],
+  "npcs": [
+    {
+      "template_id": 1,
+      "reference_id": 2811,
+      "action_ids": [
+        440
+      ],
+      "action_criterion": "",
+      "dialogue_root": 2331,
+      "native_opening_roots": [
+        2331
+      ],
+      "choice_id": 5640,
+      "choice_type": 8,
+      "objective_id": 3115,
+      "binding_node_id": 2332,
+      "graph": [
+        [
+          2331,
+          5639,
+          2332
+        ],
+        [
+          2331,
+          5637,
+          0
+        ],
+        [
+          2332,
+          5640,
+          0
+        ],
+        [
+          2332,
+          5641,
+          0
+        ]
+      ],
+      "native_guard_path": [
+        [
+          2331,
+          5639,
+          2332
+        ],
+        [
+          2332,
+          5640,
+          0
+        ]
+      ],
+      "x": -1,
+      "y": -2,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": 0,
+        "y": -2,
+        "z": 0
+      },
+      "provenance": "Reviewed reconstruction from original Wild1679 native2811/type4/action440, guarded2331/5639→2332/5640 confirmation and2331/5645→2333/5642 debrief; edges and private actor formation/positions are explicitly reconstructed from original matching text, not recovered server graph. Actual confirmed native5640 admits one original2798 and one2799 level50 Sufokian Excarnate, matching original1651 male/female fight; genuine source-qualified victory alone earns3115, and accepted guarded debrief alone earns3116. Ordinary unrelated wins, dialogue opening and selecting the preliminary5639 do not qualify. Native stats, spells and resources unchanged. No Bworkball result is invented.",
+      "controller_choice_reference": 5640
+    }
+  ],
+  "render_requires": []
+}

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "wild-estate-chief-admission",
+  "evidence": [
+    "Reviewed native Wild Estate1646→1637→1638 handoff. Actual native711/20440/1413 enters726 with one17828 Essence of Bwork; owned World-ready alone earns3057. Native chief2801/action438/root2319, guarded5616→2322/5621→2323/5622 terminal earns3058. Dialogue graph and native-floor NPC placement are reviewed reconstruction, not recovered server edges. Native1637 requires completed1646 and level50; native1638 requires completed1637 and level50. No rendering, public teleport, preliminary choice or ordinary combat grants these objectives. Source details and native geometry pins are in wild-estate-chief-726 profiles and wild-wool-chief-native-handoff-20261117.md."
+  ],
+  "bindings": [
+    {
+      "id": "wild-chief-genuine-conversation",
+      "quest_id": 1637,
+      "objective_id": 3058,
+      "event": {
+        "kind": "npc_spoken",
+        "reference": 3058
+      },
+      "count": "operation",
+      "maps": [
+        726
+      ]
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "wild-chief-earned",
+      "quest_id": 1637,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1646
+      },
+      "requires_completed": [
+        1646
+      ]
+    },
+    {
+      "id": "wild-chief-recovery",
+      "quest_id": 1637,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1646
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed native Wild Estate1646→1637→1638 handoff. Actual native711/20440/1413 enters726 with one17828 Essence of Bwork; owned World-ready alone earns3057. Native chief2801/action438/root2319, guarded5616→2322/5621→2323/5622 terminal earns3058. Dialogue graph and native-floor NPC placement are reviewed reconstruction, not recovered server edges. Native1637 requires completed1646 and level50; native1638 requires completed1637 and level50. No rendering, public teleport, preliminary choice or ordinary combat grants these objectives. Source details and native geometry pins are in wild-estate-chief-726 profiles and wild-wool-chief-native-handoff-20261117.md."
+    },
+    {
+      "id": "wild-bworkball-earned",
+      "quest_id": 1638,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 1637
+      },
+      "requires_completed": [
+        1637
+      ]
+    },
+    {
+      "id": "wild-bworkball-recovery",
+      "quest_id": 1638,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        1637
+      ],
+      "minimum_level": 50,
+      "admission_evidence": "Reviewed native Wild Estate1646→1637→1638 handoff. Actual native711/20440/1413 enters726 with one17828 Essence of Bwork; owned World-ready alone earns3057. Native chief2801/action438/root2319, guarded5616→2322/5621→2323/5622 terminal earns3058. Dialogue graph and native-floor NPC placement are reviewed reconstruction, not recovered server edges. Native1637 requires completed1646 and level50; native1638 requires completed1637 and level50. No rendering, public teleport, preliminary choice or ordinary combat grants these objectives. Source details and native geometry pins are in wild-estate-chief-726 profiles and wild-wool-chief-native-handoff-20261117.md."
+    }
+  ]
+}

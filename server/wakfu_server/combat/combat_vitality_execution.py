@@ -109,7 +109,8 @@ def apply_area_damage(fight, source_id, wall, amount):
     from .combat_wall_area import update_wall_hp
 
     current = wall["snapshot"]["current_hp"]
-    dealt = min(current, amount)
+    minimum = wall["snapshot"].get("minima", {}).get(1, 0)
+    dealt = min(current - minimum, amount)
     after = current - dealt
     if not callable(getattr(fight, "_event", None)):
         raise ValueError("Missing native fbd damage event ledger")

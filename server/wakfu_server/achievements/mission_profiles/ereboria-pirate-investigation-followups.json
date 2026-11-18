@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "ereboria-pirate-investigation-followups",
+  "evidence": [
+    "Explicit reviewed finite Nao story continuation. Native level36 eligibility is necessary but never grants these quests from visibility alone. Only actual predecessor completion or qualified Nao reopening after earned predecessors admits the next chapter. Physical clue, ambush, Pohl and information-read producers remain separate authenticated declarations."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {"id":"ereboria-earned-camp-to-investigation","quest_id":5045,"event":{"kind":"quest_completed","reference":5044},"requires_completed":[5044]},
+    {"id":"ereboria-earned-investigation-to-pohl","quest_id":5046,"event":{"kind":"quest_completed","reference":5045},"requires_completed":[5045]}
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Reviewed complete-candidate lowest Astrub forest batch2190/2191/2158/2159: explicit native NPC acceptance/debrief, authored authentic sawmill encounter, exact reserve admission/equipment interaction and actual ForestDrago registration. Display levels order review only; native prerequisites and real producer receipts remain authoritative.",
+  "speakers": [
+    {
+      "actor_id": -2251799934992190,
+      "action_id": 797,
+      "quest_ids": [
+        2190,
+        2191
+      ],
+      "available_quests_on_open": [
+        2191
+      ],
+      "native_marker": {
+        "quest_id": 2191,
+        "objective_id": 4282
+      },
+      "placement": {
+        "quest_id": 2191,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992190,
+          "reference_id": 4057,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": -144,
+          "y": 9,
+          "z": 3,
+          "direction": 3,
+          "dialogue_root": 3637,
+          "action_ids": [
+            797
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION NPC4057 from native quest2191 navigation marker; named native speaker/action; not an original captured actor position or server graph"
+        },
+        "interaction_anchor": {
+          "x": -144,
+          "y": 8,
+          "z": 3
+        },
+        "interaction_anchor_evidence": "Reviewed adjacent cell reaches published directed exterior-floor component. Position is a waypoint-derived reconstruction, not a recovered original actor spawn.",
+        "choice_starts": [
+          {
+            "quest_id": 2190,
+            "node_id": 7149,
+            "choice_id": 15258,
+            "criterion": "!IsAchievementActive(2190) && !IsAchievementComplete(2190)",
+            "evidence": "Explicit native offered assignment acknowledgement, with live nonrepeatable owned-quest guard. Empty eligibility and display level never activate this quest automatically."
+          }
+        ],
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2191,
+          "objective_id": 4282,
+          "node_id": 7150,
+          "choice_id": 15260,
+          "archetype": "talk",
+          "remaining_objective": true,
+          "required_objectives": [
+            4281
+          ]
+        }
+      ],
+      "graph": [
+        [
+          3637,
+          15256,
+          7148
+        ],
+        [
+          7148,
+          15257,
+          7149
+        ],
+        [
+          7149,
+          15258,
+          0
+        ],
+        [
+          3637,
+          15259,
+          7150
+        ],
+        [
+          7150,
+          15260,
+          0
+        ],
+        [
+          3637,
+          9180,
+          0
+        ]
+      ]
+    },
+    {
+      "actor_id": -2251799934992158,
+      "action_id": 594,
+      "quest_ids": [
+        2158,
+        2159
+      ],
+      "available_quests_on_open": [
+        2159
+      ],
+      "native_marker": {
+        "quest_id": 2159,
+        "objective_id": 4278
+      },
+      "placement": {
+        "quest_id": 2159,
+        "activation_policy": "already_running",
+        "row": {
+          "actor_id": -2251799934992158,
+          "reference_id": 3272,
+          "map_id": 527,
+          "instance_id": 0,
+          "x": 59,
+          "y": 15,
+          "z": 4,
+          "direction": 3,
+          "dialogue_root": 2814,
+          "action_ids": [
+            594
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: REVIEWED WAYPOINT-DERIVED RECONSTRUCTION NPC3272 from native quest2159 navigation marker; named native speaker/action; not an original captured actor position or server graph"
+        },
+        "interaction_anchor": {
+          "x": 59,
+          "y": 14,
+          "z": 4
+        },
+        "interaction_anchor_evidence": "Reviewed adjacent cell reaches published directed exterior-floor component. Position is a waypoint-derived reconstruction, not a recovered original actor spawn.",
+        "choice_starts": [
+          {
+            "quest_id": 2158,
+            "node_id": 7143,
+            "choice_id": 15249,
+            "criterion": "!IsAchievementActive(2158) && !IsAchievementComplete(2158)",
+            "evidence": "Explicit native offered assignment acknowledgement, with live nonrepeatable owned-quest guard. Empty eligibility and display level never activate this quest automatically."
+          }
+        ],
+        "graph": []
+      },
+      "objectives": [
+        {
+          "quest_id": 2159,
+          "objective_id": 4278,
+          "node_id": 2814,
+          "choice_id": 15250,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ],
+      "graph": [
+        [
+          2814,
+          15248,
+          7143
+        ],
+        [
+          7143,
+          15249,
+          0
+        ],
+        [
+          2814,
+          15250,
+          7144
+        ],
+        [
+          7144,
+          15251,
+          0
+        ],
+        [
+          2814,
+          6818,
+          0
+        ]
+      ]
+    }
+  ],
+  "activation_links": [
+    {
+      "after_quest": 2190,
+      "start_quest": 2191,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native quest2191 literally requires IsAchievementComplete(2190); only an authenticated completed precursor enables the debrief/exploration followup."
+    },
+    {
+      "after_quest": 2158,
+      "start_quest": 2159,
+      "policy": "reconstructed_narrative",
+      "evidence": "Native quest2159 literally requires IsAchievementComplete(2158); only an authenticated completed precursor enables the debrief/exploration followup."
+    }
+  ],
+  "toolkit_profile": "astrub-forest-followups"
+}

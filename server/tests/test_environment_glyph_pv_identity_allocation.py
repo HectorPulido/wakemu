@@ -94,6 +94,8 @@ class EnvironmentGlyphPVIdentityAllocationTests(unittest.TestCase):
             direction=3,
             native_area_contract="faN",
         )
-        with self.assertRaisesRegex(ValueError, "faY constructor authority"):
+        with self.assertRaisesRegex(
+            ValueError, "environmental area constructor authority"
+        ):
             ensure_environment_glyphs(preview)
         self.assertEqual(fight.native_effect_areas, {})

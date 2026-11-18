@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "id": "astrub-magnum-wet-night-followups",
+  "evidence": [
+    "Native2706 requires completed2705;2707 requires completed2706. Genuine predecessor completion or normal character-ready reconciliation admits only the matching already earned next stage. The real source/owned victory adapters own5340/5341; actual Magnum8080 owns5342. No later unsupported chapter is admitted."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "magnum-wet-night-after-arrival",
+      "quest_id": 2706,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2705
+      },
+      "requires_completed": [
+        2705
+      ]
+    },
+    {
+      "id": "magnum-wet-night-existing-earned-arrival",
+      "quest_id": 2706,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2705
+      ],
+      "minimum_level": 1,
+      "admission_evidence": "Reviewed reopening for a valid selected character after its actually completed preceding chapter. Native2706/2707 criteria independently require completed2705/2706; minimum1 is the universal character floor, not an invented display-level20 gate or quest completion."
+    },
+    {
+      "id": "magnum-report-after-two-missions",
+      "quest_id": 2707,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2706
+      },
+      "requires_completed": [
+        2706
+      ]
+    },
+    {
+      "id": "magnum-report-existing-earned-two-missions",
+      "quest_id": 2707,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2706
+      ],
+      "minimum_level": 1,
+      "admission_evidence": "Reviewed reopening for a valid selected character after its actually completed preceding chapter. Native2706/2707 criteria independently require completed2705/2706; minimum1 is the universal character floor, not an invented display-level20 gate or quest completion."
+    }
+  ]
+}

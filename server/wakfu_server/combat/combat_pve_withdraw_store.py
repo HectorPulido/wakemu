@@ -148,11 +148,26 @@ def persist(
                 **characters[session.character_id],
                 "captured_roster": reset,
             }
-    return dict(
+    outcome = dict(
         character=characters[session.character_id],
         characters=characters,
         applied=applied,
     )
+    if getattr(original_fight, "native_order_trial", None) is not None:
+        from wakfu_server.achievements import native_order_trial_settlement
+
+        if captured_departure_fight is None:
+            raise ValueError("Order withdrawal requires its actual departure candidate")
+        progression = native_order_trial_settlement.stage_withdrawal(
+            db,
+            store,
+            captured_departure_fight,
+            native_order_trial_settlement.load_rule(),
+        )
+        packets = tuple(progression.get(session.account_id, ()))
+        if packets:
+            outcome["order_trial_progression"] = packets
+    return outcome
 
 
 def _complete_owned_health_return(

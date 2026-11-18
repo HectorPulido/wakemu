@@ -1,0 +1,98 @@
+{
+  "schema": "owned-story-native-sources-v1",
+  "map_id": 1299,
+  "scenario_id": 1450,
+  "lua_sha256": "c18409b5c99183f31882692515ba0d268ea54ce6c80f5f95e71865478ca1f43d",
+  "objects": [
+    {
+      "x": -16.0,
+      "y": 0.0,
+      "z": 0.0,
+      "id": 16328,
+      "auto": false,
+      "type": "Door",
+      "chunk": "-1_0",
+      "map_id": 1299,
+      "payload_hex": "02000000000b010000000d0000010513fffffff0000000000000000101000100000000000000ffffffff0101"
+    }
+  ],
+  "scenario_events": [
+    11084,
+    11085,
+    11198,
+    11274,
+    11189,
+    11215,
+    21249,
+    21250,
+    21392,
+    21393
+  ],
+  "event_signatures": {
+    "11084": {
+      "argument_count": 0
+    },
+    "11085": {
+      "argument_count": 0
+    },
+    "11198": {
+      "argument_count": 0
+    },
+    "11274": {
+      "argument_count": 0
+    },
+    "11189": {
+      "argument_count": 0
+    },
+    "11215": {
+      "argument_count": 4
+    },
+    "21249": {
+      "argument_count": 12
+    },
+    "21250": {
+      "argument_count": 0
+    },
+    "21392": {
+      "argument_count": 12
+    },
+    "21393": {
+      "argument_count": 0
+    }
+  },
+  "scenes": {},
+  "native_scripts": {},
+  "programs": {},
+  "loot_tables": {},
+  "presentations": [
+    11215
+  ],
+  "presentation_quests": {
+    "11215": 4873
+  },
+  "argument_sources": {
+    "11215": {
+      "story_targets": {
+        "story_target:1": 1,
+        "story_target:2": 2,
+        "story_target:3": 3,
+        "story_target:4": 4
+      }
+    }
+  },
+  "reviewed_item_grants": {
+    "prison-general-key": {
+      "reference": 14553,
+      "quantity": 1,
+      "quest_id": 4873,
+      "producer_step": "prison-general-victory",
+      "evidence": "Explicit reviewed server bridge: genuine original2144 victory yields one existing native prison key14553 when absent. Native1450/11198 versus11274 prove the separate key branch; no contemporary original loot table for14553 is shipped. Possession is nonconsuming; no invented item cost.",
+      "native_item": {
+        "reference": 14553,
+        "name": "Llave de la cárcel de los Susurros",
+        "maximum": 99
+      }
+    }
+  },
+  "evidence": "Reviewed reconstructed server bindings from installed native1299 Sm6, original exterior16254/830/938 and exit32768/831/939, original1450 General/prisoner/key events and native2144/2099 prototypes. Original private actor positions/server key award are absent. Reviewed native14553 key grant after genuine General victory and nonconsuming door possession gate are explicit reconstruction, not original captured loot."
+}

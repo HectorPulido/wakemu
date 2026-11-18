@@ -65,8 +65,20 @@ def placement_messages(
         raise ValueError("Bootstrap requires exact own placement actors")
     if kind not in (2, 14, 71) or not 0 < duration_ms < 2**31:
         raise ValueError("Unsupported fight mode or placement duration")
+    from .native_order_trial_encounter import empty_opposition_allowed
+
+    from .native_order_trial_encounter import policy_for
+
+    order_policy = policy_for(fight)
+    empty_order_team = (
+        None
+        if order_policy is None
+        or any(a.team == order_policy.npc_team for a in fight.actors.values())
+        else order_policy.npc_team
+    )
     if set(leaders) != {0, 1} or any(
-        leaders[t] not in fight.actors or fight.actors[leaders[t]].team != t
+        not (empty_order_team is not None and t == empty_order_team and leaders[t] == 0)
+        and (leaders[t] not in fight.actors or fight.actors[leaders[t]].team != t)
         for t in leaders
     ):
         raise ValueError("Invalid own team leaders")
@@ -99,6 +111,17 @@ def placement_messages(
     participants = []
     for actor in actors:
         stats, effects = actor_payloads[actor.id]
+        from .native_order_trial_encounter import policy_for
+
+        order_policy = policy_for(fight)
+        if (
+            order_policy is not None
+            and getattr(fight, "native_order_trial", None) is not None
+            and actor.id == order_policy.owner_id
+        ):
+            from .combat_remote_effects import initial_order_actor_effects
+
+            effects = initial_order_actor_effects(fight, actor.id)
         if (
             actor.id in getattr(fight, "native_npc_initialization_receipts", {})
             or actor.id in getattr(fight, "native_encounter_scene_state_receipts", {})
@@ -131,7 +154,14 @@ def placement_messages(
         myo=terrain_effect_id,
         myp=terrain_instance_id,
         myD=topology(arena),
-        myG=initial_timeline([a.id for a in actors], order),
+        myG=initial_timeline(
+            [
+                a.id
+                for a in actors
+                if 114 not in getattr(a, "native_fight_properties", ())
+            ],
+            order,
+        ),
         myI=leaders[0],
         myJ=leaders[1],
         compact=False,
@@ -196,6 +226,7 @@ def create_placement(
     terrain_instance_id,
     placement_cells=None,
     duration_ms=60000,
+    native_order_policy=None,
 ):
     """Combine authoritative local PC/NPC state into FSM and placement messages.
 
@@ -207,7 +238,7 @@ def create_placement(
     from wakfu_server.monsters import owned_instance
 
     members = list(monster) if isinstance(monster, (list, tuple)) else [monster]
-    if not members:
+    if not members and native_order_policy is None:
         raise ValueError("Monster group must not be empty")
     from wakfu_server.combat_encounter_roles import (
         assigned_roles,
@@ -225,6 +256,14 @@ def create_placement(
             monster_references=[member["ref"] for member in members],
         )
     )
+    if native_order_policy is not None:
+        from .native_order_trial_encounter import initial_roles
+
+        if role_record is not None:
+            raise ValueError(
+                "Order side assignment cannot replace frozen ordinary roles"
+            )
+        roles = initial_roles(native_order_policy)
     owned_instance_id = character.get("instance_id", 0)
     if type(owned_instance_id) is not int or not 0 <= owned_instance_id < 2**63:
         raise ValueError("Invalid authoritative character instance")
@@ -252,6 +291,17 @@ def create_placement(
             raise ValueError("Fight actors belong to a different map")
     if character["map_id"] != arena["map_id"]:
         raise ValueError("Fight actors belong to a different map")
+    if native_order_policy is not None:
+        from .native_order_trial_encounter import ConstructorPolicy
+
+        if type(native_order_policy) is not ConstructorPolicy:
+            raise ValueError("Missing typed native order constructor")
+    if native_order_policy is not None and (
+        native_order_policy.map_id != arena["map_id"]
+        or native_order_policy.instance_id != owned_instance_id
+        or arena.get("native_order_instance_id") != owned_instance_id
+    ):
+        raise ValueError("Native order roles belong to another owned map")
     from wakfu_server.builds import effective_sheet_level
 
     effective_level = effective_sheet_level(
@@ -319,6 +369,8 @@ def create_placement(
         raise ValueError("Arena needs prevalidated client topology cells")
     if placement_cells is None:
         placement_cells = arena.get("placement_cells")
+    if placement_cells is None and native_order_policy is not None:
+        raise ValueError("Order constructor requires declared native placement cells")
     if placement_cells is None:
         placement_cells = roles.placement_cells(
             {pc.position}, {npc.position for npc in npcs}
@@ -337,7 +389,12 @@ def create_placement(
     from .combat_geometry_snapshot import freeze_terrain
 
     fight = Fight(
-        fight_id, [pc, *npcs], cells, placement_cells, arena.get("valid_edges")
+        fight_id,
+        [pc, *npcs],
+        cells,
+        placement_cells,
+        arena.get("valid_edges"),
+        native_order_policy=native_order_policy,
     )
     if arena.get("native_encounter_scene") is not None:
         from .combat_encounter_scene_policy import _verified
@@ -373,9 +430,9 @@ def create_placement(
         context = getattr(fight, "native_haven_world_combat_context", None)
         if context is not None:
             for row in helper_manifest["source"]["helpers"]:
-                fight.actors[row["actor_id"]].native_haven_world_combat_context = (
-                    context
-                )
+                fight.actors[
+                    row["actor_id"]
+                ].native_haven_world_combat_context = context
     from .combat_cosmetic_conditions import initialize_fresh_player_cosmetics
 
     initialize_fresh_player_cosmetics(pc, character)
@@ -481,7 +538,7 @@ def create_placement(
         # A reviewed scene policy may pin the native fight model (dojo
         # lessons use 14). Ordinary fights keep the historical mode 2.
         kind=arena.get("native_fight_model", 2),
-        leaders={roles.player_team: pc.id, roles.npc_team: npcs[0].id},
+        leaders={roles.player_team: pc.id, roles.npc_team: npcs[0].id if npcs else 0},
         duration_ms=duration_ms,
         viewer_id=pc.id,
     )

@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "astrub-mount-training-879",
+  "version": 2,
+  "map_id": 879,
+  "entry": {
+    "map_id": 527,
+    "object_id": 22995,
+    "destination_id": 1796
+  },
+  "native_entry_criterion": "IsAchievementRunning(2014)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    22858
+  ],
+  "controller_file": "astrub-mount-training-879.json",
+  "encounters_file": "astrub-mount-training-879-encounters.json",
+  "exploration_file": "astrub-mount-training-879.exploration.json",
+  "provenance": "Original optional2014 Dragoturkey training, independent of2015 books. Literal public527/source22995/destination1796 enters879 at0,0,0; actual22858/1797 exits to527. Original state2998 publishes trainer3174 through native933/117799, preserving all five native abilities, endurance2999, panic3000, harness3002 and exhaustion3003. Actual target3173 retains level30/statistics/book4483/4484/4485. Its one-actor formation and floor anchor3,-8,0 are reviewed server reconstruction on installed879 native surfaces, not a recovered original server placement. Objective4103 requires committed actual enclosure admission;4074 requires original4478 native117956 capture death, not ordinary HP damage, administrative win, dialogue or a fake success callback. Admission explicitly preserves the original native Running criterion, including against server-wide mission-free visit policy. Completion does not authorize another training admission."
+}

@@ -4,6 +4,7 @@ Original Sn accepts some invisible authoring surfaces. This reviewed Wakemu
 reconstruction adds original selectable/non-overlay/nonempty simple graphics.
 Unknown materials retain physics; scripted selected-area births stay distinct.
 """
+
 from collections import deque
 from functools import lru_cache
 from pathlib import Path
@@ -23,11 +24,18 @@ def _catalog():
 @lru_cache(maxsize=128)
 def _map(map_id, source_sha256, release):
     catalog = _catalog()
-    if catalog["qualified_native_release"] != release:
-        raise ValueError("Ordinary combat floor native publication changed")
     row = catalog["maps"].get(str(map_id))
     if row is None or row["status"] != "exported":
         return None
+    from wakfu_server.native_catalog_compatibility import require_source_revision
+
+    from wakfu_server import native_catalog
+
+    if release != native_catalog.release():
+        raise ValueError("Native publication changed during source validation")
+    require_source_revision(
+        catalog["qualified_native_release"], (f"combat-maps/{map_id}.json",)
+    )
     if row["map_id"] != map_id or row["source_sha256"] != source_sha256:
         raise ValueError("Ordinary combat floor physical source changed")
     supported = frozenset(map(tuple, row["supported_cells"]))

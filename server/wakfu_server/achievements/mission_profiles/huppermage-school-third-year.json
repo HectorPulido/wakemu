@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "id": "huppermage-school-third-year",
+  "evidence": [
+    "Native level130 continuation requires completed second-year2787 and one exclusive introduction2788/2789. Current2788 is the only automatically admitted variant; actual2789 remains valid. Existing authenticated, once-per-owned-context ready entry effects from native25725/2333 award only the running variant secret-passage5636/5637; no public map arrival or administrative success qualifies.",
+    "Real labyrinth2790/5638, infiltration2791/5650 and Occullege2792/5649 complete in native sequence. The three completed children reconcile2797 objectives5646/5647/5648; native final registrar5643 remains a separate accepted dialogue. No child completion grants the final certificate, native5623,26347 or final rewards. Publish only with all three physical producers and the registrar fragment."
+  ],
+  "bindings": [],
+  "links": [
+    {
+      "parent_quest_id": 2797,
+      "objective_id": 5646,
+      "child_quest_id": 2790
+    },
+    {
+      "parent_quest_id": 2797,
+      "objective_id": 5647,
+      "child_quest_id": 2791
+    },
+    {
+      "parent_quest_id": 2797,
+      "objective_id": 5648,
+      "child_quest_id": 2792
+    }
+  ],
+  "activations": [
+    {
+      "id": "school-third-year-current-level130-introduction",
+      "quest_id": 2788,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2787
+      ],
+      "admission_evidence": "Actual earned second-year certificate2787 and original real-level130 eligibility; only current2788 auto-starts. Mutually exclusive original2789 remains supported when genuinely running."
+    },
+    {
+      "id": "school-third-year-earned-certificate-introduction",
+      "quest_id": 2788,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2787
+      },
+      "requires_completed": [
+        2787
+      ]
+    },
+    {
+      "id": "school-third-year-earned-2788-2790",
+      "quest_id": 2790,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2788
+      },
+      "requires_completed": [
+        2788
+      ]
+    },
+    {
+      "id": "school-third-year-ready-2788-2790",
+      "quest_id": 2790,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2788
+      ],
+      "admission_evidence": "Actual completed exclusive introduction2788 after native secret-passage entry; preserve native Active introduction eligibility and all original rewards."
+    },
+    {
+      "id": "school-third-year-earned-2788-2797",
+      "quest_id": 2797,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2788
+      },
+      "requires_completed": [
+        2788
+      ]
+    },
+    {
+      "id": "school-third-year-ready-2788-2797",
+      "quest_id": 2797,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2788
+      ],
+      "admission_evidence": "Actual completed exclusive introduction2788 after native secret-passage entry; preserve native Active introduction eligibility and all original rewards."
+    },
+    {
+      "id": "school-third-year-earned-2789-2790",
+      "quest_id": 2790,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2789
+      },
+      "requires_completed": [
+        2789
+      ]
+    },
+    {
+      "id": "school-third-year-ready-2789-2790",
+      "quest_id": 2790,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2789
+      ],
+      "admission_evidence": "Actual completed exclusive introduction2789 after native secret-passage entry; preserve native Active introduction eligibility and all original rewards."
+    },
+    {
+      "id": "school-third-year-earned-2789-2797",
+      "quest_id": 2797,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2789
+      },
+      "requires_completed": [
+        2789
+      ]
+    },
+    {
+      "id": "school-third-year-ready-2789-2797",
+      "quest_id": 2797,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2789
+      ],
+      "admission_evidence": "Actual completed exclusive introduction2789 after native secret-passage entry; preserve native Active introduction eligibility and all original rewards."
+    },
+    {
+      "id": "school-third-year-earned-2790-2791",
+      "quest_id": 2791,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2790
+      },
+      "requires_completed": [
+        2790
+      ]
+    },
+    {
+      "id": "school-third-year-ready-2790-2791",
+      "quest_id": 2791,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2790
+      ],
+      "admission_evidence": "Genuine completed native challenge2790 qualifies continuation2791; original native eligibility remains authoritative, with no entry or dialogue substitute for mechanical completion."
+    },
+    {
+      "id": "school-third-year-earned-2791-2792",
+      "quest_id": 2792,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2791
+      },
+      "requires_completed": [
+        2791
+      ]
+    },
+    {
+      "id": "school-third-year-ready-2791-2792",
+      "quest_id": 2792,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "minimum_level": 130,
+      "requires_completed": [
+        2791
+      ],
+      "admission_evidence": "Genuine completed native challenge2791 qualifies continuation2792; original native eligibility remains authoritative, with no entry or dialogue substitute for mechanical completion."
+    }
+  ]
+}

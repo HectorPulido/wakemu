@@ -1,0 +1,37 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "bilbyza-party-560",
+  "map_id": 560,
+  "maximum_members": 1,
+  "provenance": "Reviewed source-qualified Full Jellix Party: native portal19114 exact approach458(-74,5,3) matches both original1261 objective markers, destination1227 enters actual560; native19115/1226 freely returns. Five authentic family540 Bilbiboyz preserve native levels/books/states/loot. Four native color breeds with a repeated Raspberry is reviewed private formation, not recovered official server roster. Only actual defeated original actors increment native variable311; no room-victory surrogate kill or minigame substitution. Repeatable entrance remains available with or without a quest.",
+  "admission": {
+    "quest_id": 1261,
+    "objective_id": null,
+    "continuation_quest_id": 1262
+  },
+  "native_sources": {
+    "path": "bilbyza-party-560.native.v1.json",
+    "sha256": "3cb5e2fbd1f649930fed2319cc184a66f44aaceac756f79b42a8b94dbd618653"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "party-loaded",
+      "kind": "world_ready",
+      "reference": 560,
+      "requires": [],
+      "effects": [],
+      "evidence": "Only actual paid/authenticated native portal entry; objective2390 uses its transport_entered1227 event."
+    },
+    {
+      "id": "party-real-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "party-loaded"
+      ],
+      "effects": [],
+      "evidence": "Only actual defeat producers increment variable311. Native reward17018 remains on genuine1261 completion."
+    }
+  ]
+}

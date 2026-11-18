@@ -4,6 +4,8 @@ An event producer must authenticate the gameplay event and map it to a reviewed
 native variable id. A variable id found in a definition alone is not that mapping.
 This module never starts missions and does not authenticate events itself.
 """
+
+from . import native_effective_eligibility
 import re
 from copy import deepcopy
 
@@ -84,13 +86,11 @@ def advance(state, definitions, source, *, character, store, now_ms):
         if candidate["variables"][str(variable)] < threshold:
             continue
         from wakfu_server import dungeon_criteria
-        from wakfu_server.dungeon_achievement_authority import queries_from_snapshot
+        from wakfu_server.dungeon_achievement_authority import queries_from_state
 
         definition = by_id[quest_id]
         objective = next(row for row in definition["cjJ"] if row["d"] == objective_id)
-        queries = queries_from_snapshot(
-            {key: candidate[key] for key in ("running", "completed", "objectives")}
-        )
+        queries = queries_from_state(candidate)
         try:
             eligible = all(
                 dungeon_criteria.evaluate(
@@ -100,7 +100,11 @@ def advance(state, definitions, source, *, character, store, now_ms):
                     queries=queries,
                     now_ms=now_ms,
                 )
-                for criterion in (definition["cjI"], objective["ckc"], objective["cke"])
+                for criterion in (
+                    native_effective_eligibility.criterion(definition),
+                    objective["ckc"],
+                    objective["cke"],
+                )
             )
         except (ValueError, NotImplementedError, KeyError):
             continue

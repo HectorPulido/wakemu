@@ -1,5 +1,6 @@
 import copy
 import unittest
+from dataclasses import replace
 from types import SimpleNamespace
 
 from wakfu_server.combat_retained_effects import RetainedEffect
@@ -43,6 +44,87 @@ def actor_payload(fight, actor):
 
 
 class SpectatorSnapshotTests(unittest.TestCase):
+    def test_placement_reconnect_filters_property_114_only_from_timeline(self):
+        from wakfu_server.combat_wire import initial_timeline
+
+        fight, shared = shared_fixture()
+        fight.actors[-200].native_fight_properties = (114,)
+        decoded = decode_spectator_bootstrap(
+            current_snapshot(fight, shared, actor_payload=actor_payload)[0][1]
+        )
+        self.assertEqual(
+            {row["actor_id"] for row in decoded["participants"]}, {5, -200}
+        )
+        self.assertEqual(decoded["myG"], initial_timeline([5], [5]))
+
+        ordinary, ordinary_shared = shared_fixture()
+        ordinary_decoded = decode_spectator_bootstrap(
+            current_snapshot(ordinary, ordinary_shared, actor_payload=actor_payload)[0][
+                1
+            ]
+        )
+        self.assertEqual(
+            ordinary_decoded["myG"], initial_timeline([5, -200], [5, -200])
+        )
+        with self.assertRaisesRegex(ValueError, "Invalid initial timeline membership"):
+            initial_timeline([5, -200], [5])
+
+    def test_native_order_snapshot_keeps_empty_npc_leader_sentinel_without_fake_actor(
+        self,
+    ):
+        from test_native_order_trial_encounter import NativeOrderTrialEncounterTests
+
+        fixture = NativeOrderTrialEncounterTests()
+        fight, terrain, owner = fixture.build_fight(fixture.policy())
+        shared = SimpleNamespace(
+            fight=fight,
+            map_id=885,
+            instance_id=901,
+            is_duel=False,
+            runtime=SimpleNamespace(native_action_id=0),
+            join_context={
+                "arena": terrain,
+                "terrain_effect_id": 46,
+                "terrain_instance_id": 901,
+                "leaders": {0: 0, 1: owner.id},
+            },
+        )
+        packets = current_snapshot(fight, shared, actor_payload=actor_payload)
+        self.assertEqual([opcode for opcode, _ in packets[:1]], [12044])
+        decoded = decode_spectator_bootstrap(packets[0][1])
+        self.assertEqual((decoded["myI"], decoded["myJ"]), (0, owner.id))
+        self.assertEqual(
+            [row["actor_id"] for row in decoded["participants"]], [owner.id]
+        )
+        self.assertNotIn(0, fight.actors)
+
+        invalid = []
+        untyped = copy.deepcopy(fight)
+        untyped.native_order_trial_constructor = None
+        invalid.append(("untyped sentinel", untyped, {0: 0, 1: owner.id}))
+
+        wrong_side = copy.deepcopy(fight)
+        wrong_side.actors[owner.id].team = 0
+        invalid.append(("owner on npc side", wrong_side, {0: 0, 1: owner.id}))
+
+        foreign_leader = copy.deepcopy(fight)
+        invalid.append(
+            ("foreign nonzero leader", foreign_leader, {0: 999999, 1: owner.id})
+        )
+
+        malformed = copy.deepcopy(fight)
+        malformed.native_order_trial_constructor = {"owner_id": owner.id}
+        invalid.append(("malformed policy", malformed, {0: 0, 1: owner.id}))
+
+        for label, candidate, leaders in invalid:
+            with self.subTest(label=label):
+                context = dict(shared.join_context, leaders=leaders)
+                view = SimpleNamespace(
+                    **{**vars(shared), "fight": candidate, "join_context": context}
+                )
+                with self.assertRaises(ValueError):
+                    current_snapshot(candidate, view, actor_payload=actor_payload)
+
     def test_owner_scoped_dojo_fight_is_not_spectatable(self):
         fight, shared = shared_fixture()
         shared.join_context["world_scene_owner"] = 5

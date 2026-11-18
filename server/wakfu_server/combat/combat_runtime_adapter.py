@@ -395,14 +395,16 @@ class NativeServerRuntimeAdapter:
                     else:
                         retained_ids = frozenset(row[0] for row in retained_rows)
                         retained_actions = frozenset(row[1] for row in retained_rows)
-                from .combat_area_total_hp_conditions import area_total_hp_snapshot
+                from .combat_area_characteristic_conditions import (
+                    area_characteristic_snapshot,
+                )
 
-                hp_current, hp_maxima, hp_absent = area_total_hp_snapshot(
+                area_current, area_maxima, hp_absent = area_characteristic_snapshot(
                     preview, identity
                 )
                 typed = dict(
-                    characteristics=hp_current,
-                    characteristic_maxima=hp_maxima,
+                    characteristics=area_current,
+                    characteristic_maxima=area_maxima,
                     total_hp_absent_characteristics=hp_absent,
                     # Registered faW/bcQ area PV is not a biB player.
                     is_player=False,
@@ -560,11 +562,33 @@ class NativeServerRuntimeAdapter:
             native_caster_target_distance,
         )
 
+        distance_target = target
+        if (
+            distance_target is None
+            and invocation.target_id is not None
+            and not native_cell_argument
+        ):
+            from .combat_effect_area_targets import (
+                area_target,
+                retained_area_source_target,
+            )
+
+            # Qq implements QK extends alb: eJQ measures its actual PV,
+            # independently of the original spell's execution anchor.
+            distance_target = area_target(preview, invocation.target_id)
+            if distance_target is None:
+                distance_target = retained_area_source_target(
+                    preview, invocation.target_id
+                )
+            if distance_target is None:
+                raise ValueError("Missing selected native criterion target PV")
         distance = native_caster_target_distance(
             DistanceActor(*source.position[:2], source.physical_radius),
             (
-                DistanceActor(*target.position[:2], target.physical_radius)
-                if target is not None and not native_cell_argument
+                DistanceActor(
+                    *distance_target.position[:2], distance_target.physical_radius
+                )
+                if distance_target is not None and not native_cell_argument
                 else invocation.cell
             ),
         )
@@ -1986,7 +2010,11 @@ class NativeServerRuntimeAdapter:
                 raise ValueError(f"Missing native team actor authority: {key}")
             if key in ("triggeringcaster", "triggeringtarget"):
                 if trigger_source is None:
-                    if key == "triggeringtarget":
+                    if key == "triggeringtarget" or turn_boundary is not None:
+                        # Owned turn events supply their actual participant
+                        # separately from the null triggering Qe. Its caster
+                        # and target relationship queries must agree on team,
+                        # just as the qualified same-caster predicate does.
                         from .combat_external_turn_recipient import (
                             qualified_boundary_actor,
                         )

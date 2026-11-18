@@ -1,0 +1,23 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "wild-estate-bworkball-719",
+  "version": 1,
+  "map_id": 719,
+  "entry": {
+    "map_id": 711,
+    "object_id": 20442,
+    "destination_id": 1416
+  },
+  "native_entry_criterion": "",
+  "native_entry_payment": {
+    "reference": 17877,
+    "quantity": 1
+  },
+  "exit_sources": [
+    20443
+  ],
+  "controller_file": "wild-estate-bworkball-719.json",
+  "encounters_file": "wild-estate-bworkball-719-encounters.json",
+  "exploration_file": "wild-estate-bworkball-719.exploration.json",
+  "provenance": "Explicit reviewed Bworkball reconstruction on original719 Sm6 native floor. Original entry20442/1416 and registration17877, sources20383/446,20407/487,20406/488, player2338→105570/933→2784, ball2783, original625/626 goals and635 recruitment areas, native307/207/325 teams and actual4044/106824 or4045/106850 touchdown execution remain authoritative. Exact original server field footprints and team formations are absent: finite legal goals atx±8,y-1..1 and3/4/5 defenders are reviewed reconstruction, not captured match layouts. Only sealed actual native touchdown may settle the corresponding typed3079/3080/3081 result; ordinary victory, dialogue opening, surrender or administrative wins never qualify."
+}

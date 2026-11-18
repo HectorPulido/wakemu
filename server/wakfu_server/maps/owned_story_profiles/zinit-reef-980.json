@@ -1,0 +1,526 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "zinit-reef-980",
+  "map_id": 980,
+  "maximum_members": 1,
+  "admission": {
+    "quest_id": 2684,
+    "objective_id": null,
+    "continuation_quest_id": 2687
+  },
+  "provenance": "Reviewed reconstruction, not recovered original formations: native map980 real/excarnal portal pairs and all original compass18722 gates are retained. Installed2021 declares three actual reef clears; authored local formations use native family780 sea creatures followed by native Nodule3788 with its unchanged3731/3797 innates and imprisoned souls3786/3787 with3726/2666. Native death mask1010 executes250 boss selfdamage and its own1037 replenishes adds. Counts/arena placements and exact portal-to-clear gate association are explicitly reviewed local policy, not captured official positions. Earlier boat stages are reviewed relocation onto the current native980 deck, preserving their exact scripts and allies. Only real terminal travel after all clears earns5306; no entry or talk substitutes for combat.",
+  "steps": [
+    {
+      "id": "voyage-stage-1-admission",
+      "kind": "room_admission",
+      "reference": 1,
+      "requires": [],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15992
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15993,
+          "arguments": [
+            "room_actor:1:0",
+            "room_actor:1:1"
+          ]
+        }
+      ],
+      "evidence": "Original scenario2015 enter15992/begin15993 executes only after durable owned stage1 original group exists."
+    },
+    {
+      "id": "voyage-stage-1-victory",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "voyage-stage-1-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15995
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15996
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2015,
+          "event": 15997
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Original scenario2015 end15995/phase events; only actual terminal victory of original owned stage1 qualifies, no generic species/name kill."
+    },
+    {
+      "id": "voyage-stage-2-admission",
+      "kind": "room_admission",
+      "reference": 2,
+      "requires": [
+        "voyage-stage-1-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16007
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16008,
+          "arguments": [
+            "room_actor:2:0",
+            "room_actor:2:1"
+          ]
+        }
+      ],
+      "evidence": "Original scenario2018 enter16007/begin16008 executes only after durable owned stage2 original group exists."
+    },
+    {
+      "id": "voyage-stage-2-victory",
+      "kind": "room_victory",
+      "reference": 2,
+      "requires": [
+        "voyage-stage-2-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16010
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16011
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2018,
+          "event": 16012
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Original scenario2018 end16010/phase events; only actual terminal victory of original owned stage2 qualifies, no generic species/name kill."
+    },
+    {
+      "id": "voyage-stage-3-admission",
+      "kind": "room_admission",
+      "reference": 3,
+      "requires": [
+        "voyage-stage-2-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 15998
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 15999,
+          "arguments": [
+            "room_actor:3:0",
+            "room_actor:3:1",
+            "room_actor:3:2"
+          ]
+        }
+      ],
+      "evidence": "Original scenario2016 enter15998/begin15999 executes only after durable owned stage3 original group exists."
+    },
+    {
+      "id": "voyage-stage-3-victory",
+      "kind": "room_victory",
+      "reference": 3,
+      "requires": [
+        "voyage-stage-3-admission"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 16001
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 16002
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2016,
+          "event": 16003
+        },
+        {
+          "kind": "context_refresh"
+        }
+      ],
+      "evidence": "Original scenario2016 end16001/phase events; only actual terminal victory of original owned stage3 qualifies, no generic species/name kill."
+    },
+    {
+      "id": "reef-boat-open",
+      "kind": "world_ready",
+      "reference": 980,
+      "requires": [
+        "voyage-stage-3-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2021,
+          "event": 16078,
+          "arguments": [
+            0
+          ]
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25447,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "scenario_event",
+          "scenario": 2021,
+          "event": 16066,
+          "arguments": [
+            "story_npc:3801"
+          ]
+        }
+      ],
+      "evidence": "Actual completed voyage opens originalgangway25447 and the native5second arrivalscene binds the actual visible scoped shoreNPC3801; no mission objective is granted."
+    },
+    {
+      "id": "reef-shore-intro-done",
+      "kind": "scenario_complete",
+      "reference": 2,
+      "requires": [
+        "reef-boat-open"
+      ],
+      "effects": [],
+      "evidence": "Only pending native arrival callback or its literal5000ms recovery completes the shore introduction; unassigned/completed visits complete only its mechanical state."
+    },
+    {
+      "id": "reef-room4-victory",
+      "kind": "room_victory",
+      "reference": 4,
+      "requires": [
+        "voyage-stage-3-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2021,
+          "event": 16047,
+          "arguments": [
+            0
+          ]
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25429,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25425,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Actual first reefclear unlocks its exact native world-pair gate (reconstructed association, original objects/positions)."
+    },
+    {
+      "id": "reef-room5-victory",
+      "kind": "room_victory",
+      "reference": 5,
+      "requires": [
+        "reef-room4-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2021,
+          "event": 16048,
+          "arguments": [
+            0
+          ]
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25426,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25428,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25424,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Second actualreef clear opens the remaining compass approaches to the ghostregion."
+    },
+    {
+      "id": "reef-room6-victory",
+      "kind": "room_victory",
+      "reference": 6,
+      "requires": [
+        "reef-room5-victory"
+      ],
+      "effects": [
+        {
+          "kind": "scenario_event",
+          "scenario": 2021,
+          "event": 16049,
+          "arguments": [
+            0
+          ]
+        },
+        {
+          "kind": "element_state",
+          "object_id": 25427,
+          "state": 0,
+          "visible": true,
+          "usable": false,
+          "blocks_movement": false
+        }
+      ],
+      "evidence": "Only the original Nodule and its four original imprisoned souls defeated through genuine native mechanics clear the terminal region; native summons remain ordinary combat participants."
+    },
+    {
+      "id": "reef-terminal-exit",
+      "kind": "native_travel",
+      "reference": 2249,
+      "requires": [
+        "reef-room6-victory"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2687,
+          "objective_id": 5306
+        }
+      ],
+      "evidence": "Authenticated terminal nativeportal25420/2249 from its actual excarnal approach reaches986 in the same durable exit transaction."
+    },
+    {
+      "id": "reef-return-exit",
+      "kind": "native_travel",
+      "reference": 2255,
+      "requires": [
+        "reef-room6-victory"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2687,
+          "objective_id": 5306
+        }
+      ],
+      "evidence": "The originalcompleted-reef boatportal25401/2255 also qualifies only after the same actual clear, never upon its initial same-map compass branch."
+    }
+  ],
+  "initial_elements": [
+    {
+      "kind": "element_state",
+      "object_id": 25424,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25425,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25426,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25427,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25428,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25429,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    },
+    {
+      "kind": "element_state",
+      "object_id": 25447,
+      "state": 1,
+      "visible": true,
+      "usable": false,
+      "blocks_movement": true
+    }
+  ],
+  "native_sources": {
+    "path": "zinit-reef-980.native.v1.json",
+    "sha256": "15fce90a68c4e201b1d6dca0fcb316f82543db037b9c07ebec09e3cffbb51716"
+  },
+  "native_links": [
+    {
+      "source_id": 25401,
+      "destination_id": 2237,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25401,
+      "destination_id": 2255,
+      "requires": [
+        "reef-room6-victory"
+      ]
+    },
+    {
+      "source_id": 25402,
+      "destination_id": 2238,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25403,
+      "destination_id": 2240,
+      "requires": [
+        "reef-room4-victory"
+      ]
+    },
+    {
+      "source_id": 25404,
+      "destination_id": 2241,
+      "requires": [
+        "reef-room5-victory"
+      ]
+    },
+    {
+      "source_id": 25405,
+      "destination_id": 2242,
+      "requires": [
+        "reef-room5-victory"
+      ]
+    },
+    {
+      "source_id": 25413,
+      "destination_id": 2239,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25414,
+      "destination_id": 2243,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25415,
+      "destination_id": 2244,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25416,
+      "destination_id": 2245,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25417,
+      "destination_id": 2247,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25418,
+      "destination_id": 2246,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25419,
+      "destination_id": 2248,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25420,
+      "destination_id": 2254,
+      "requires": [
+        "voyage-stage-3-victory"
+      ]
+    },
+    {
+      "source_id": 25420,
+      "destination_id": 2249,
+      "requires": [
+        "reef-room6-victory"
+      ]
+    }
+  ]
+}

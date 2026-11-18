@@ -85,6 +85,7 @@ def supported(criteria, known=None):
                 "IsAchievementObjectiveComplete",
                 "IsAchievementComplete",
                 "IsAchievementRunning",
+                "IsAchievementActive",
             },
         ):
             if (

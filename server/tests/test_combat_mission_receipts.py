@@ -1,9 +1,16 @@
 """Durable combat mission receipt retry and replay behavior with an isolated fake DB."""
+
 from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
-from wakfu_server.achievements import combat_missions, rewards, storage, wire
+from wakfu_server.achievements import (
+    combat_missions,
+    mission_toolkit,
+    rewards,
+    storage,
+    wire,
+)
 
 
 class Cursor:
@@ -61,7 +68,7 @@ class CombatMissionReceiptTests(unittest.TestCase):
             "d": self.quest_id,
             "native_class": "aJM",
             "aqb": False,
-            "cjI": {"always": True},
+            "cjI": "",
             "cjP": 1,
             "cjL": 0,
             "cjU": 0,
@@ -97,6 +104,9 @@ class CombatMissionReceiptTests(unittest.TestCase):
             },
         )()
         self.db = ReceiptDB()
+        followup = patch.object(mission_toolkit, "settle_completions", return_value=[])
+        self.followup = followup.start()
+        self.addCleanup(followup.stop)
 
     def test_no_publication_or_no_matching_rule_does_not_stage_receipt(self):
         with patch.object(combat_missions, "load", return_value=None):
@@ -171,12 +181,16 @@ class CombatMissionReceiptTests(unittest.TestCase):
                 self.db, self.character["id"], self.quest_id, "once", 44, {"d": 44}
             )
             self.assertIsNotNone(self.db.completed)
+            self.followup.assert_called_once_with(
+                self.db, self.store, self.character, [self.quest_id]
+            )
             self.assertEqual(
                 [],
                 combat_missions.settle(self.db, self.store, self.character, self.event),
             )
             self.assertEqual(2, advance.call_count)
             self.assertEqual(1, claim.call_count)
+            self.assertEqual(1, self.followup.call_count)
 
     def test_staged_receipt_rejects_changed_event(self):
         self.db.payload = {

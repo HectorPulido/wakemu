@@ -32,6 +32,13 @@ def bind_room_group(
     ).fetchone()
     if run is None:
         return None
+    from wakfu_server import owned_quest_pools
+
+    pool = owned_quest_pools.bind(
+        db, group_key, character_id, fight_id, player_team=player_team
+    )
+    if pool is not None:
+        return pool
     from wakfu_server import dungeon_postboss_nodes
 
     postboss = dungeon_postboss_nodes.group_receipt(db, group_key, lock=True)
