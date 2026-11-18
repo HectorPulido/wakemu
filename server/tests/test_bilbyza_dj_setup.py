@@ -71,6 +71,21 @@ class BilbyzaDjSetupTests(unittest.TestCase):
                 eligible_recipients(dispatcher, root, invocation, fight), (101,)
             )
         self.assertEqual(effects, original)
+        compiled_effects = {
+            key: dict(row, target_masks=tuple(row["target_masks"]))
+            if "target_masks" in row
+            else row
+            for key, row in effects.items()
+        }
+        self.assertEqual(
+            qualified_roots(
+                fight,
+                dict(actor_id=202, target=caster.position),
+                dict(minimum=0, maximum=0, roots=[1]),
+                compiled_effects,
+            ),
+            {1: root},
+        )
         effects["11"] = dict(root, parameter_count=6, criteria="False")
         self.assertEqual(
             qualified_roots(

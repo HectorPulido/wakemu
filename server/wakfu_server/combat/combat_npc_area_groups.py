@@ -68,7 +68,8 @@ def immediate_target_state_group(effect, effects):
             or child.get("native_target_selector") != {"class": "fcE", "mask": 1}
             or child.get("area_class") != "anD"
             or child.get("area_native") != "point"
-            or child.get("target_masks") != [None] * 7
+            or not isinstance(child.get("target_masks"), (list, tuple))
+            or tuple(child["target_masks"]) != (None,) * 7
             or child.get("application_flag") != "NONE"
             or child.get("removal_flag") != "NONE"
         ):
