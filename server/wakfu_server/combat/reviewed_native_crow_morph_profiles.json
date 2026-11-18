@@ -1,0 +1,66 @@
+{
+  "authority": "Reuse the catalog-verified Crow transformation constructor for the existing native 933 effect. The 5 cast contracts, all effect records and the 2393 summon are already compiled or published.",
+  "base_canonical_sha256": "831fbc4f0b1001de975daf8dd83ef599fa241f4e85fa7848f006fbcaf0b02008",
+  "base_document_sha256": "ebf14422d399df29227259785e653326baba6f2c4fa180f8840352b63bf3bf62",
+  "effect_profile_edges": [
+    {
+      "effect_reference": 67443,
+      "profile_id": 1982,
+      "source_effect_canonical_sha256": "d774732aed1daeb79cf67b020c7630603e081970d0d8ac82e53478562cadc218"
+    }
+  ],
+  "native_book_checks": 25,
+  "native_catalog_revision": "42c92df22787c4dab5af8641708df41f6f7ef5c93a713541ce047776b87492d4",
+  "profiles": {
+    "1982": {
+      "abilities": [
+        {
+          "casting_uid": 2918,
+          "maximum_level": 200,
+          "override_level": -1,
+          "reference": 2918
+        },
+        {
+          "casting_uid": 2919,
+          "maximum_level": 200,
+          "override_level": -1,
+          "reference": 2919
+        },
+        {
+          "casting_uid": 2921,
+          "maximum_level": 200,
+          "override_level": -1,
+          "reference": 2921
+        },
+        {
+          "casting_uid": 2920,
+          "maximum_level": 200,
+          "override_level": -1,
+          "reference": 2920
+        },
+        {
+          "casting_uid": 2922,
+          "maximum_level": 200,
+          "override_level": -1,
+          "reference": 2922
+        }
+      ],
+      "authority": "native933 slot0 class morphology dependency -> bbo/blj.dvR; exact big.a bPO constructor level/referenceUID verified",
+      "descriptor_initial_hp": 4000,
+      "fight_properties": [
+        28,
+        69
+      ],
+      "initial_state_triples": [],
+      "minimum_level": 100,
+      "native_profile_name": "",
+      "profile_id": 1982,
+      "world_properties": [
+        43,
+        7
+      ]
+    }
+  },
+  "schema": "wakemu-reviewed-native-morph-profile-supplement-v1",
+  "source_export_sha256": "b64949ba8c371b1c4b55a0df2d3d04543efc9fadad5e9099cf4bd71c6e7acb65"
+}

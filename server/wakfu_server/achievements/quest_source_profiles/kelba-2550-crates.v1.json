@@ -1,0 +1,497 @@
+{
+  "schema": "owned-quest-source-encounters-v1",
+  "provenance": "Kelba east and northeast crate occupations and southern source-owned encounter. Publish as one finite 2550 batch.",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "definitions": [
+    {
+      "d": 2550,
+      "aHe": "IsAchievementActive(2550)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2547,
+      "cjG": 321,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 65 and IsAchievementComplete(2549)",
+      "cjJ": [
+        {
+          "d": 5049,
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -150,
+              "ckh": -16,
+              "cki": -50,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "native_class": "aJN"
+        },
+        {
+          "d": 5066,
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -192,
+              "ckh": 38,
+              "cki": -60,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "native_class": "aJN"
+        },
+        {
+          "d": 5067,
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -133,
+              "ckh": -44,
+              "cki": -50,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "d": 4103,
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            550000
+          ],
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 65,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 3,
+      "cka": "ach.321",
+      "isVisible": true,
+      "getDuration": 0,
+      "native_class": "aJM"
+    }
+  ],
+  "bindings": [
+    {
+      "id": "kelba-2550-crate-25162",
+      "quest_id": 2550,
+      "objective_id": 5049,
+      "source": {
+        "chunk": "-9_-1",
+        "id": 25162,
+        "payload_hex": "02000000000b010000000d00000103afffffff6afffffff0ffce0001010101000f0000000338353000000000000101",
+        "x": -150.0,
+        "y": -16.0,
+        "map_id": 943,
+        "z": -50.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "850",
+        "descriptor_id": 850
+      },
+      "approaches": [
+        [
+          -150,
+          -15,
+          -50
+        ],
+        [
+          -150,
+          -17,
+          -50
+        ],
+        [
+          -151,
+          -16,
+          -50
+        ],
+        [
+          -149,
+          -16,
+          -50
+        ]
+      ],
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 850,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1060,
+            "clx": 19,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 1000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1080,
+                "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5049)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2234,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5049)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1060,
+        "clx": 19,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 1000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1080,
+            "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5049)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 2234,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5049)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1080,
+        "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5049)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 2234,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5049)",
+            "parameters": []
+          }
+        ]
+      },
+      "mode": "gather",
+      "roster": [],
+      "scenario": null,
+      "native_occupation_ms": 1000,
+      "native_definition_sha256": "33c8335ea7817c9d877f78e8e9953aacbe5fbb5b2552acdc8582d3e04c9b4b38",
+      "timing_basis": "Native group 1060 commits after its 1000 ms occupation.",
+      "native_feedback": [
+        2234
+      ],
+      "evidence": "Native Kelba 943 object 25162 invokes type-1 effect 2234 at objective 5049's original marker. The operation commits an authenticated crate receipt."
+    },
+    {
+      "id": "kelba-2550-crate-25163",
+      "quest_id": 2550,
+      "objective_id": 5066,
+      "source": {
+        "chunk": "-11_2",
+        "id": 25163,
+        "payload_hex": "02000000000b010000000d00000103afffffff4000000026ffc40001010101000f0000000338353100000000000101",
+        "x": -192.0,
+        "y": 38.0,
+        "map_id": 943,
+        "z": -60.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "851",
+        "descriptor_id": 851
+      },
+      "approaches": [
+        [
+          -192,
+          39,
+          -60
+        ],
+        [
+          -192,
+          37,
+          -60
+        ],
+        [
+          -193,
+          38,
+          -60
+        ],
+        [
+          -191,
+          38,
+          -60
+        ]
+      ],
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 851,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1061,
+            "clx": 19,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 1000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1081,
+                "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5066) and !IsHero()",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2235,
+                    "effect_type": 10,
+                    "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5066) and !IsHero()",
+                    "parameters": [
+                      "1968"
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1061,
+        "clx": 19,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 1000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1081,
+            "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5066) and !IsHero()",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 2235,
+                "effect_type": 10,
+                "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5066) and !IsHero()",
+                "parameters": [
+                  "1968"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1081,
+        "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5066) and !IsHero()",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 2235,
+            "effect_type": 10,
+            "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5066) and !IsHero()",
+            "parameters": [
+              "1968"
+            ]
+          }
+        ]
+      },
+      "mode": "encounter",
+      "roster": [
+        {
+          "reference": 3568,
+          "count": 1
+        },
+        {
+          "reference": 3571,
+          "count": 1
+        },
+        {
+          "reference": 3573,
+          "count": 1
+        }
+      ],
+      "scenario": {
+        "id": 1968,
+        "begin_event": 15708,
+        "win_event": 15710,
+        "actor_slots": 3
+      },
+      "native_occupation_ms": 1000,
+      "native_definition_sha256": "33c8335ea7817c9d877f78e8e9953aacbe5fbb5b2552acdc8582d3e04c9b4b38",
+      "timing_basis": "Native group 1061 commits after its 1000 ms occupation.",
+      "evidence": "Native Kelba 943 object 25163 invokes 2235 type 10 for scenario 1968. Only a finished source-owned fight with the existing local convoy birds 3568, 3571 and 3573 qualifies. The composition is a local design reuse from room 2 of quest-map-947-25104-2199, omitting the cargo carrier."
+    },
+    {
+      "id": "kelba-2550-crate-25164",
+      "quest_id": 2550,
+      "objective_id": 5067,
+      "source": {
+        "chunk": "-8_-3",
+        "id": 25164,
+        "payload_hex": "02000000000b010000000d00000103afffffff7bffffffd4ffce0001010101000f0000000338353200000000000101",
+        "x": -133.0,
+        "y": -44.0,
+        "map_id": 943,
+        "z": -50.0,
+        "auto": false,
+        "type": "GenericActivableInteractiveElement",
+        "native_parameters": "852",
+        "descriptor_id": 852
+      },
+      "approaches": [
+        [
+          -133,
+          -43,
+          -50
+        ],
+        [
+          -134,
+          -44,
+          -50
+        ]
+      ],
+      "descriptor": {
+        "native_class": "aLl",
+        "descriptor_id": 852,
+        "groups": [
+          {
+            "native_class": "aLo",
+            "id": 1062,
+            "clx": 19,
+            "cod": 0,
+            "coe": 0,
+            "cof": false,
+            "cnd": 0,
+            "cog": 1000,
+            "actions": [
+              {
+                "native_class": "aLn",
+                "wire_action": 0,
+                "native_id": 1082,
+                "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5067)",
+                "raw_cob": 1.0,
+                "effects": [
+                  {
+                    "native_class": "aLm",
+                    "action_reference": 2236,
+                    "effect_type": 1,
+                    "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5067)",
+                    "parameters": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "group": {
+        "native_class": "aLo",
+        "id": 1062,
+        "clx": 19,
+        "cod": 0,
+        "coe": 0,
+        "cof": false,
+        "cnd": 0,
+        "cog": 1000,
+        "actions": [
+          {
+            "native_class": "aLn",
+            "wire_action": 0,
+            "native_id": 1082,
+            "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5067)",
+            "raw_cob": 1.0,
+            "effects": [
+              {
+                "native_class": "aLm",
+                "action_reference": 2236,
+                "effect_type": 1,
+                "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5067)",
+                "parameters": []
+              }
+            ]
+          }
+        ]
+      },
+      "action": {
+        "native_class": "aLn",
+        "wire_action": 0,
+        "native_id": 1082,
+        "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5067)",
+        "raw_cob": 1.0,
+        "effects": [
+          {
+            "native_class": "aLm",
+            "action_reference": 2236,
+            "effect_type": 1,
+            "criterion": "IsAchievementRunning(2550) && !IsAchievementObjectiveComplete(5067)",
+            "parameters": []
+          }
+        ]
+      },
+      "mode": "gather",
+      "roster": [],
+      "scenario": null,
+      "native_occupation_ms": 1000,
+      "native_definition_sha256": "33c8335ea7817c9d877f78e8e9953aacbe5fbb5b2552acdc8582d3e04c9b4b38",
+      "timing_basis": "Native group 1062 commits after its 1000 ms occupation.",
+      "native_feedback": [
+        2236
+      ],
+      "evidence": "Native Kelba 943 object 25164 invokes type-1 effect 2236 at objective 5067's original marker. The operation commits an authenticated crate receipt."
+    }
+  ]
+}

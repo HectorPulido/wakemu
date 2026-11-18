@@ -21,7 +21,9 @@ RUNTIME_ONLY = frozenset(
         "wakfu_server/maps/rii_airyna_dialogue.py",
         "wakfu_server/maps/owned_physical_entry.py",
         "wakfu_server/maps/dungeon_transport.py",
+        "wakfu_server/maps/dungeon_fight_binding.py",
         "wakfu_server/maps/owned_story_controller.py",
+        "wakfu_server/maps/owned_story_admission.py",
         "wakfu_server/maps/owned_story_configuration.py",
         "wakfu_server/maps/owned_story_terminal_returns.py",
         "wakfu_server/maps/owned_story_defeat_qualification.py",
@@ -29,8 +31,13 @@ RUNTIME_ONLY = frozenset(
         "wakfu_server/application/session_travel.py",
         "wakfu_server/maps/dungeon_criteria.py",
         "wakfu_server/maps/owned_story_mechanics.py",
+        "wakfu_server/maps/owned_story_native_links.py",
         "wakfu_server/application/owned_story_generic_entry_dispatch.py",
         "wakfu_server/maps/owned_story_dynamic_pickups.py",
+        "wakfu_server/maps/owned_story_object_operations.py",
+        "wakfu_server/maps/seasonal_native_gateway.py",
+        "wakfu_server/achievements/source_quest_encounters.py",
+        "wakfu_server/maps/monster_idle_distribution_store.py",
         "wakfu_server/application/owned_story_dispatch.py",
         "wakfu_server/maps/owned_story_npcs.py",
         "wakfu_server/maps/owned_story_reentry.py",
@@ -43,6 +50,9 @@ RUNTIME_ONLY = frozenset(
         "wakfu_server/combat/combat_controller_transfer.py",
         "wakfu_server/combat/combat_ai_control.py",
         "wakfu_server/combat/combat_scene_ball_goals.py",
+        "wakfu_server/combat/combat_encounter_scene_policy.py",
+        "wakfu_server/combat/combat_environment_glyphs.py",
+        "wakfu_server/combat/combat_ordinary_authority.py",
     }
 )
 
@@ -169,6 +179,38 @@ REVIEWED_LOADER_OVERRIDE = {
     "wakfu_server/storage/native_compiled_catalog.py": (
         "31a82ab0d94ef123f564fd3f427647748aad63aa63e8e094eb680bda1f53aebf",
         "1a9d22d572dcfb716ae539ed7d39948cce126fdf8c81db2b301c064c9c2f460c",
+    ),
+}
+
+# The Crow supplement extends the runtime book loader while the compiler reads
+# the unchanged native_class_morph_profiles() domain. The payment adapter only
+# forwards event replay options during live casts. The heal changes resolve
+# the source and apply HP during a fight without changing compiled definitions;
+# orientation resolves the already registered construction scope at execution.
+REVIEWED_COMBAT_RUNTIME = {
+    "wakfu_server/combat/combat_morph_spellbook.py": (
+        "2405d0e1d2a9f0bb1a3742732df4ba9901cf7759fad72294e209718ca5425f74",
+        "481e23d656048c282e692119bc80443d741f0abde310478a3d98a95b10674832",
+    ),
+    "wakfu_server/combat/combat_cost_payment_events.py": (
+        "a98de7868329105d1873944ddab1c1988413745293148c9e82405aa3baef2c09",
+        "68278492c6e4c9b23e12382a25862110e59d819cdeedc4482ffa541e3cf058bf",
+    ),
+    "wakfu_server/combat/combat_healing_handler.py": (
+        "77547a6f7364f72c25df5acd4038c8b7eeb0d4d7eaac47e9aa2925c838336698",
+        "ee47b93a723eef95f60662086856f77b0749f2ca8a271911e5726f78e43dedd0",
+    ),
+    "wakfu_server/combat/combat_orientation_effect.py": (
+        "fc53ce73fc8af2d5935510ca7bd32ab981f8e2734537877aca9469707fbba4d4",
+        "152da8b8df7af6a49c9348617a31231e6df67f252d28b7fe41928bd2d62b13c2",
+    ),
+    "wakfu_server/combat/combat_state.py": (
+        "047e609ab9bae7cd96acf71a081665d97c5740f201c32e836246cac7337e1057",
+        "6a1359a7ed69fd515ebd3efc37e50eaea7540de64d55a25a1041d9be592fdf54",
+    ),
+    "wakfu_server/combat/combat_vitality_execution.py": (
+        "83d68504269882ede1dd44c621de70406cd1e722115ba0066264881bdfd47aac",
+        "2ec531199cf799467fcb32920faac9e016e4d20048eadab6ab6cd24546c24303",
     ),
 }
 
@@ -350,6 +392,11 @@ def compatible(previous, current, proved_paths=()):
         in REVIEWED_PUBLISHER_TRANSITIONS
     )
     allowed = RUNTIME_ONLY | WORLD_DISPATCH_ONLY | set(proved_paths)
+    allowed |= {
+        path
+        for path, hashes in REVIEWED_COMBAT_RUNTIME.items()
+        if (old.get(path), new.get(path)) == hashes
+    }
     if reviewed_transition:
         # Do not combine the one-time migration with other source edits.
         return changed == {PUBLISHER_SOURCE}

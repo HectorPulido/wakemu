@@ -9,6 +9,47 @@ from wakfu_server.combat_effect_removal import _identity_fields
 
 
 class HealingHandlerTests(unittest.TestCase):
+    def test_native_914_trap_heals_with_its_registered_source_identity(self):
+        from dataclasses import replace
+        from wakfu_server.combat_effect_area import native_effect_areas
+        from wakfu_server.combat_npc_attack import npc_runtime_catalog
+        from wakfu_server.combat_trap_area import install_trap_characteristics
+
+        trap = native_effect_areas()["914"]
+        self.assertIn(152610, trap["effect_ids"])
+        trap_id = 71
+        row = dict(
+            uid=trap_id,
+            reference=914,
+            cell=(1, 0, 0),
+            owner_id=7,
+            native_area_contract="fbc",
+            native_running_effect_manager=False,
+        )
+        install_trap_characteristics(row, trap)
+        self.fight.native_effect_areas = {trap_id: row}
+        target = self.fight.actors[-7]
+        target.hp, target.max_hp = 10000, 20000
+        target.effect_stats[32] = 200
+        self.fight.actors[7].effect_stats.update({18: 5000, 20: 5000})
+        self.context = replace(self.context, resistance_enabled=False)
+        invocation = replace(
+            self.invocation, reference=282204, level=8500, caster_id=trap_id
+        )
+        effect = npc_runtime_catalog().effects["282204"]
+        self.assertTrue(self.handler(effect, {}, invocation))
+        self.assertEqual(target.hp, 16800)
+        event = self.fight.events[-1]
+        self.assertEqual(
+            (event["kind"], event["source_id"], event["target_id"], event["amount"]),
+            ("healing", trap_id, target.id, 6800),
+        )
+        fields = _identity_fields(self.packets[0][1][19:])
+        self.assertEqual((fields[3], fields[4], fields[6]), (282204, 6800, trap_id))
+        self.assertNotIn(trap_id, self.fight.actors)
+        with self.assertRaisesRegex(ValueError, "Invalid dispatched healing context"):
+            self.fight.apply_effect_healing(trap_id, target.id, 1)
+
     def test_live_trigger_value_changes_application_and_wire(self):
         class Events:
             def phase(_, effect, invocation, **data):

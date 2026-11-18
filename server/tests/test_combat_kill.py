@@ -140,6 +140,157 @@ class NativeKillTests(unittest.TestCase):
         )
         self.assertEqual(packets[0][0], 12613)
 
+    def test_native_633_state_owned_107114_kill_remains_registered_after_glyph_removal(
+        self,
+    ):
+        from copy import deepcopy
+        from pathlib import Path
+        from types import SimpleNamespace
+        from wakfu_server import native_catalog
+        from wakfu_server.combat_encounter_scene_policy import prepare_scene
+        from wakfu_server.combat_neutral_faw_hp import REMOVAL_SCHEMA, prototype_digest
+
+        root = Path(__file__).resolve().parents[1]
+        profile = json.loads(
+            (
+                root
+                / "wakfu_server/maps/owned_story_profiles/wild-estate-excavation-717-encounters.json"
+            ).read_text()
+        )
+        descriptor = profile["rooms"][0]["encounter_scene"]
+        source_rows = json.loads(
+            (
+                root.parent / ".runtime/quest-archetypes/wild-beer-native-records.json"
+            ).read_text()
+        )
+        definition = next(
+            row["payload"]
+            for row in source_rows
+            if row["collection"] == "areas" and row["record_key"] == "633"
+        )
+        scope = dict(
+            map_id=717,
+            instance_id=901,
+            group_id=2,
+            room_order=1,
+            policy_version=1,
+            route_key="wild-estate-test",
+            evidence_hashes={},
+        )
+        room_cells = {
+            tuple(descriptor["native_initial_glyphs"][0]["cell"]),
+            tuple(descriptor["fixed_actor_placements"][0]["cell"]),
+        }
+        record = prepare_scene(descriptor, scope=scope, room_cells=room_cells)
+        source = dict(
+            uid=999,
+            reference=633,
+            level=0,
+            cell=tuple(descriptor["native_initial_glyphs"][0]["cell"]),
+            authority=descriptor["authority"],
+            policy="wakemu." + descriptor["policy_id"],
+            source="buK.cvb.myK.fec.fbm.null_owner.faW",
+            source_url=descriptor["source_uri"],
+            neutral_faw_constructor=descriptor["native_initial_glyphs"][0][
+                "neutral_faw_constructor"
+            ],
+        )
+        state = {"maximum_level": 3, "additive": True, "effect_ids": [107102, 107114]}
+        child = {"effect_class": 28, "minimum_level": 3, "maximum_level": 32767}
+        applicator = next(
+            row["payload"]
+            for row in source_rows
+            if row["collection"] == "effects" and row["record_key"] == "107415"
+        )
+        kill = next(
+            row["payload"]
+            for row in source_rows
+            if row["collection"] == "effects" and row["record_key"] == "107114"
+        )
+        roles = SimpleNamespace(map_id=717)
+
+        def execute(*, source_uid=999, level=3, include_carrier=True, drift=False):
+            current = deepcopy(definition)
+            if drift:
+                current["raw_bdh"][1] = 99.0
+            (
+                f,
+                victim,
+                _packets,
+                _phases,
+                real_kill,
+                _effect,
+                _invocation,
+            ) = self.fixture()
+            victim.breed_id = victim.native_reference = 2802
+            f.walkable.update(room_cells)
+            f.native_encounter_scene = record
+            f.native_environment_glyphs_installed = True
+            ctor = dict(source)
+            f.native_environment_glyph_constructors = [ctor]
+            f.native_effect_areas = {}
+            if include_carrier:
+                f._event(
+                    "state_applied",
+                    actor_id=victim.id,
+                    state_id=2365,
+                    level=level,
+                    uid=501,
+                    source_id=source_uid,
+                )
+            native_effect = deepcopy(kill)
+            native_effect["minimum_level"] = 3
+            native_invocation = EffectInvocation(
+                107114,
+                3,
+                source_uid,
+                victim.id,
+                victim.position,
+                native_retained_container=dict(
+                    present=True, type=1, is_state=True, state_id=2365
+                ),
+            )
+            reads = {
+                ("combat-state-definitions.json", "states", 2365): state,
+                ("combat-state-definitions.json", "effects", 107114): child,
+                ("native-area-effect-trees.json", "effects", 107415): applicator,
+            }
+            source_registry = lambda fight, identity: (
+                ctor if identity == source_uid else fight.actors.get(identity)
+            )
+            with patch(
+                "wakfu_server.combat_encounter_roles.assigned_roles", return_value=roles
+            ), patch(
+                "wakfu_server.combat_effect_area.native_effect_areas",
+                return_value={"633": current},
+            ), patch(
+                "wakfu_server.combat_kill.registered_source_pv",
+                side_effect=source_registry,
+            ), patch.object(
+                native_catalog,
+                "record",
+                side_effect=lambda path, collection, key: reads.get(
+                    (Path(path).name, collection, int(key))
+                ),
+            ):
+                native_invocation = real_kill.prepare(
+                    native_effect, {}, native_invocation
+                )
+                real_kill(native_effect, {}, native_invocation)
+                return registered_ordinary_death(f, victim)
+
+        from wakfu_server.combat_ordinary_death import registered_ordinary_death
+
+        self.assertTrue(execute())
+        for kwargs in (
+            dict(source_uid=998),
+            dict(level=2),
+            dict(include_carrier=False),
+            dict(drift=True),
+        ):
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                execute(**kwargs)
+
     def test_frozen_hp_and_clock_still_apply_independent_native_side_effects(self):
         fight, target, packets, phases, handler, effect, invocation = self.fixture(
             1, frozen=(1, 14)

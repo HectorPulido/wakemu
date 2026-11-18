@@ -4,6 +4,7 @@ PC eHd kind0; NPC eHj kind1/master -1. eGj.d(eGH) loads fsp
 breed properties. No summon/carrier/Qq relationships exist in these creation
 blobs. This provider deliberately accepts neither summons nor wrapped actors.
 """
+
 from wakfu_server import native_catalog as protocol_catalog
 import json
 from functools import lru_cache
@@ -984,6 +985,31 @@ def ordinary_cast_authority(*, actors, timing, rng, critical):
                 effect_definitions=timing.catalog["effects"],
                 causing_critical=causing_state_critical(i, current_critical=critical),
             )
+        elif critical:
+            from .combat_neutral_faw_hp import REMOVAL_SCHEMA
+
+            container = i.native_retained_container or {}
+            retired = getattr(p, "native_retired_area_managers", {}).get(i.caster_id)
+            if (
+                retired is not None
+                and retired.get("removing") is True
+                and retired.get("native_qq_bhi") is True
+                and container.get("present") is True
+                and container.get("type") == 3
+                and container.get("native_kind") == "effect_area"
+                and container.get("id") == i.caster_id
+                and any(
+                    source.get("uid") == i.caster_id
+                    and source.get("neutral_faw_constructor", {}).get("schema")
+                    == REMOVAL_SCHEMA
+                    for source in getattr(
+                        p, "native_environment_glyph_constructors", ()
+                    )
+                )
+            ):
+                # The retired area's own root does not belong to the spell's
+                # critical effect list, even when critical damage retired it.
+                variant_mode = "EFFECTS_ONLY"
         return EffectResolutionContext(
             variant_mode,
             "immediate",

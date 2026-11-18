@@ -136,6 +136,7 @@ def commit(store, groups, proposal, *, episode_current, prepared=None):
         proposal["world_epoch"], proposal["scope"], proposal["empty_generation"]
     )
     scope = tuple(proposal["scope"])
+    from wakfu_server.achievements.source_quest_encounters import is_source_owned_group
     from .combat_obstacle_condition import footprint
 
     def cells(members):
@@ -221,6 +222,9 @@ def commit(store, groups, proposal, *, episode_current, prepared=None):
                 row is not None
                 and row["members"] == move["expected_members"]
                 and not destination & blocked
+                and not is_source_owned_group(
+                    db, (*scope, move["group_id"]), row["members"]
+                )
             ):
                 durable = move["moved_members"]
                 db.execute(

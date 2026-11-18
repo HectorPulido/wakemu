@@ -315,6 +315,7 @@ def registered_documents():
         SOURCE.with_name("whispering-lieutenant-4872.v1.json"),
         SOURCE.with_name("astrub-magnum-well.v1.json"),
         SOURCE.with_name("wild-estate-burger.v1.json"),
+        SOURCE.with_name("kelba-2550-crates.v1.json"),
     )
     documents = (document(), *(_read_document(path) for path in paths if path.exists()))
     seen_ids, seen_objects = set(), set()
@@ -1380,6 +1381,30 @@ def group_owners(db, groups):
         if previous != saved["character_id"]:
             raise ValueError("Quest-source group has conflicting owners")
     return owners
+
+
+def is_source_owned_group(db, key, members):
+    """Identify the frozen group without relying on its current positions."""
+    from wakfu_server.npc_actor_identity import MAXIMUM, MINIMUM
+
+    if key[1] != 0:
+        return False
+    keys = [
+        f"quest-source-actor:{-member['id']}"
+        for member in members
+        if type(member.get("id")) is int and MINIMUM <= -member["id"] <= MAXIMUM
+    ]
+    if not keys:
+        return False
+    return (
+        db.execute(
+            "SELECT 1 FROM character_achievement_events WHERE event_key=ANY(%s) "
+            "AND payload->>'schema'=%s AND payload->'group_key'=%s "
+            "AND payload->'owner'=to_jsonb(character_id) LIMIT 1",
+            (keys, SCHEMA, Jsonb(list(key))),
+        ).fetchone()
+        is not None
+    )
 
 
 def visible_groups(db, groups, owner):

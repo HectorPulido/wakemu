@@ -30,6 +30,60 @@ class OwnedStoryMechanicsTests(unittest.TestCase):
             id=7, account_id=3, map_id=887, instance_id=99, x=1, y=2, z=0
         )
 
+    def test_temple_object_payload_joins_original_program_descriptor(self):
+        selected = json.loads((ROOT / "wild-temple-718.json").read_text())
+        pin = selected["native_sources"]
+        native = mechanics._sources(pin["path"], pin["sha256"])
+        expected = {
+            20662: 162,
+            20668: 1372,
+            20669: 238,
+            20672: 164,
+            20675: 165,
+            20681: 1369,
+        }
+        with (
+            patch.object(mechanics, "sources", return_value=native),
+            patch.object(mechanics, "allowed", return_value=True),
+        ):
+            for object_id, descriptor_id in expected.items():
+                with self.subTest(object_id=object_id):
+                    self.assertEqual(
+                        native["programs"][str(object_id)]["descriptor_id"],
+                        descriptor_id,
+                    )
+                    mechanics.authorize_action(
+                        None, self.store, self.character, selected, object_id, 0
+                    )
+            with self.assertRaisesRegex(ValueError, "no unique native descriptor"):
+                mechanics.authorize_action(
+                    None, self.store, self.character, selected, 20672, 1
+                )
+
+    def test_temple_statue_uses_original_visual_script_attestation(self):
+        from hashlib import sha256
+        from wakfu_server.exploration_artifact_actions import _script_packet
+
+        selected = json.loads((ROOT / "wild-temple-718.json").read_text())
+        pin = selected["native_sources"]
+        raw = json.loads((ROOT / pin["path"]).read_text())
+        native = mechanics._sources(pin["path"], pin["sha256"])
+        self.assertEqual(
+            native["native_scripts"]["3125"],
+            {
+                "present": True,
+                "sha256": sha256(raw["native_scripts"]["3125"].encode()).hexdigest(),
+            },
+        )
+        with (
+            patch.object(mechanics, "sources", return_value=native),
+            patch.object(mechanics, "allowed", return_value=True),
+        ):
+            packets = mechanics.object_visuals(
+                None, self.store, self.character, selected, 20669, 0
+            )
+        self.assertEqual(packets, [_script_packet(self.character["id"], 20669, 3125)])
+
     def test_native_artifact_table_gives_18722_once_and_respects_original_quest_guard(
         self,
     ):
@@ -739,9 +793,9 @@ class OwnedStoryMechanicsTests(unittest.TestCase):
                     == "SELECT leader_id FROM account_hero_rosters WHERE account_id=%s"
                 ):
                     return SimpleNamespace(
-                        fetchone=lambda: None
-                        if self.leader is None
-                        else {"leader_id": self.leader}
+                        fetchone=lambda: (
+                            None if self.leader is None else {"leader_id": self.leader}
+                        )
                     )
                 raise AssertionError(f"Unexpected read-only role query: {sql}")
 

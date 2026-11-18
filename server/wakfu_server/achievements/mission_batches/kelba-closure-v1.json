@@ -1,0 +1,58 @@
+{
+  "schema": "wakemu.mission-bundle-v1",
+  "id": "kelba-closure-v1",
+  "native_metadata_revision": "3d1e48353eef085e9d2159340ea170ac51d6a878093e90f1214a60ab2eed4a06",
+  "minimum_schema": 388,
+  "entries": [
+    {
+      "kind": "conversation",
+      "path": "wakfu_server/maps/native_quest_conversation_contracts.json",
+      "sha256": "75ba1098589649bfcbdf2c4f4930dbfb42bf7f5a5d3736dca087aada11af8f70"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-cave-952.configuration.json",
+      "sha256": "b699260835fccede4fff4303460071b4c7da7de7217686567ede9c1c4271aed5"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-chapter2-cave.json",
+      "sha256": "b08afc4c16ca5e49852e5cc7edece3d8e809fd53d93c7ba0cd8a636df2d16bd2"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-raskaw-continuation.json",
+      "sha256": "191f308759dba861099bd09c7c61d04dafd37f95ba927e93e51b486fadffaec8"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-earned-physical-arrivals.json",
+      "sha256": "aa2e261e8e5a6eba62276dfc5deb5635402c10df126b9514f29a501f2ef61490"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-earned-infiltration.json",
+      "sha256": "64d54a43fb5d5c0481659a6b4b0a1b8795b368b225c7033a40c36657e3da15f8"
+    },
+    {
+      "kind": "toolkit",
+      "path": "wakfu_server/achievements/mission_profiles/kelba-earned-finale.json",
+      "sha256": "5cc10a3e751e2fda6c7be399eb47d993ce8aa275466d48f840c3a688fe835985"
+    },
+    {
+      "kind": "source_quest",
+      "path": "wakfu_server/achievements/quest_source_profiles/kelba-2550-crates.v1.json",
+      "sha256": "acd1c7c12fa79ab4ad4241c7c41f01228c40065ff9f2dc236a3987547ba4aa5d"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-infiltration-953.configuration.json",
+      "sha256": "16c43c74361f5b9e8f27d1e632778e924956c68259ec83cc914fbbc6175c8d48"
+    },
+    {
+      "kind": "owned_instance",
+      "path": "wakfu_server/maps/owned_story_profiles/kelba-finale-954.configuration.json",
+      "sha256": "ef5a909994fc2e5c04f5171680f85f48b67a70dfd6e9b5db2138718e7a737018"
+    }
+  ]
+}

@@ -108,6 +108,18 @@ def travel(
         bypass_mission_prerequisites=True,
     ):
         raise ValueError("Owned native portal item or world condition is not fulfilled")
+    # Reviewed steps may identify the placed portal or its destination. Both
+    # keys refer to this exact link, whose source, endpoint and approach were
+    # checked above. Fail closed if a profile declares competing keys.
+    references = {
+        step["reference"]
+        for step in selected["steps"]
+        if step["kind"] == "native_travel"
+        and step["reference"] in (link["source_id"], link["destination_id"])
+    }
+    if len(references) > 1:
+        raise ValueError("Owned native portal has conflicting story references")
+    reference = next(iter(references), link["destination_id"])
     outcome = controller._settle(
         db,
         store,
@@ -115,7 +127,7 @@ def travel(
         selected,
         completed,
         kind="native_travel",
-        reference=link["destination_id"],
+        reference=reference,
         evidence=dict(
             source_id=source["id"],
             destination_id=target["destination_id"],

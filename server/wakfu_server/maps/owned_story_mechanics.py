@@ -16,6 +16,17 @@ from types import SimpleNamespace
 from wakfu_server import owned_story_controller as controller
 
 
+def _native_descriptor_parameter(source):
+    payload = bytes.fromhex(source["payload_hex"])
+    if len(payload) < 37:
+        return None
+    length = struct.unpack_from(">i", payload, 33)[0]
+    if not 0 < length <= 64 or 37 + length > len(payload):
+        return None
+    parameter = payload[37 : 37 + length]
+    return parameter.decode("ascii") if parameter.isascii() else None
+
+
 @lru_cache(maxsize=16)
 def _sources(path, digest):
     root = Path(__file__).with_name("owned_story_profiles")
@@ -48,7 +59,19 @@ def _sources(path, digest):
     # source, rather than in the shared program index. Normalize that shape
     # only after the pinned object and its native parameter agree.
     result.setdefault("programs", {})
-    result.setdefault("native_scripts", {})
+    native_scripts = result.setdefault("native_scripts", {})
+    for identity, proof in native_scripts.items():
+        if not isinstance(proof, str):
+            continue
+        if proof.splitlines()[:2] != [
+            f"-- Action Id : {identity}",
+            "-- Action Type : 1",
+        ]:
+            raise ValueError("Owned story visual script lost its native identity")
+        native_scripts[identity] = {
+            "present": True,
+            "sha256": sha256(proof.encode("utf-8")).hexdigest(),
+        }
     result.setdefault("scenes", {})
     clue = result.get("reviewed_clue_source")
     if clue is not None:
@@ -59,13 +82,11 @@ def _sources(path, digest):
             for key in ("map_id", "type", "x", "y", "z", "payload_hex", "chunk", "auto")
         ):
             raise ValueError("Reviewed story descriptor differs from its native source")
-        payload = bytes.fromhex(source["payload_hex"])
-        length = struct.unpack_from(">i", payload, 33)[0]
-        if not 0 < length <= 64 or 37 + length > len(payload):
+        parameter = _native_descriptor_parameter(source)
+        if parameter is None:
             raise ValueError(
                 "Reviewed story source lacks its native descriptor parameter"
             )
-        parameter = payload[37 : 37 + length].decode("ascii")
         if (
             source["type"] != "GenericActivableInteractiveElement"
             or str(descriptor["descriptor_id"]) != parameter
@@ -79,6 +100,25 @@ def _sources(path, digest):
                 "Reviewed story descriptor conflicts with its program index"
             )
         result["programs"][key] = descriptor
+    # Some pinned bundles index native programs by descriptor rather than by
+    # the placed object's ID. The exact map payload above attests that join.
+    programs = result["programs"]
+    by_descriptor = {
+        key: value
+        for key, value in programs.items()
+        if key == str(value.get("descriptor_id"))
+    }
+    if by_descriptor:
+        for source in result["objects"]:
+            key = str(source["id"])
+            if (
+                key in programs
+                or source["type"] != "GenericActivableInteractiveElement"
+            ):
+                continue
+            descriptor = by_descriptor.get(_native_descriptor_parameter(source))
+            if descriptor is not None:
+                programs[key] = descriptor
     return result
 
 
@@ -189,14 +229,24 @@ def scenario_packet(selected, event, arguments=()):
         if type(signature) is int
         else signature["argument_count"]
     )
+    scenario = event_scenario(native, event)
+    if (
+        not arguments
+        and expected == 1
+        and selected.get("id") == "kelba-convoy-947"
+        and (scenario, event) == (1962, 15660)
+    ):
+        # This callback ignores cineStartDone. Existing convoy visits can
+        # replay the admission packet with the unused argument supplied.
+        arguments = (0,)
     if len(arguments) != expected or any(
         type(value) is not int or not -(2**63) <= value < 2**63
         for value in arguments
     ):
         raise ValueError("Owned story scenario arguments differ from native Lua")
-    return 13411, struct.pack(
-        ">BiiB", 0, event, event_scenario(native, event), len(arguments)
-    ) + b"".join(struct.pack(">q", value) for value in arguments)
+    return 13411, struct.pack(">BiiB", 0, event, scenario, len(arguments)) + b"".join(
+        struct.pack(">q", value) for value in arguments
+    )
 
 
 def _arguments(db, character, effect, selected, *, store=None):

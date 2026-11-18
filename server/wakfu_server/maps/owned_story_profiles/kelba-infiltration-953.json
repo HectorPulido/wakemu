@@ -1,0 +1,43 @@
+{
+  "schema": "owned-story-controller-v1",
+  "id": "kelba-infiltration-953",
+  "map_id": 953,
+  "maximum_members": 1,
+  "provenance": "Local owned encounter on the installed 953 terrain. Original 25190/2197 admits from 943 and original 25189/2198 returns to 943. The unchanged 3568/3571/3573 trio is reused from the existing local Kelba convoy, without its cargo actor or scene. Only the running quest owner's settled room victory credits objective 5052.",
+  "admission": {
+    "quest_id": 2552,
+    "objective_id": 5051,
+    "continuation_quest_id": 2553
+  },
+  "native_sources": {
+    "path": "kelba-infiltration-953.local.native.v1.json",
+    "sha256": "5f6c559787eeb59358c5cb600eab296dc447067af0fe77e6422f9b8d75658618"
+  },
+  "initial_elements": [],
+  "steps": [
+    {
+      "id": "infiltration-ready",
+      "kind": "world_ready",
+      "reference": 953,
+      "requires": [],
+      "effects": [],
+      "evidence": "Local owned encounter on the installed 953 terrain. Original 25190/2197 admits from 943 and original 25189/2198 returns to 943. The unchanged 3568/3571/3573 trio is reused from the existing local Kelba convoy, without its cargo actor or scene. Only the running quest owner's settled room victory credits objective 5052."
+    },
+    {
+      "id": "infiltration-cleared",
+      "kind": "room_victory",
+      "reference": 1,
+      "requires": [
+        "infiltration-ready"
+      ],
+      "effects": [
+        {
+          "kind": "quest_objective",
+          "quest_id": 2553,
+          "objective_id": 5052
+        }
+      ],
+      "evidence": "Local owned encounter on the installed 953 terrain. Original 25190/2197 admits from 943 and original 25189/2198 returns to 943. The unchanged 3568/3571/3573 trio is reused from the existing local Kelba convoy, without its cargo actor or scene. Only the running quest owner's settled room victory credits objective 5052."
+    }
+  ]
+}

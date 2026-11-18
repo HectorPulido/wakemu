@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import struct
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -311,6 +312,19 @@ class KelbaOwnedStoryProfileTests(unittest.TestCase):
                 dict(map_id=943, x=-6, y=0, z=-80),
             )
         self.assertIn("entry_map_id", return_db.execute.call_args.args[0])
+
+    def test_retained_convoy_admission_supplies_unused_cinematic_argument(self):
+        selected = load("kelba-convoy-947.json")
+        self.assertEqual(
+            owned_story_mechanics.scenario_packet(selected, 15660),
+            (13411, struct.pack(">BiiBq", 0, 15660, 1962, 1, 0)),
+        )
+        with self.assertRaisesRegex(ValueError, "arguments differ"):
+            owned_story_mechanics.scenario_packet(selected, 15660, (0, 0))
+        with self.assertRaisesRegex(ValueError, "arguments differ"):
+            owned_story_mechanics.scenario_packet(selected, 15725)
+        with self.assertRaisesRegex(ValueError, "arguments differ"):
+            owned_story_mechanics.scenario_packet(dict(selected, id="other"), 15660)
 
     def test_convoy_room_one_keeps_exact_carrier_native_bootstrap_and_level_zero_glyph(
         self,

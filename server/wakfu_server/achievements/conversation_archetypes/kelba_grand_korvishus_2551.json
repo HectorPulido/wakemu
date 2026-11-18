@@ -1,0 +1,57 @@
+{
+  "schema": "native-story-conversations-v1",
+  "evidence": "Native Grand Korvishus hand-in 3150/7806 requires completed 2550 and its three committed crate objectives.",
+  "speakers": [
+    {
+      "actor_id": -2251799934953592,
+      "action_id": 678,
+      "quest_ids": [
+        2551
+      ],
+      "placement": {
+        "row": {
+          "actor_id": -2251799934953592,
+          "reference_id": 3592,
+          "map_id": 943,
+          "instance_id": 0,
+          "x": -176,
+          "y": -57,
+          "z": -15,
+          "direction": 3,
+          "dialogue_root": 3150,
+          "action_ids": [
+            678
+          ],
+          "interaction_range": 4,
+          "enabled": true,
+          "provenance": "wakemu.qualified-quest-conversation.v1: Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting."
+        },
+        "choice_criteria": [
+          {
+            "node_id": 3150,
+            "choice_id": 7806,
+            "criterion": "IsAchievementComplete(2550) && IsAchievementObjectiveComplete(5049) && IsAchievementObjectiveComplete(5066) && IsAchievementObjectiveComplete(5067)",
+            "evidence": "Require both settled crate occupations and the southern crate encounter's committed objective."
+          }
+        ]
+      },
+      "graph": [
+        [
+          3150,
+          7806,
+          0
+        ]
+      ],
+      "objectives": [
+        {
+          "quest_id": 2551,
+          "objective_id": 5050,
+          "node_id": 3150,
+          "choice_id": 7806,
+          "archetype": "talk",
+          "single_objective": true
+        }
+      ]
+    }
+  ]
+}

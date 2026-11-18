@@ -1,7 +1,9 @@
 """eWF303: native orientation modes, no reversal when the effect is removed."""
-from .combat_source_parent_index import OwnedStateSourceRow
 from dataclasses import replace
+
+from .combat_source_parent_index import OwnedStateSourceRow
 from .combat_displacement import cardinal_vector
+from .combat_native_actor_lookup import native_actor
 from .combat_stat_handler import StatExecutionContext
 from .combat_stat_effects import owned_effect_payload, owned_effect_application
 from .combat_force_characteristic import remove_forced_characteristic
@@ -113,8 +115,8 @@ class NativeOrientationHandler:
         if effect["effect_class"] != 303 or not values["parameters"]:
             raise ValueError("Unsupported native eWF parameters")
         # Original eWF.C reads parameter0 only; extra pairs are unused.
-        caster = self.fight.actors.get(invocation.caster_id)
-        target = self.fight.actors.get(invocation.target_id)
+        caster = native_actor(self.fight, invocation.caster_id)
+        target = native_actor(self.fight, invocation.target_id)
         from .combat_area_orientation import orientation_area_pv, set_area_direction
 
         if caster is None and invocation.caster_id is not None:

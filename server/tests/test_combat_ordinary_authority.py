@@ -276,5 +276,58 @@ class OrdinaryAuthorityTests(unittest.TestCase):
         self.assertLess(second.hp, 20)
 
 
+class RetiredAreaCriticalResolutionTests(unittest.TestCase):
+    def test_neutral_removal_root_uses_own_variant_during_critical_cast(self):
+        from random import Random
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from wakfu_server.combat_effect_dispatch import EffectInvocation
+        from wakfu_server.combat_neutral_faw_hp import REMOVAL_SCHEMA
+        from wakfu_server.combat_ordinary_authority import ordinary_cast_authority
+
+        authority = ordinary_cast_authority(
+            actors=None,
+            timing=SimpleNamespace(state=None),
+            rng=Random(1),
+            critical=True,
+        )
+        area = 999
+        preview = SimpleNamespace(
+            native_retired_area_managers={
+                area: {"removing": True, "native_qq_bhi": True}
+            },
+            native_environment_glyph_constructors=(
+                {"uid": area, "neutral_faw_constructor": {"schema": REMOVAL_SCHEMA}},
+            ),
+        )
+        invocation = EffectInvocation(
+            107415,
+            0,
+            area,
+            None,
+            (1, 0, 0),
+            native_retained_container={
+                "present": True,
+                "type": 3,
+                "native_kind": "effect_area",
+                "id": area,
+            },
+        )
+        with patch(
+            "wakfu_server.combat_delivery_owners.native_owner_flags",
+            return_value=(True, False),
+        ):
+            self.assertEqual(
+                authority.resolution(preview, None, {}, invocation).variant_mode,
+                "EFFECTS_ONLY",
+            )
+            preview.native_retired_area_managers[area]["removing"] = False
+            self.assertEqual(
+                authority.resolution(preview, None, {}, invocation).variant_mode,
+                "CRITICALS_ONLY",
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

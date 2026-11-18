@@ -18,6 +18,35 @@ class NpcInitializationTests(unittest.TestCase):
     def actor(self):
         return Actor(-3, 1, (0, 0, 0), 10, 6, 3, 1, 5)
 
+    def test_convoy_carrier_initial_state_orients_detached_constructor(self):
+        from wakfu_server.combat_actor_snapshot import build_npc_snapshot
+        from wakfu_server.combat_npc_initialization import initialize_ordinary_npcs
+
+        carrier = Actor(-9, 1, (0, 0, 0), 1, 6, 3, 10, 70)
+        carrier.direction = 5
+        player = Actor(7, 0, (1, 0, 0), 10, 6, 3, 1, 10, 9, True)
+        fight = Fight(
+            77,
+            [player, carrier],
+            {player.position, carrier.position},
+            {0: {player.position}, 1: {carrier.position}},
+        )
+        fight.native_effect_uid_next = 1
+        monster = {"id": carrier.id, "ref": 3711}
+        build_npc_snapshot(
+            monster, carrier, wp_current=0, wp_maximum=0, running_effects=()
+        ).install(carrier)
+        monsters = {carrier.id: monster}
+        initialize_ordinary_npcs(fight, monsters, initial_plans(fight, monsters))
+        self.assertEqual((carrier.team, carrier.direction), (1, 1))
+        self.assertIs(fight.actors[carrier.id], carrier)
+        self.assertEqual(fight.phase, "placement")
+        receipt = fight.native_npc_initialization_receipts[carrier.id]
+        self.assertEqual(
+            [(row["state_id"], row["applied"]) for row in receipt["applications"]],
+            [(3478, True), (3532, True)],
+        )
+
     def test_constructor_guard_requires_actual_detached_self(self):
         actor = self.actor()
         fight = SimpleNamespace(actors={}, phase="placement", current=None)

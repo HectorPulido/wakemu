@@ -11,6 +11,10 @@ from wakfu_server import owned_story_mechanics as mechanics
 
 
 def selection(db, store, character, body):
+    if isinstance(body, bytes) and len(body) == 12:
+        _, action, _ = struct.unpack(">qHH", body)
+        if action != 0:
+            return None
     inspected = controller.interact(
         db, store, character, body, apply_effects=None, inspect_only=True
     )

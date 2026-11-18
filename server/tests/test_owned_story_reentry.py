@@ -167,14 +167,12 @@ class PaidStoryResumeTests(unittest.TestCase):
             self.writes,
         )
 
-    def test_paid_narrative_resume_requires_actual_world_ready_receipt_without_room_run(
-        self,
-    ):
+    def _prepare_narrative_fixture(self, objective_id=4288):
         policy = dict(
             id="reviewed-fixture",
             map_id=887,
             maximum_members=1,
-            admission=dict(quest_id=2166, objective_id=4288),
+            admission=dict(quest_id=2166, objective_id=objective_id),
             steps=[
                 dict(
                     id="arrived",
@@ -208,6 +206,11 @@ class PaidStoryResumeTests(unittest.TestCase):
                 step="arrived",
             )
         )
+
+    def test_paid_narrative_resume_requires_actual_world_ready_receipt_without_room_run(
+        self,
+    ):
+        self._prepare_narrative_fixture()
         self.assertEqual(self.prepare(), 99)
         sql = " ".join(query for query, _ in self.reads)
         self.assertNotIn("JOIN dungeon_room_runs r USING(instance_id)", sql)
@@ -228,6 +231,36 @@ class PaidStoryResumeTests(unittest.TestCase):
 
         self.writes.clear()
         self.visit = None
+        self.assertIsNone(self.prepare())
+        self.assertEqual(self.writes, [])
+
+    def test_roomless_no_objective_reuses_real_visit_without_nonexistent_entry_receipt(
+        self,
+    ):
+        self._prepare_narrative_fixture(objective_id=None)
+        self.entry = None
+        evidence = dict(
+            map_id=887,
+            instance_id=99,
+            route_key="fixture",
+            policy_version=1,
+            entry_map_id=747,
+            source_id=23621,
+            destination_id=4029,
+        )
+        self.visit["payload"]["evidence"] = deepcopy(evidence)
+        self.assertEqual(self.prepare(), 99)
+        self.assertEqual(len(self.writes), 4)
+        self.assertFalse(any("inventory" in sql.lower() for sql, _ in self.writes))
+        self.writes.clear()
+        for key in evidence:
+            with self.subTest(changed_evidence=key):
+                self.visit["payload"]["evidence"] = deepcopy(evidence)
+                del self.visit["payload"]["evidence"][key]
+                self.assertIsNone(self.prepare())
+                self.assertEqual(self.writes, [])
+        self.visit["payload"]["evidence"] = deepcopy(evidence)
+        self.witness = None
         self.assertIsNone(self.prepare())
         self.assertEqual(self.writes, [])
 

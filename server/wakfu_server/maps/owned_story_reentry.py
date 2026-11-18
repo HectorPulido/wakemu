@@ -145,27 +145,31 @@ def prepare(db, store, account_id, generation, character_id, resolved, configura
     ):
         return None
     admission = prior_policy["admission"]
-    entry = db.execute(
-        "SELECT payload FROM character_achievement_events WHERE character_id=%s AND event_key=%s",
-        (
-            character_id,
-            f'owned-story-entry:{run["instance_id"]}:{admission["quest_id"]}',
-        ),
-    ).fetchone()
-    # The original native admission and its entry-item debit committed in the
-    # same `_enter` transaction. A map visit, completion flag or admin TP cannot
-    # create this owner-bound entry receipt plus its actual route transition.
-    if entry is None or any(
-        entry["payload"].get(key) != value
-        for key, value in dict(
-            schema="owned-quest-instance-v1",
-            quest_id=admission["quest_id"],
-            objective_id=admission["objective_id"],
-            instance_id=run["instance_id"],
-            route_key=route_key,
-        ).items()
-    ):
-        return None
+    admitted_on_world_ready = narrative and admission["objective_id"] is None
+    # Roomless admission without an objective emits no objective-entry receipt;
+    # its exact World-ready evidence and native transition witness qualify it.
+    if not admitted_on_world_ready:
+        entry = db.execute(
+            "SELECT payload FROM character_achievement_events WHERE character_id=%s AND event_key=%s",
+            (
+                character_id,
+                f'owned-story-entry:{run["instance_id"]}:{admission["quest_id"]}',
+            ),
+        ).fetchone()
+        # The original native admission and its entry-item debit committed in the
+        # same `_enter` transaction. A map visit, completion flag or admin TP cannot
+        # create this owner-bound entry receipt plus its actual route transition.
+        if entry is None or any(
+            entry["payload"].get(key) != value
+            for key, value in dict(
+                schema="owned-quest-instance-v1",
+                quest_id=admission["quest_id"],
+                objective_id=admission["objective_id"],
+                instance_id=run["instance_id"],
+                route_key=route_key,
+            ).items()
+        ):
+            return None
     if narrative:
         visits = [
             step
@@ -197,6 +201,21 @@ def prepare(db, store, account_id, generation, character_id, resolved, configura
                 ).items()
             ):
                 return None
+            if admitted_on_world_ready:
+                evidence = visit["payload"].get("evidence")
+                if not isinstance(evidence, dict) or any(
+                    evidence.get(key) != value
+                    for key, value in dict(
+                        map_id=prior_policy["map_id"],
+                        instance_id=run["instance_id"],
+                        route_key=route_key,
+                        policy_version=run["context_policy_version"],
+                        entry_map_id=run["entry_map_id"],
+                        source_id=run["entry_object_id"],
+                        destination_id=run["entry_destination_id"],
+                    ).items()
+                ):
+                    return None
     witness = db.execute(
         "SELECT 1 FROM dungeon_transition_outbox WHERE instance_id=%s AND character_id=%s "
         "AND transition_kind='enter' AND source_map_id=%s AND destination_map_id=%s "

@@ -33,42 +33,30 @@ def binding(map_id, source_id):
     if source_id not in dungeon_instances.entry_object_ids(map_id):
         return None
     source = generic_transports.source(map_id, source_id)
-    if source is None:
+    # One generic action cannot preserve the choices on a multi-route source.
+    if source is None or len(source["destinations"]) != 1:
         return None
-    candidates = []
-    for destination in source["destinations"]:
-        if (
-            map_id,
-            source_id,
-            destination["map_id"],
-        ) not in _REVIEWED and _RELAXED_PREREQUISITE.search(
-            destination["criterion"]
-        ) is None:
-            continue
-        route = dungeon_instances.route_for_entry(
-            map_id, source_id, destination["destination_id"]
-        )
-        if route is not None:
-            from wakfu_server.maps.dungeon_transport import resolve_request
+    destination = source["destinations"][0]
+    if (
+        map_id,
+        source_id,
+        destination["map_id"],
+    ) not in _REVIEWED and _RELAXED_PREREQUISITE.search(
+        destination["criterion"]
+    ) is None:
+        return None
+    route = dungeon_instances.route_for_entry(
+        map_id, source_id, destination["destination_id"]
+    )
+    if route is None:
+        return None
+    from wakfu_server.maps.dungeon_transport import resolve_request
 
-            request = struct.pack(
-                ">qiBi", source_id, destination["destination_id"], 0, 2
-            )
-            resolved = resolve_request(map_id, request)
-            if (
-                resolved is None
-                or resolved["route"].start_map_id != destination["map_id"]
-            ):
-                continue
-            route_key = route.key
-        else:
-            continue
-        candidates.append(
-            dict(source=source, destination=destination, route_key=route_key)
-        )
-    if len(candidates) > 1:
-        raise ValueError("Ambiguous reviewed seasonal gateway")
-    return candidates[0] if candidates else None
+    request = struct.pack(">qiBi", source_id, destination["destination_id"], 0, 2)
+    resolved = resolve_request(map_id, request)
+    if resolved is None or resolved["route"].start_map_id != destination["map_id"]:
+        return None
+    return dict(source=source, destination=destination, route_key=route.key)
 
 
 def _parts(blob):

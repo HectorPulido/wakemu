@@ -1,4 +1,5 @@
 """Focused normal-attack autostart from the pinned Huppermage room group."""
+
 import json
 from pathlib import Path
 import struct
@@ -7,7 +8,6 @@ import unittest
 from unittest.mock import patch
 
 from wakfu_server import owned_story_auto_start, owned_story_controller
-
 
 PROFILE = (
     Path(__file__).parents[1]
@@ -251,6 +251,99 @@ class OwnedStoryAutoStartTests(unittest.TestCase):
             self.state.pending_guardian_attack,
             struct.pack(">qiihB", -71302, 12, 8, 0, 0),
         )
+
+    def test_temple_corridor_queues_boulder_only_after_readiness_at_owner_pose(self):
+        path = Path(__file__).parents[1] / (
+            "wakfu_server/maps/owned_story_profiles/"
+            "wild-temple-718.configuration.json"
+        )
+        self.configuration = json.loads(path.read_text())
+        self.assertEqual(self.configuration["version"], 2)
+        self.selected = owned_story_controller.policy(self.configuration)
+        room = next(
+            row for row in self.configuration["topology"]["rooms"] if row["order"] == 8
+        )
+        self.assertEqual(
+            owned_story_auto_start.requirements(self.selected, 8)["requires"],
+            ["corridor-started"],
+        )
+        (placement,) = room["encounter_scene"]["fixed_actor_placements"]
+        self.assertEqual(placement["reference"], 2806)
+        self.assertEqual(placement["cell"], [8, 60, -36])
+        self.character.update(map_id=718, x=12, y=60, z=-36)
+        self.state.character.update(self.character)
+        self.group_members = [
+            dict(
+                id=-71808,
+                ref=placement["reference"],
+                map_id=718,
+                instance_id=501,
+                **dict(zip(("x", "y", "z"), placement["cell"])),
+            )
+        ]
+        self.group = dict(group_id=708, members=tuple(self.group_members))
+        self.durable_group = dict(
+            group_id=708,
+            asset_map_id=718,
+            room_order=8,
+            members=self.group_members,
+            status="available",
+        )
+        self.story_receipt = dict(
+            schema=owned_story_controller.SCHEMA,
+            profile_sha256=owned_story_controller._digest(self.selected),
+            owner=81,
+            instance_id=501,
+            step="artifact-taken",
+        )
+        original_execute = self.db.execute
+
+        def execute(query, params=None):
+            if "SELECT event_key,payload FROM character_achievement_events" in query:
+                return Cursor(
+                    rows=[
+                        dict(
+                            event_key=(
+                                "owned-story:wild-temple-718:501:"
+                                + self.story_receipt["step"]
+                            ),
+                            payload=self.story_receipt,
+                        )
+                    ]
+                )
+            return original_execute(query, params)
+
+        with patch.object(self.db, "execute", side_effect=execute):
+            # The artifact alone cannot start the chase before physical20702.
+            self.assertFalse(self.call_queue())
+            self.assertIsNone(self.state.pending_guardian_attack)
+            self.story_receipt["step"] = "corridor-started"
+            self.character.update(x=12, y=58)
+            self.state.character.update(self.character)
+            self.assertFalse(self.call_queue())
+            self.assertIsNone(self.state.pending_guardian_attack)
+            self.character.update(x=12, y=60)
+            self.state.character.update(self.character)
+            self.assertTrue(self.call_queue())
+
+        self.assertEqual(
+            self.state.pending_guardian_attack,
+            struct.pack(">qiihB", -71808, 8, 60, -36, 0),
+        )
+        ticket = self.state.owned_story_ambush_admission
+        self.assertEqual(ticket["room_order"], 8)
+        self.assertEqual(ticket["ready_steps"], ("corridor-started",))
+        self.assertEqual(
+            ticket["pose"],
+            dict(
+                map_id=718,
+                instance_id=501,
+                x=12,
+                y=60,
+                z=-36,
+            ),
+        )
+        self.assertEqual(self.state.character["x"] - placement["cell"][0], 4)
 
     def test_loading_multiowner_fighting_or_stale_group_never_queues(self):
         self.state.loaded = False

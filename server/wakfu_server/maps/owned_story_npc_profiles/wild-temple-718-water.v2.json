@@ -1,0 +1,42 @@
+{
+  "schema": "owned-story-npcs-v1",
+  "id": "wild-temple-718-water",
+  "controller_id": "wild-temple-718",
+  "policy_version": 2,
+  "map_id": 718,
+  "requires": [
+    "water-safe-floor-crossed"
+  ],
+  "render_requires": [
+    "temple-entered"
+  ],
+  "quest_id": 1684,
+  "physical_visit": true,
+  "native_action_source": {
+    "path": "wild-temple-718-water.native-actions.json",
+    "sha256": "6a6c41ecb2fbfba836cc72cd251f64aa83169f333f7c6ce6b0785b8ee932321e"
+  },
+  "npcs": [
+    {
+      "template_id": 4,
+      "reference_id": 2815,
+      "action_ids": [
+        448
+      ],
+      "action_type": 1,
+      "action_criterion": "",
+      "controller_reference": 2815,
+      "x": 8,
+      "y": 20,
+      "z": 0,
+      "direction": 3,
+      "interaction_range": 1,
+      "interaction_anchor": {
+        "x": 7,
+        "y": 20,
+        "z": 0
+      },
+      "provenance": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape. Original archaeologist position is absent: this literal legal native-floor anchor is reviewed placement, not a recovered server coordinate."
+    }
+  ]
+}

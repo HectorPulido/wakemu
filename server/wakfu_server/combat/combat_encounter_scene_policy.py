@@ -1,4 +1,5 @@
 """Source-bound room scene declarations projected onto actual fight actors."""
+
 from copy import deepcopy
 from hashlib import sha256
 import json
@@ -254,7 +255,13 @@ def arena_scene(record, selected_arena, character, members):
             ("native_initial_glyph_authority", "authority"),
             ("native_initial_glyph_source_url", "source_uri"),
         ):
-            result.setdefault(key, descriptor[source])
+            if key not in result:
+                value = descriptor[source]
+                if key == "native_initial_glyph_policy" and not value.startswith(
+                    "wakemu."
+                ):
+                    value = "wakemu." + value
+                result[key] = value
     reference = _native_border_reference(descriptor)
     if reference is not None:
         from .combat_battleground_border import SUPPORTED_POLICIES

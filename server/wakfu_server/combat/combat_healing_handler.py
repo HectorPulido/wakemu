@@ -20,6 +20,22 @@ from .combat_damage_healing import (
     HEAL_ELEMENTS,
 )
 from .combat_healing_effect import direct_healing
+from .combat_damage_source import native_damage_source, plain_area_source
+
+
+def native_healing_source(fight, identity, effect):
+    """Resolve fighter sources or the verified fbc PA for direct eXs healing."""
+    actor = fight.actors.get(identity)
+    if actor is not None:
+        return actor
+    if not isinstance(effect, dict) or effect.get("effect_class") != 25:
+        return None
+    from .combat_state_managers import retained_area_pv_row
+
+    row = retained_area_pv_row(fight, identity)
+    if row is None or row.get("native_area_contract") != "fbc":
+        return None
+    return native_damage_source(fight, identity)
 
 
 @dataclass(frozen=True)
@@ -80,7 +96,7 @@ class NativeHealingHandler:
                 else bytes.fromhex(invocation.native_context_hex),
             )
             return None, amount
-        source = self.fight.actors.get(invocation.caster_id)
+        source = native_healing_source(self.fight, invocation.caster_id, effect)
         target = self.fight.actors.get(invocation.target_id)
         if (
             source is None
@@ -179,25 +195,27 @@ class NativeHealingHandler:
                 else bytes.fromhex(invocation.native_context_hex),
             )
             return context, amount
+        area_source = plain_area_source(source)
+        hp_context = dict(target_hp=target.hp, target_max_hp=target.max_hp)
+        if not area_source:
+            hp_context.update(source_hp=source.hp, source_max_hp=source.max_hp)
         parameters = interpret_healing_parameters(
             effect["parameters"],
             invocation.level,
-            hp_context=dict(
-                source_hp=source.hp,
-                source_max_hp=source.max_hp,
-                target_hp=target.hp,
-                target_max_hp=target.max_hp,
-            ),
+            hp_context=hp_context,
             rng=self.rng,
         )
         mastery = healing_mastery_context(
             flags,
             source_xy=source.position[:2],
             target_xy=target.position[:2],
-            source_radius=source.physical_radius,
+            source_radius=0 if area_source else source.physical_radius,
             target_radius=target.physical_radius,
-            source_total_hp=source.hp + source_stats[92],
-            source_total_max_hp=source.max_hp + source.effect_maxima[92],
+            source_total_hp=None if area_source else source.hp + source_stats[92],
+            source_total_max_hp=(
+                None if area_source else source.max_hp + source.effect_maxima[92]
+            ),
+            source_has_berserk=not area_source,
         )
         amount = healing_amount(
             parameters["base"],
@@ -314,9 +332,11 @@ class NativeHealingHandler:
 
             notify_runner_value(invocation, runner.value)
             return True
-        source = self.fight.actors[invocation.caster_id]
+        source = native_healing_source(self.fight, invocation.caster_id, effect)
+        if source is None:
+            raise ValueError("Invalid native healing actors or effect")
         target = self.fight.actors[invocation.target_id]
-        source_stats, target_stats = _snapshot(source), _snapshot(target)
+        target_stats = _snapshot(target)
         context = self.context(effect, invocation)
         if not context.executable:
             return False
@@ -360,7 +380,9 @@ class NativeHealingHandler:
             base_uid=invocation.base_uid,
         )
         if not converted:
-            apply_healing_consumption(self.fight, source, target, result, target_stats)
+            apply_healing_consumption(
+                self.fight, source, target, result, target_stats, effect
+            )
         runner.set_applied(result["value"])
         if not runner.notification_suppressed:
             self.packets.append((12613, packet))

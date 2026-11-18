@@ -2,7 +2,7 @@
   "schema": "owned-story-encounters-v1",
   "id": "wild-estate-cure-720",
   "map_id": 720,
-  "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+  "provenance": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story.",
   "rooms": [
     {
       "order": 1,
@@ -30,7 +30,7 @@
       "encounter_scene": {
         "schema_version": 1,
         "policy_id": "wild-estate-cure-720-room-1",
-        "authority": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+        "authority": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story.",
         "source_uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-cure-720.native.v1.json",
         "full_room_scope": true,
         "fixed_actor_placements": [
@@ -55,7 +55,33 @@
             "reference": 630,
             "level": 0,
             "cell": [
+              1,
+              -28,
+              72
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-removal-hp-faw-v1",
+              "prototype_sha256": "c60423d7b4fa44cc5c7519c1cd7413ff25cf2d0f9857be6eaa2d901d53f4ef74"
+            }
+          },
+          {
+            "reference": 630,
+            "level": 0,
+            "cell": [
               2,
+              -28,
+              72
+            ],
+            "neutral_faw_constructor": {
+              "schema": "native-neutral-removal-hp-faw-v1",
+              "prototype_sha256": "c60423d7b4fa44cc5c7519c1cd7413ff25cf2d0f9857be6eaa2d901d53f4ef74"
+            }
+          },
+          {
+            "reference": 630,
+            "level": 0,
+            "cell": [
+              3,
               -28,
               72
             ],

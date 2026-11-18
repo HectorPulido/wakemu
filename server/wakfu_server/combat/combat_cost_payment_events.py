@@ -100,13 +100,11 @@ class NativeCostPaymentEvents(OrdinaryHealingEvents):
             retention=retention,
         )
 
-    def _replay_source(self, source, *, authority):
+    def _replay_source(self, source, *, authority, **options):
         costs = _payment.get()
-        if costs is None:
-            return self.replay(source, authority=authority)
-        return self.replay(
-            replace(source, cost_source=dict(costs)), authority=authority
-        )
+        if costs is not None:
+            source = replace(source, cost_source=dict(costs))
+        return self.replay(source, authority=authority, **options)
 
     def _event_delivery_replay(self):
         return self._replay_source

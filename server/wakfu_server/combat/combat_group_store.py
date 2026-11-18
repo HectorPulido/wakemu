@@ -135,6 +135,10 @@ class PersistentGroups:
 
     def move_members(self, key, expected_members, moved_members):
         """Persist positions only when the available roster still matches."""
+        from wakfu_server.achievements.source_quest_encounters import (
+            is_source_owned_group,
+        )
+
         expected_members, moved_members = list(expected_members), list(moved_members)
         if not moved_members or len(expected_members) != len(moved_members):
             raise ValueError("Invalid group movement roster")
@@ -156,6 +160,8 @@ class PersistentGroups:
                 key,
             ).fetchone()
             if row is None or list(self._members(row)) != expected_members:
+                return False
+            if is_source_owned_group(db, key, row["members"]):
                 return False
             moved_by_id = {member["id"]: member for member in moved_members}
             durable_members = [

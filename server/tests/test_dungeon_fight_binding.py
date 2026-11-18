@@ -1,4 +1,5 @@
 """Dungeon encounter admission distinguishes room groups from ordinary fights."""
+
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from wakfu_server.maps.dungeon_fight_binding import bind_room_group
@@ -63,6 +64,48 @@ class DungeonFightBindingTests(TestCase):
         for key in ((1086, True, 5), (1086, 88), [1086, 88, 5]):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 bind_room_group(self.db(), key, 1, 2)
+
+    def test_roomless_instance_consults_owned_pool_before_ordinary_fallback(self):
+        from wakfu_server import dungeon_fight_binding
+
+        group_key = (1065, 88, 5)
+        payload = {"fight_id": 701, "scope": "owned-pool"}
+        db = self.db(None)
+        with patch(
+            "wakfu_server.owned_quest_pools.bind", return_value=payload
+        ) as pool, patch("wakfu_server.dungeon_progression.bind_encounter") as main:
+            self.assertEqual(
+                dungeon_fight_binding.bind_room_group(db, group_key, 7, 701), payload
+            )
+            pool.assert_called_once_with(db, group_key, 7, 701, player_team=0)
+            main.assert_not_called()
+        db.execute.assert_called_once()
+
+        db = self.db(None)
+        with patch("wakfu_server.owned_quest_pools.bind", return_value=None) as pool:
+            self.assertIsNone(
+                dungeon_fight_binding.bind_room_group(db, group_key, 7, 702)
+            )
+            pool.assert_called_once_with(db, group_key, 7, 702, player_team=0)
+
+        db = self.db()
+        with patch("wakfu_server.owned_quest_pools.bind") as pool:
+            self.assertIsNone(
+                dungeon_fight_binding.bind_room_group(db, (1065, 0, 5), 7, 703)
+            )
+            db.execute.assert_not_called()
+            pool.assert_not_called()
+
+        db = self.db(
+            dict(party_id=9, current_room=2, status="active"),
+            None,
+            None,
+            None,
+        )
+        with patch(
+            "wakfu_server.owned_quest_pools.bind", return_value=None
+        ), self.assertRaisesRegex(ValueError, "current dungeon room"):
+            dungeon_fight_binding.bind_room_group(db, group_key, 7, 704)
 
 
 class DungeonAbortedEncounterTests(TestCase):

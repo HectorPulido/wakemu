@@ -14,7 +14,6 @@ from wakfu_server.combat_geometry import published_geometry
 from wakfu_server.monsters import reference
 from wakfu_server.owned_story_configuration import compile_story
 
-
 ROOT = Path(__file__).parents[1] / "wakfu_server/maps/owned_story_profiles"
 
 
@@ -72,8 +71,9 @@ class OwnedStoryNativeLinkTests(unittest.TestCase):
         )
         self.assertIsNone(links.selected_link(self.selected, self.body(25404, 2242)))
         for malformed in (b"", self.body(25404, 2241)[:-1]):
-            with self.subTest(malformed=malformed), self.assertRaisesRegex(
-                ValueError, "Malformed"
+            with (
+                self.subTest(malformed=malformed),
+                self.assertRaisesRegex(ValueError, "Malformed"),
             ):
                 links.selected_link(self.selected, malformed)
         for mode in ((1, 2), (0, 1), (1, 10)):
@@ -100,20 +100,20 @@ class OwnedStoryNativeLinkTests(unittest.TestCase):
             or dict(applied=True, packets=[])
         )
 
-        with patch.object(
-            controller, "_scope", return_value=(self.selected, set())
-        ), patch(
-            "wakfu_server.owned_story_mechanics.sources", return_value=self.native
-        ), patch.object(
-            controller, "_settle", settle
-        ), patch(
-            "wakfu_server.owned_story_mechanics.executor", return_value=object()
-        ), patch(
-            "wakfu_server.owned_story_mechanics.move",
-            side_effect=lambda _db, _character, destination, *, direction: events.append(
-                ("move", _db, destination, direction)
-            )
-            or (123, b"move"),
+        with (
+            patch.object(controller, "_scope", return_value=(self.selected, set())),
+            patch(
+                "wakfu_server.owned_story_mechanics.sources", return_value=self.native
+            ),
+            patch.object(controller, "_settle", settle),
+            patch("wakfu_server.owned_story_mechanics.executor", return_value=object()),
+            patch(
+                "wakfu_server.owned_story_mechanics.move",
+                side_effect=lambda _db, _character, destination, *, direction: events.append(
+                    ("move", _db, destination, direction)
+                )
+                or (123, b"move"),
+            ),
         ):
             with self.assertRaisesRegex(ValueError, "blocking encounter"):
                 links.travel(
@@ -184,19 +184,22 @@ class OwnedStoryNativeLinkTests(unittest.TestCase):
         body = self.body(25420, 2249)
         events = []
         db = object()
-        with patch.object(
-            controller,
-            "_scope",
-            return_value=(self.selected, {"reef-room6-victory"}),
-        ), patch(
-            "wakfu_server.owned_story_mechanics.sources", return_value=self.native
-        ), patch.object(
-            controller,
-            "_settle",
-            side_effect=lambda *_a, **_k: events.append(("settle", db))
-            or dict(applied=True, packets=[]),
-        ), patch(
-            "wakfu_server.owned_story_mechanics.executor", return_value=object()
+        with (
+            patch.object(
+                controller,
+                "_scope",
+                return_value=(self.selected, {"reef-room6-victory"}),
+            ),
+            patch(
+                "wakfu_server.owned_story_mechanics.sources", return_value=self.native
+            ),
+            patch.object(
+                controller,
+                "_settle",
+                side_effect=lambda *_a, **_k: events.append(("settle", db))
+                or dict(applied=True, packets=[]),
+            ),
+            patch("wakfu_server.owned_story_mechanics.executor", return_value=object()),
         ):
             with patch(
                 "wakfu_server.dungeon_exit._leave",
@@ -224,6 +227,47 @@ class OwnedStoryNativeLinkTests(unittest.TestCase):
         self.assertIs(events[1][1], db)
         self.assertEqual(events[1][2], dict(map_id=986, x=-60, y=0, z=0))
 
+    def test_temple_earth_portal_uses_pinned_source_reference(self):
+        selected = json.loads((ROOT / "wild-temple-718.json").read_text())
+        native = json.loads((ROOT / "wild-temple-718.native.v1.json").read_text())
+        source = generic_transports.source(718, 20590)
+        character = dict(
+            id=7,
+            account_id=3,
+            map_id=718,
+            instance_id=99,
+            **{axis: int(source[axis]) for axis in ("x", "y", "z")},
+        )
+        completed = {"temple-entered"}
+        with (
+            patch.object(controller, "_scope", return_value=(selected, completed)),
+            patch.object(mechanics, "sources", return_value=native),
+            patch.object(mechanics, "executor", return_value=Mock()),
+            patch.object(mechanics, "move", return_value=(123, b"move")) as move,
+            patch.object(
+                controller, "_settle", return_value=dict(applied=True, packets=[])
+            ) as settle,
+        ):
+            result = links.travel(
+                object(),
+                None,
+                3,
+                "lease",
+                character,
+                self.body(20590, 1438),
+                source_allowed=lambda *_: True,
+                in_fight=lambda _: False,
+            )
+        self.assertTrue(result["internal"])
+        self.assertEqual(settle.call_args.kwargs["reference"], 20590)
+        self.assertEqual(
+            controller.plan(selected, completed, kind="native_travel", reference=20590)[
+                "id"
+            ],
+            "earth-passage-one",
+        )
+        self.assertEqual(move.call_args.args[2], [-66, 13, 0])
+
     def test_eligible_cinematic_continuation_begins_after_settlement_before_leave(self):
         from wakfu_server import owned_story_mechanics as mechanics
         from wakfu_server.achievements import storage
@@ -248,29 +292,29 @@ class OwnedStoryNativeLinkTests(unittest.TestCase):
         def begin(actual_db, actual_store, *_args, **_kwargs):
             events.append(("begin", actual_db, actual_store))
 
-        with patch.object(
-            controller, "_scope", return_value=(selected, {"reef-room6-victory"})
-        ), patch(
-            "wakfu_server.owned_story_mechanics.sources", return_value=self.native
-        ), patch.object(
-            mechanics, "executor", return_value=object()
-        ), patch.object(
-            controller, "_settle", settle
-        ), patch(
-            "wakfu_server.maps.dungeon_criteria.evaluate", return_value=True
-        ), patch.object(
-            storage, "load_locked", return_value=state
-        ), patch.object(
-            owned_cinematic_continuations, "policy", return_value=continuation
-        ), patch.object(
-            owned_cinematic_continuations, "recognizes", return_value=True
-        ), patch.object(
-            owned_cinematic_continuations, "eligible", return_value=True
-        ) as eligible, patch.object(
-            owned_cinematic_continuations, "begin", side_effect=begin
-        ), patch(
-            "wakfu_server.dungeon_exit._leave"
-        ) as leave:
+        with (
+            patch.object(
+                controller, "_scope", return_value=(selected, {"reef-room6-victory"})
+            ),
+            patch(
+                "wakfu_server.owned_story_mechanics.sources", return_value=self.native
+            ),
+            patch.object(mechanics, "executor", return_value=object()),
+            patch.object(controller, "_settle", settle),
+            patch("wakfu_server.maps.dungeon_criteria.evaluate", return_value=True),
+            patch.object(storage, "load_locked", return_value=state),
+            patch.object(
+                owned_cinematic_continuations, "policy", return_value=continuation
+            ),
+            patch.object(
+                owned_cinematic_continuations, "recognizes", return_value=True
+            ),
+            patch.object(
+                owned_cinematic_continuations, "eligible", return_value=True
+            ) as eligible,
+            patch.object(owned_cinematic_continuations, "begin", side_effect=begin),
+            patch("wakfu_server.dungeon_exit._leave") as leave,
+        ):
             result = links.travel(
                 db,
                 store,

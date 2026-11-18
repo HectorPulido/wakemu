@@ -320,9 +320,11 @@ def hydrate(session, *, chunks=None):
             if struct.unpack_from(">q", packet[1])[0] in visible
         ]
         if mechanics.sources(selected).get("scene_actors"):
-            from wakfu_server.owned_story_admission import scene_actor_packets
+            from wakfu_server.owned_story_admission import project_scene_actor_packets
 
-            packets.extend(scene_actor_packets(db, runtime.STORE, state.character))
+            packets.extend(
+                project_scene_actor_packets(state.character, selected, completed)
+            )
         if mechanics.sources(selected).get("reviewed_dynamic_pickups"):
             from wakfu_server import owned_story_dynamic_pickups
 

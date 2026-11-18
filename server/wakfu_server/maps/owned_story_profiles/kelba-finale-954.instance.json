@@ -1,0 +1,26 @@
+{
+  "schema": "owned-story-instance-v1",
+  "id": "kelba-finale-954",
+  "version": 2,
+  "map_id": 954,
+  "entry": {
+    "map_id": 943,
+    "object_id": 25131,
+    "destination_id": 2211
+  },
+  "native_entry_criterion": "IsAchievementRunning(2556)",
+  "native_entry_payment": {
+    "reference": 0,
+    "quantity": 0
+  },
+  "exit_sources": [
+    {
+      "source_id": 25132,
+      "destination_id": 2183
+    }
+  ],
+  "controller_file": "kelba-finale-954.json",
+  "encounters_file": "kelba-finale-954.encounters.json",
+  "exploration_file": "kelba-finale-954.exploration.json",
+  "provenance": "Local alternate solo encounter using the installed 954 visit, the existing Ush 3603 actor and the existing Crow carrier state 1347. The owned story selects the original running-2556 endpoint 25131/2211 and keeps the normal 25132/2183 return. Native statistics, abilities, and AI are retained. The owned battle result drives 5055 and the native quest reward pipeline. This is an explicit local combination without imported scenario scripting."
+}

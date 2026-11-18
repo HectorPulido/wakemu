@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "id": "kelba-earned-finale",
+  "evidence": [
+    "Local alternate solo encounter using the installed 954 visit, the existing Ush 3603 actor and the existing Crow carrier state 1347. The owned story selects the original running-2556 endpoint 25131/2211 and keeps the normal 25132/2183 return. Native statistics, abilities, and AI are retained. The owned battle result drives 5055 and the native quest reward pipeline. This is an explicit local combination without imported scenario scripting."
+  ],
+  "bindings": [],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-2556-after-2555",
+      "quest_id": 2556,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2555
+      },
+      "requires_completed": [
+        2555
+      ]
+    },
+    {
+      "id": "kelba-earned-2556-recovery",
+      "quest_id": 2556,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2555
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Local alternate solo encounter using the installed 954 visit, the existing Ush 3603 actor and the existing Crow carrier state 1347. The owned story selects the original running-2556 endpoint 25131/2211 and keeps the normal 25132/2183 return. Native statistics, abilities, and AI are retained. The owned battle result drives 5055 and the native quest reward pipeline. This is an explicit local combination without imported scenario scripting."
+    }
+  ]
+}

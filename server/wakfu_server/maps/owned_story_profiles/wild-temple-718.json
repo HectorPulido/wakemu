@@ -13,6 +13,14 @@
     "path": "wild-temple-718.native.v1.json",
     "sha256": "e5622b3eb39973105e0eb999292362e96d6667682c766049ffde4e3ec3606a1d"
   },
+  "automatic_room_start": {
+    "schema": "owned-room-auto-start-v1",
+    "room_order": 8,
+    "requires": [
+      "corridor-started"
+    ],
+    "evidence": "Zone 20702 records corridor-started. The existing owned ambush admission preserves the player's corridor entry pose and the published Boulder placement."
+  },
   "initial_elements": [
     {
       "kind": "element_state",

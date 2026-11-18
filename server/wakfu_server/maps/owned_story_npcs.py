@@ -20,6 +20,10 @@ from wakfu_server.achievements import mission_toolkit, storage
 from wakfu_server.dungeon_achievement_authority import queries_from_state
 
 SOURCE_FILES = {
+    "wild-temple-718-air.v2.json": "e320a6587f2cbce78e25b4a524ed1f832b60e8dec7c6ade674861296866dae12",
+    "wild-temple-718-earth.v2.json": "8fc2c4732f1e2cf048c16853b23b9b2583208625f1c0fb20438afbece8735490",
+    "wild-temple-718-fire.v2.json": "e83e76c1419fb3acfbc56ae00f21f14bdf4504bdf9c8983ef4688ad200740d7f",
+    "wild-temple-718-water.v2.json": "cea6f055d346cba8eea52af0ccd393e2a6a4a804615893ca84817653845a498e",
     "wild-temple-718-air.json": "a62cc9d68aeeeff2c1c6ef6284855dc6394173475bab65cb50dc5c7c98afc61d",
     "wild-temple-718-earth.json": "7143503f20ced9016caa40d94d76e2276e995d5b13c6a33ca78b89469288304f",
     "wild-temple-718-fire.json": "11451cfb00e46012ba4c03f9f03f84822c51dabe8024d6ce6d2b90a8b2bc7d45",

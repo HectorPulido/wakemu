@@ -14,6 +14,15 @@ ROOT = Path(__file__).resolve().parents[1] / "wakfu_server/maps/owned_story_prof
 
 
 class OwnedStoryObjectOperationTests(TestCase):
+    def test_native_decoration_repack_reaches_immediate_dispatch(self):
+        with patch.object(operations.controller, "interact") as inspect:
+            self.assertIsNone(
+                operations.selection(
+                    None, None, {}, struct.pack(">qHH", 8800123, 23, 0)
+                )
+            )
+            inspect.assert_not_called()
+
     def test_original_workshop_duration_and_criterion(self):
         selected = json.loads((ROOT / "wild-estate-brak-723.v2.json").read_text())
         source = json.loads((ROOT / "wild-estate-brak-723.native.v2.json").read_text())

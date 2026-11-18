@@ -1,4 +1,5 @@
 """Bind selected durable room groups without changing combat execution."""
+
 from wakfu_server.dungeon_progression import bind_encounter
 
 
@@ -30,8 +31,6 @@ def bind_room_group(
         "SELECT * FROM dungeon_room_runs " "WHERE instance_id=%s FOR UPDATE",
         (instance_id,),
     ).fetchone()
-    if run is None:
-        return None
     from wakfu_server import owned_quest_pools
 
     pool = owned_quest_pools.bind(
@@ -39,6 +38,8 @@ def bind_room_group(
     )
     if pool is not None:
         return pool
+    if run is None:
+        return None
     from wakfu_server import dungeon_postboss_nodes
 
     postboss = dungeon_postboss_nodes.group_receipt(db, group_key, lock=True)

@@ -248,6 +248,138 @@ def environment_sections(fight, *, viewer_id=None):
     return sections
 
 
+def _registered_environment_state_kill_source(fight, event, container):
+    """Retain native state-child source authority after its scene Qq retires."""
+    from wakfu_server import native_catalog
+    from wakfu_server.paths import DATA_ROOT
+    from .combat_encounter_scene_policy import frozen_scene
+    from .combat_definitions import effect_profile
+    from .combat_state_parameters import interpret_state_parameters
+    from .combat_neutral_faw_hp import REMOVAL_SCHEMA
+
+    identity, state_id = event.get("source_id"), container.get("state_id")
+    if (
+        container.get("is_state") is not True
+        or type(state_id) is not int
+        or type(event.get("sequence")) is not int
+        or not getattr(fight, "native_environment_glyphs_installed", False)
+    ):
+        return False
+    sources = [
+        source
+        for source in getattr(fight, "native_environment_glyph_constructors", ())
+        if source.get("uid") == identity
+    ]
+    if len(sources) != 1:
+        return False
+    source = sources[0]
+    declaration = source.get("neutral_faw_constructor", {})
+    if declaration.get("schema") != REMOVAL_SCHEMA:
+        return False
+    descriptor = frozen_scene(fight)
+    if descriptor is None or not any(
+        row.get("reference") == source.get("reference")
+        and row.get("level", 0) == source.get("level", 0)
+        and tuple(row.get("cell", ())) == tuple(source.get("cell", ()))
+        and row.get("neutral_faw_constructor") == declaration
+        for row in descriptor.get("native_initial_glyphs", ())
+    ):
+        return False
+    from .combat_effect_area import native_effect_areas
+
+    definition = native_effect_areas().get(str(source["reference"]), {})
+    validate_environment_prototype(
+        definition, level=source.get("level", 0), neutral_faw_constructor=declaration
+    )
+    policy = descriptor.get("native_initial_glyph_policy", descriptor["policy_id"])
+    if "native_initial_glyph_policy" not in descriptor and not policy.startswith(
+        "wakemu."
+    ):
+        policy = "wakemu." + policy
+    if (
+        source.get("source") != constructor_source(definition)
+        or source.get("policy") != policy
+        or not policy.startswith("wakemu.")
+        or source.get("authority")
+        != descriptor.get("native_initial_glyph_authority", descriptor["authority"])
+        or source.get("source_url")
+        != descriptor.get("native_initial_glyph_source_url", descriptor["source_uri"])
+    ):
+        return False
+    # A retained Qq owns its real QI retirement fields. Historical corpse
+    # checks use the sealed constructor above, never a fabricated fresh obstacle.
+    from .combat_state_managers import retained_area_pv_row
+
+    retained = retained_area_pv_row(fight, identity)
+    if retained is not None:
+        verify_environment_glyph(fight, retained)
+    carriers = [
+        row
+        for row in fight.events
+        if row.get("kind") == "state_applied"
+        and row.get("actor_id") == event.get("target_id")
+        and row.get("state_id") == state_id
+        and type(row.get("sequence")) is int
+        and row["sequence"] < event["sequence"]
+    ]
+    if not carriers:
+        return False
+    carrier = max(carriers, key=lambda row: row["sequence"])
+    if (
+        carrier.get("source_id") != identity
+        or type(carrier.get("uid")) is not int
+        or carrier["uid"] <= 0
+        or type(carrier.get("level")) is not int
+    ):
+        return False
+    state = native_catalog.record(
+        DATA_ROOT / "combat-state-definitions.json", "states", state_id
+    )
+    root = event.get("generic_effect")
+    if (
+        state is None
+        or root not in state.get("effect_ids", ())
+        or not 0 <= carrier["level"] <= state["maximum_level"]
+    ):
+        return False
+    child = native_catalog.record(
+        DATA_ROOT / "combat-state-definitions.json", "effects", root
+    )
+    if (
+        child is None
+        or child.get("effect_class") != 28
+        or not child["minimum_level"] <= carrier["level"] <= child["maximum_level"]
+    ):
+        return False
+    for reference in definition.get("effect_ids", ()):
+        effect = native_catalog.record(
+            DATA_ROOT / "native-area-effect-trees.json", "effects", reference
+        )
+        if (
+            effect is None
+            or effect.get("effect_class") != 304
+            or effect.get("parameter_count") != 3
+            or not effect["minimum_level"]
+            <= source.get("level", 0)
+            <= effect["maximum_level"]
+        ):
+            continue
+        applied = interpret_state_parameters(
+            effect_profile(effect, source.get("level", 0))["parameters"]
+        )
+        if (
+            applied["reference"] == state_id
+            and applied["level"] > 0
+            and (
+                min(applied["level"], state["maximum_level"]) == carrier["level"]
+                or state.get("additive") is True
+                and applied["level"] <= carrier["level"]
+            )
+        ):
+            return True
+    return False
+
+
 def registered_environment_kill_source(fight, event):
     """Authenticate a native28 root emitted by an actual neutral scene PV.
 
@@ -266,7 +398,12 @@ def registered_environment_kill_source(fight, event):
         or event.get("effect_class") != 28
         or type(identity) is not int
         or container.get("present") is not True
-        or container.get("type") != 3
+    ):
+        return False
+    if container.get("type") == 1:
+        return _registered_environment_state_kill_source(fight, event, container)
+    if (
+        container.get("type") != 3
         or container.get("native_kind") != "effect_area"
         or container.get("id") != identity
     ):

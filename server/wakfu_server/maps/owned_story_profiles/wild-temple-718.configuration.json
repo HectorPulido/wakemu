@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": 1,
+  "version": 2,
   "slug": "wild-temple-718",
   "route": {
     "key": "quest-map-718-20568-1426",
@@ -334146,6 +334146,14 @@
         "path": "wild-temple-718.native.v1.json",
         "sha256": "e5622b3eb39973105e0eb999292362e96d6667682c766049ffde4e3ec3606a1d"
       },
+      "automatic_room_start": {
+        "schema": "owned-room-auto-start-v1",
+        "room_order": 8,
+        "requires": [
+          "corridor-started"
+        ],
+        "evidence": "Zone 20702 records corridor-started. The existing owned ambush admission preserves the player's corridor entry pose and the published Boulder placement."
+      },
       "initial_elements": [
         {
           "kind": "element_state",
@@ -342913,7 +342921,7 @@
   },
   "context_policy": {
     "route_key": "quest-map-718-20568-1426",
-    "policy_version": 1,
+    "policy_version": 2,
     "template_id": 1000718,
     "definition_id": 1000718,
     "max_level": 0,
@@ -342932,7 +342940,7 @@
   "provenance": "Reviewed Temple718 server reconstruction from original1654 callbacks, actual native objects/portals, four original elemental marker states and original Sm6/Vy floors. Four gems remain obtainable in any order. Original private formations, archaeologist placements, award joins and terminal-result join are unavailable and explicitly reconstructed. Physical keys/chests, accepted hazard-floor movement, genuine native encounters, actual artifact pickup and actual paid escape remain distinct mandatory producers. No ordinary win substitutes for the water course, physical artifact or Boulder escape.",
   "evidence_hashes": {
     "plan": "02832e65cf322d8b153126aa5ad8a9c6d0cd0e823d802550452ea43f51948c77",
-    "topology": "e956f29f2becccea2bf852f2c86719e9a6149d88f4e1e41c8b2f72c61914c433",
+    "topology": "cae69d398ab09f0739284f3e029774ddb4db4917eed53e566e43c72dc12645f6",
     "route": "3481688ccbdda52c182fe3fe8234297ad2bd55876c29e2b302b1bd75a353eca9"
   }
 }

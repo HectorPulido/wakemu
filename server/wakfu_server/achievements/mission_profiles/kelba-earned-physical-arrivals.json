@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "id": "kelba-earned-physical-arrivals",
+  "evidence": [
+    "Recover 2552 only after recorded 2551 completion. The owned 953 route credits its discovery on the actual arrival.",
+    "Use object 25131, native definition 1985, and endpoint 2182 to map 954 (0,0,0) for 2555 after earned completion of 2553.",
+    "The existing transport event authenticates the source and committed public entry for 2555. The distinct 2211 encounter endpoint never supplies discovery credit."
+  ],
+  "bindings": [
+    {
+      "id": "kelba-native-arrival-2182",
+      "quest_id": 2555,
+      "objective_id": 5054,
+      "event": {
+        "kind": "transport_entered",
+        "reference": 2182
+      },
+      "maps": [
+        954
+      ],
+      "instances": [
+        0
+      ],
+      "count": "operation"
+    }
+  ],
+  "links": [],
+  "activations": [
+    {
+      "id": "kelba-2552-after-2551",
+      "quest_id": 2552,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2551
+      },
+      "requires_completed": [
+        2551
+      ]
+    },
+    {
+      "id": "kelba-earned-2552-recovery",
+      "quest_id": 2552,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2551
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Recover the earned local route after recorded completion of 2551, preserving the native level and quest requirements."
+    },
+    {
+      "id": "kelba-2555-after-2553",
+      "quest_id": 2555,
+      "event": {
+        "kind": "quest_completed",
+        "reference": 2553
+      },
+      "requires_completed": [
+        2553
+      ]
+    },
+    {
+      "id": "kelba-earned-2555-recovery",
+      "quest_id": 2555,
+      "event": {
+        "kind": "character_ready",
+        "reference": 0
+      },
+      "requires_completed": [
+        2553
+      ],
+      "minimum_level": 65,
+      "admission_evidence": "Recover the earned local route after recorded completion of 2553, preserving the native level and quest requirements."
+    }
+  ]
+}

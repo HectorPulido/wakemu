@@ -10838,6 +10838,567 @@
       "getDuration": 0,
       "isVisible": true,
       "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1639)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 50 and IsAchievementComplete(1665)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 23,
+              "ckh": -163,
+              "cki": 80,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3083,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -6,
+              "ckh": -37,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3084,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            70000
+          ],
+          "d": 2964,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7323,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 18,
+      "cka": "ach.187",
+      "d": 1639,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1640)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 50 and IsAchievementComplete(1639)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 11,
+              "ckh": -28,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [
+            {
+              "ckm": "GetAchievementVariable(\"nbBworkMeatRecolted\")>=10",
+              "ckn": [
+                371
+              ],
+              "d": 517,
+              "native_class": "aJQ"
+            }
+          ],
+          "d": 3085,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -6,
+              "ckh": -37,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3086,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            130000
+          ],
+          "d": 2965,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7324,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 19,
+      "cka": "ach.187",
+      "d": 1640,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1640)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 50 and IsAchievementComplete(1640)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 6,
+              "ckh": -36,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3174,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            130000
+          ],
+          "d": 2972,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7325,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 20,
+      "cka": "ach.187",
+      "d": 1688,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1641)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 50 and IsAchievementComplete(1688)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -6,
+              "ckh": -37,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3104,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 2,
+              "ckh": -31,
+              "cki": 72,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3087,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            85000
+          ],
+          "d": 2966,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7326,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 21,
+      "cka": "ach.187",
+      "d": 1641,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(1641)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 1637,
+      "cjG": 187,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 50 and IsAchievementComplete(1641)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -6,
+              "ckh": -37,
+              "cki": 80,
+              "ckj": 720,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3169,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -99,
+              "ckh": -148,
+              "cki": 4,
+              "ckj": 711,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3088,
+          "native_class": "aJN"
+        },
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": 3,
+              "ckh": 11,
+              "cki": -24,
+              "ckj": 717,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 3089,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            130000
+          ],
+          "d": 2967,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            1000
+          ],
+          "d": 7327,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 50,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": 2,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 22,
+      "cka": "ach.187",
+      "d": 1666,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2549)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2547,
+      "cjG": 321,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 65",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -176,
+              "ckh": -57,
+              "cki": -15,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5048,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            325000
+          ],
+          "d": 4102,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 65,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 1,
+      "cka": "ach.321",
+      "d": 2549,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
+    },
+    {
+      "aHe": "IsAchievementActive(2551)",
+      "aeV": 2,
+      "aqb": false,
+      "bwX": 2547,
+      "cjG": 321,
+      "cjH": true,
+      "cjI": "GetRealLevel() >= 65 and IsAchievementComplete(2550)",
+      "cjJ": [
+        {
+          "ckb": true,
+          "ckc": "",
+          "ckd": [
+            {
+              "ckg": -176,
+              "ckh": -57,
+              "cki": -15,
+              "ckj": 943,
+              "native_class": "aJO"
+            }
+          ],
+          "cke": "",
+          "ckf": [],
+          "d": 5050,
+          "native_class": "aJN"
+        }
+      ],
+      "cjK": [
+        {
+          "aeV": 6,
+          "ckk": false,
+          "ckl": [
+            325000
+          ],
+          "d": 4104,
+          "native_class": "aJP"
+        },
+        {
+          "aeV": 11,
+          "ckk": false,
+          "ckl": [
+            2000
+          ],
+          "d": 7334,
+          "native_class": "aJP"
+        }
+      ],
+      "cjL": 0,
+      "cjM": false,
+      "cjN": false,
+      "cjO": false,
+      "cjP": 65,
+      "cjQ": 1,
+      "cjR": true,
+      "cjS": -1,
+      "cjT": 0,
+      "cjU": 0,
+      "cjV": false,
+      "cjW": false,
+      "cjX": 0,
+      "cjY": 0,
+      "cjZ": 4,
+      "cka": "ach.321",
+      "d": 2551,
+      "getDuration": 0,
+      "isVisible": true,
+      "native_class": "aJM"
     }
   ],
   "bindings": [
@@ -12200,6 +12761,46 @@
       "choice_id": 13173,
       "placement_sha256": "36e7bddc5c0720666ad2028efc8bef2444d588dbf9495df8982c3308dad88ce0",
       "native_definition_sha256": "f7712d470f67dada1279f70c5245822593360542c75a865cb21371d876c50bdf"
+    },
+    {
+      "quest_id": 1639,
+      "objective_id": 3084,
+      "reference_id": 2800,
+      "action_id": 439,
+      "node_id": 2326,
+      "choice_id": 5628,
+      "placement_sha256": "e2da3aea492f57123b9807d997047fb2a15fa48f56eb188f8893a3df0684c7e4",
+      "native_definition_sha256": "ee3532b14facec36d7f7cd18ed1507658549619fa1be6a273ad1446652319bde"
+    },
+    {
+      "quest_id": 1640,
+      "objective_id": 3086,
+      "reference_id": 2800,
+      "action_id": 439,
+      "node_id": 2320,
+      "choice_id": 5619,
+      "placement_sha256": "e2da3aea492f57123b9807d997047fb2a15fa48f56eb188f8893a3df0684c7e4",
+      "native_definition_sha256": "ccd5c11807881a8671e2350dfc66f2da22b73f0b55a23000ecca45947446c1b3"
+    },
+    {
+      "quest_id": 2549,
+      "objective_id": 5048,
+      "reference_id": 3592,
+      "action_id": 678,
+      "node_id": 3150,
+      "choice_id": 7805,
+      "placement_sha256": "bfa0953c6665da627f1a830bd3dc37d1672103375cdc5729ed092cbbff61f658",
+      "native_definition_sha256": "d09526ea70d26cb97fa19cf87830e0db4b447a70211950be76331426bb4ea497"
+    },
+    {
+      "quest_id": 2551,
+      "objective_id": 5050,
+      "reference_id": 3592,
+      "action_id": 678,
+      "node_id": 3150,
+      "choice_id": 7806,
+      "placement_sha256": "bfa0953c6665da627f1a830bd3dc37d1672103375cdc5729ed092cbbff61f658",
+      "native_definition_sha256": "c2aeea26d086f82be673ba1e8503597cf55168321a1c282e343cc64155c6676a"
     }
   ],
   "holds": [],
@@ -16851,6 +17452,166 @@
           "evidence": "Native objective5621 asks Thomas. Only authenticated successful actual NPC opening qualifies; normal native objective prerequisite and running quest remain authoritative. Opening grants no resources, puzzle completion or travel."
         }
       ]
+    },
+    {
+      "quest_id": 1639,
+      "activation_policy": "already_running",
+      "row": {
+        "actor_id": -2251799934991639,
+        "reference_id": 2800,
+        "map_id": 720,
+        "instance_id": 0,
+        "x": -6,
+        "y": -37,
+        "z": 80,
+        "direction": 3,
+        "dialogue_root": 2320,
+        "action_ids": [
+          439
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: Reviewed native Wild1665/1639/1640/1688/1641/1666 continuation. Original cook2800/action439/root2320 retains exact native choices and item predicates. Quest waypoint720(-6,-37,80) supplies this explicitly reviewed public placement, not captured server coordinates. Genuine ten-Mobbit17829 acquisitions and their payment, actual burger17831 delivery, native barrel cure, and real excavation remain independent required producers; no dialogue manufactures those outcomes. All native rewards remain unchanged."
+      },
+      "graph": [
+        [
+          2320,
+          5618,
+          2326
+        ],
+        [
+          2326,
+          5628,
+          0
+        ],
+        [
+          2320,
+          5619,
+          2327
+        ],
+        [
+          2327,
+          5629,
+          0
+        ],
+        [
+          2320,
+          5630,
+          2328
+        ],
+        [
+          2328,
+          5631,
+          2329
+        ],
+        [
+          2329,
+          5632,
+          0
+        ],
+        [
+          2320,
+          5739,
+          2365
+        ],
+        [
+          2365,
+          5737,
+          0
+        ],
+        [
+          2320,
+          5626,
+          0
+        ]
+      ],
+      "interaction_anchor": {
+        "x": -6,
+        "y": -36,
+        "z": 80
+      },
+      "interaction_anchor_evidence": "Reviewed adjacent native-floor cook approach; verify against installed720 Sm6 before publication.",
+      "available_quests_on_open": [],
+      "choice_criteria": [
+        {
+          "node_id": 2326,
+          "choice_id": 5628,
+          "criterion": "((IsAchievementRunning(1639))) && (IsAchievementRunning(1639) && IsAchievementObjectiveComplete(3083))",
+          "evidence": "Reviewed selected native quest branch / final objective requires this owned running quest and earned preceding objectives."
+        },
+        {
+          "node_id": 2320,
+          "choice_id": 5619,
+          "criterion": "IsAchievementRunning(1640) && IsAchievementObjectiveComplete(3085)",
+          "evidence": "Reviewed selected native quest branch / final objective requires this owned running quest and earned preceding objectives."
+        }
+      ],
+      "spoken_objectives": [
+        {
+          "quest_id": 1641,
+          "objective_id": 3104,
+          "action_ids": [
+            439
+          ],
+          "evidence": "Actual native objective says speak to the Bwork Cook; authenticated owner opening of original2800/action439 on public720 qualifies only the running native objective."
+        },
+        {
+          "quest_id": 1666,
+          "objective_id": 3169,
+          "action_ids": [
+            439
+          ],
+          "evidence": "Actual native objective says speak to the Bwork Cook; authenticated owner opening of original2800/action439 on public720 qualifies only the running native objective."
+        }
+      ]
+    },
+    {
+      "quest_id": 2549,
+      "activation_policy": "already_running",
+      "row": {
+        "actor_id": -2251799934953592,
+        "reference_id": 3592,
+        "map_id": 943,
+        "instance_id": 0,
+        "x": -176,
+        "y": -57,
+        "z": -15,
+        "direction": 3,
+        "dialogue_root": 3150,
+        "action_ids": [
+          678
+        ],
+        "interaction_range": 4,
+        "enabled": true,
+        "provenance": "wakemu.qualified-quest-conversation.v1: Reviewed native Kelba2549 Grand Korvishus3592/action678/root3150/choice7805. Actual original protector282 and2549 objective5048 independently agree public943(-176,-57,-15); native Sm6 confirms adjacent approach(-175,-57,-15). This noncombat actor association and server dialogue edge are reviewed reconstruction, not a captured native protector actor identity. No merchandise, crate, fight or later objective is granted by this greeting."
+      },
+      "interaction_anchor": {
+        "x": -175,
+        "y": -57,
+        "z": -15
+      },
+      "interaction_anchor_evidence": "Original Kelba943 Sm6 bidirectional adjacent floor; exact native protector282 and quest waypoint; native server actor-to-protector association remains reconstructed.",
+      "graph": [
+        [
+          3150,
+          7805,
+          0
+        ],
+        [
+          3150,
+          7806,
+          0
+        ]
+      ],
+      "available_quests_on_open": [],
+      "choice_criteria": [
+        {
+          "node_id": 3150,
+          "choice_id": 7806,
+          "criterion": "IsAchievementComplete(2550) && IsAchievementObjectiveComplete(5049) && IsAchievementObjectiveComplete(5066) && IsAchievementObjectiveComplete(5067)",
+          "evidence": "Require both settled crate occupations and the southern crate encounter's committed objective."
+        }
+      ]
     }
   ],
   "reconstruction": "Explicit Wakemu authoring from native quest compass markers, NPC names/actions, localized story and original2313 entry scene. These are reconstructed positions/edges/activation producers, not recovered original server code.",
@@ -17476,6 +18237,14 @@
       "choice_id": 8087,
       "item_reference": 19660,
       "quantity": 1
+    },
+    {
+      "reference_id": 2800,
+      "action_id": 439,
+      "node_id": 2320,
+      "choice_id": 5619,
+      "item_reference": 17829,
+      "quantity": 10
     }
   ],
   "alternative_bindings": [
@@ -17600,6 +18369,86 @@
       ],
       "native_source_sha256": "97826f9061d32f8f119f545d1841d9aa77c7ab6bc817f396ac1f32cb20754cda",
       "evidence": "Explicit reviewed missing-server clinic key supply at the accepted original Doby1994/4592 request for a key. Native item16102 is Doby clinic key and original507/18255 destination1136 consumes one to533. Only actual accepted4592 while1114 running,1112 complete,2051 unfinished,public507 and missing key may supply it. Recovery opens the same original1994 request when key missing. No outcome on NPC opening and no removal of original transport cost; no claim the native export serialized this grant."
+    },
+    {
+      "id": "wild-cook-burger",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2800,
+      "action_id": 439,
+      "map_id": 720,
+      "node_id": 2327,
+      "choice_id": 5629,
+      "quest_id": 1688,
+      "item_reference": 17831,
+      "quantity": 1,
+      "required_completed": [
+        1640
+      ],
+      "blocked_objectives": [
+        3174
+      ],
+      "native_source_sha256": "c9bce8a2d9fc13cd07944362f71f445306e23fa9350ab3e37f42fe4113322df6",
+      "evidence": "Reviewed missing server supply from the exact original accepted cook offer: native2327 gives the special burger,2329 promises BworkBeer,2365 explicitly gives a key and more beer. Original item identities17831/17830/17864 are independently required by the native actual object/entrance operands; no quest outcome, drop-table row or original serialized server grant is invented. Missing-only owned supply recovery retains normal inventory/capacity transaction authority."
+    },
+    {
+      "id": "wild-cook-cure-beer",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2800,
+      "action_id": 439,
+      "map_id": 720,
+      "node_id": 2329,
+      "choice_id": 5632,
+      "quest_id": 1641,
+      "item_reference": 17830,
+      "quantity": 1,
+      "required_completed": [
+        1688
+      ],
+      "blocked_objectives": [
+        3087
+      ],
+      "native_source_sha256": "118a9a9de690563c819d3ed39e52a1080c5b6f32e906d3ceef8e5cb3dca8eae2",
+      "evidence": "Reviewed missing server supply from the exact original accepted cook offer: native2327 gives the special burger,2329 promises BworkBeer,2365 explicitly gives a key and more beer. Original item identities17831/17830/17864 are independently required by the native actual object/entrance operands; no quest outcome, drop-table row or original serialized server grant is invented. Missing-only owned supply recovery retains normal inventory/capacity transaction authority."
+    },
+    {
+      "id": "wild-cook-excavation-key",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2800,
+      "action_id": 439,
+      "map_id": 720,
+      "node_id": 2365,
+      "choice_id": 5737,
+      "quest_id": 1666,
+      "item_reference": 17864,
+      "quantity": 1,
+      "required_completed": [
+        1641
+      ],
+      "blocked_objectives": [
+        3089
+      ],
+      "native_source_sha256": "5a3fb2c9a1ce7d45bf0b26196e5de26039f75f5cdcd9589b936a6ddf9385c4e2",
+      "evidence": "Reviewed missing server supply from the exact original accepted cook offer: native2327 gives the special burger,2329 promises BworkBeer,2365 explicitly gives a key and more beer. Original item identities17831/17830/17864 are independently required by the native actual object/entrance operands; no quest outcome, drop-table row or original serialized server grant is invented. Missing-only owned supply recovery retains normal inventory/capacity transaction authority."
+    },
+    {
+      "id": "wild-cook-excavation-beer",
+      "policy": "reviewed-missing-server-supply-v1",
+      "reference_id": 2800,
+      "action_id": 439,
+      "map_id": 720,
+      "node_id": 2365,
+      "choice_id": 5737,
+      "quest_id": 1666,
+      "item_reference": 17830,
+      "quantity": 1,
+      "required_completed": [
+        1641
+      ],
+      "blocked_objectives": [
+        3089
+      ],
+      "native_source_sha256": "5a3fb2c9a1ce7d45bf0b26196e5de26039f75f5cdcd9589b936a6ddf9385c4e2",
+      "evidence": "Reviewed missing server supply from the exact original accepted cook offer: native2327 gives the special burger,2329 promises BworkBeer,2365 explicitly gives a key and more beer. Original item identities17831/17830/17864 are independently required by the native actual object/entrance operands; no quest outcome, drop-table row or original serialized server grant is invented. Missing-only owned supply recovery retains normal inventory/capacity transaction authority."
     }
   ]
 }

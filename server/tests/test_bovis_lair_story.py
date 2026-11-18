@@ -1,4 +1,5 @@
 """Bovis physical stages preserve actual combat and separate native outcomes."""
+
 from copy import deepcopy
 from contextlib import nullcontext
 import json
@@ -422,6 +423,166 @@ class BovisLairStoryTests(unittest.TestCase):
         changed["descriptor"]["authority"] += " altered"
         with self.assertRaisesRegex(ValueError, "source changed"):
             arena_scene(changed, selected, character, members)
+
+    def test_actual_wild_estate_cask_scenes_derive_missing_glyph_policy_alias(self):
+        from wakfu_server.combat_encounter_scene_policy import (
+            prepare_scene,
+            arena_scene,
+        )
+        from wakfu_server.combat_encounter_glyph_bootstrap import (
+            prepare_declared_glyphs,
+        )
+
+        profiles = ROOT / "maps/owned_story_profiles"
+        sources = json.loads(
+            (
+                Path(__file__).parents[2]
+                / ".runtime/quest-archetypes/wild-beer-native-records.json"
+            ).read_text()
+        )
+        definitions = {
+            row["record_key"]: row["payload"]
+            for row in sources
+            if row["collection"] == "areas"
+        }
+        cases = [
+            ("wild-estate-cure-720", 720, "wild-estate-cure-720-encounters.json", 1),
+            (
+                "wild-estate-excavation-717",
+                717,
+                "wild-estate-excavation-717-encounters.json",
+                1,
+            ),
+            (
+                "wild-estate-excavation-717",
+                717,
+                "wild-estate-excavation-717-encounters.json",
+                2,
+            ),
+            (
+                "wild-estate-excavation-717",
+                717,
+                "wild-estate-excavation-717-encounters.json",
+                3,
+            ),
+        ]
+        with patch(
+            "wakfu_server.combat_environment_participant_footprints.participant_footprints",
+            return_value=(),
+        ), patch(
+            "wakfu_server.combat_environment_participant_footprints.verified_participant_cells",
+            return_value=frozenset(),
+        ):
+            for instance_id, map_id, filename, order in cases:
+                with self.subTest(instance=instance_id, order=order):
+                    source_doc = json.loads((profiles / filename).read_text())
+                    room = next(
+                        row for row in source_doc["rooms"] if row["order"] == order
+                    )
+                    descriptor = room["encounter_scene"]
+                    exploration = json.loads(
+                        (profiles / f"{instance_id}.exploration.json").read_text()
+                    )
+                    cells = tuple(
+                        tuple(cell)
+                        for cell in exploration["cells"]
+                        if room["bounds"][0] <= cell[0] <= room["bounds"][2]
+                        and room["bounds"][1] <= cell[1] <= room["bounds"][3]
+                        and cell[2] == room["z"]
+                    )
+                    record = prepare_scene(
+                        descriptor,
+                        scope=dict(
+                            map_id=map_id,
+                            instance_id=901 + order,
+                            group_id=5,
+                            room_order=order,
+                            policy_version=1,
+                            route_key=f"cask-{map_id}-{order}",
+                            evidence_hashes={},
+                        ),
+                        room_cells=cells,
+                    )
+                    character = dict(
+                        id=7,
+                        account_id=2,
+                        map_id=map_id,
+                        instance_id=901 + order,
+                        x=cells[0][0],
+                        y=cells[0][1],
+                        z=cells[0][2],
+                    )
+                    reference = room["monsters"][0]["reference"]
+                    members = [
+                        dict(
+                            id=-7,
+                            ref=reference,
+                            x=cells[-1][0],
+                            y=cells[-1][1],
+                            z=cells[-1][2],
+                        )
+                    ]
+                    arena = dict(
+                        map_id=map_id,
+                        instance_id=901 + order,
+                        validated_cells=list(cells),
+                        native_border_cells=(),
+                    )
+                    attached = arena_scene(record, arena, character, members)
+                    expected = "wakemu." + descriptor["policy_id"]
+                    self.assertEqual(attached["native_initial_glyph_policy"], expected)
+
+                    from types import SimpleNamespace
+
+                    fight = SimpleNamespace(
+                        actors={7: SimpleNamespace(id=7)},
+                        walkable=set(cells),
+                        native_effect_areas={},
+                        native_border_cells=(),
+                    )
+                    roles = SimpleNamespace(
+                        map_id=map_id,
+                        player_team=0,
+                        npc_team=1,
+                        monster_references=(reference,),
+                    )
+                    with patch(
+                        "wakfu_server.combat_encounter_roles.assigned_roles",
+                        return_value=roles,
+                    ):
+                        constructors = prepare_declared_glyphs(
+                            fight, attached, 10000, definitions
+                        )
+                    self.assertEqual(
+                        [row["reference"] for row in constructors],
+                        [
+                            row["reference"]
+                            for row in descriptor["native_initial_glyphs"]
+                        ],
+                    )
+                    self.assertTrue(
+                        all(row["policy"] == expected for row in constructors)
+                    )
+
+                    if map_id == 720:
+                        explicit = dict(arena, native_initial_glyph_policy="")
+                        explicit_attached = arena_scene(
+                            record, explicit, character, members
+                        )
+                        self.assertEqual(
+                            explicit_attached["native_initial_glyph_policy"], ""
+                        )
+                        with patch(
+                            "wakfu_server.combat_encounter_roles.assigned_roles",
+                            return_value=roles,
+                        ):
+                            with self.assertRaisesRegex(
+                                ValueError,
+                                "declared native glyph constructor authority",
+                            ):
+                                prepare_declared_glyphs(
+                                    fight, explicit_attached, 10000, definitions
+                                )
 
 
 if __name__ == "__main__":

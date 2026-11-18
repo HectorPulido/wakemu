@@ -5,10 +5,14 @@ from wakfu_server import owned_story_controller as controller
 
 def scene_actor_rows(db, store, character):
     """Resolve authentic native models with no combat or dialogue registration."""
+    selected, completed = controller._scope(db, store, character)
+    return _project_scene_actor_rows(character, selected, completed)
+
+
+def _project_scene_actor_rows(character, selected, completed):
     from wakfu_server import owned_story_mechanics, owned_story_npcs, monsters
     from wakfu_server.combat_geometry import published_geometry
 
-    selected, completed = controller._scope(db, store, character)
     native = owned_story_mechanics.sources(selected)
     rows, slots, roles = [], set(), set()
     for actor in native.get("scene_actors", ()):
@@ -74,12 +78,17 @@ def scene_actor_rows(db, store, character):
 
 
 def scene_actor_packets(db, store, character):
+    selected, completed = controller._scope(db, store, character)
+    return project_scene_actor_packets(character, selected, completed)
+
+
+def project_scene_actor_packets(character, selected, completed):
+    """Render from an already authorized owner snapshot without position checks."""
     from wakfu_server import owned_story_actor_operations
 
-    selected, _ = controller._scope(db, store, character)
     return [
         owned_story_actor_operations.spawn(row, character=character, selected=selected)
-        for row in scene_actor_rows(db, store, character)
+        for row in _project_scene_actor_rows(character, selected, completed)
     ]
 
 

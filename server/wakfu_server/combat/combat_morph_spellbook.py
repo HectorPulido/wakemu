@@ -14,6 +14,14 @@ _REVIEWED_MORPH_SHA256 = (
 )
 
 
+_REVIEWED_MORPH_SUPPLEMENTS = {
+    "42c92df22787c4dab5af8641708df41f6f7ef5c93a713541ce047776b87492d4": (
+        "reviewed_native_crow_morph_profiles.json",
+        "dc9c4c56a2ce8f177c648075628497a240ada962d661982cd9ac4b7d636fcaac",
+    ),
+}
+
+
 def _morph_digest(value):
     return hashlib.sha256(
         json.dumps(
@@ -22,10 +30,9 @@ def _morph_digest(value):
     ).hexdigest()
 
 
-@lru_cache(maxsize=1)
-def _reviewed_morph_profiles():
-    raw = Path(__file__).with_name("reviewed_native_morph_profiles.json").read_bytes()
-    if hashlib.sha256(raw).hexdigest() != _REVIEWED_MORPH_SHA256:
+def _read_reviewed_morph_profiles(filename, digest):
+    raw = Path(__file__).with_name(filename).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != digest:
         raise ValueError("Reviewed native morphology supplement changed")
     data = json.loads(raw)
     if data.get("schema") != "wakemu-reviewed-native-morph-profile-supplement-v1":
@@ -33,9 +40,22 @@ def _reviewed_morph_profiles():
     return data
 
 
+@lru_cache(maxsize=1)
+def _reviewed_morph_profiles():
+    return _read_reviewed_morph_profiles(
+        "reviewed_native_morph_profiles.json", _REVIEWED_MORPH_SHA256
+    )
+
+
 def _merge_reviewed_morph_profiles(document):
-    data = _reviewed_morph_profiles()
-    if protocol_catalog.release() != data["native_catalog_revision"]:
+    revision = protocol_catalog.release()
+    supplement = _REVIEWED_MORPH_SUPPLEMENTS.get(revision)
+    data = (
+        _reviewed_morph_profiles()
+        if supplement is None
+        else _read_reviewed_morph_profiles(*supplement)
+    )
+    if revision != data["native_catalog_revision"]:
         return document  # Other releases retain only their own native profiles.
     if _morph_digest(document) != data["base_canonical_sha256"]:
         raise ValueError("Reviewed morphology base native source changed")

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": 1,
+  "version": 2,
   "slug": "wild-estate-cure-720",
   "route": {
     "key": "quest-generic-720-20449-477",
@@ -113,8 +113,8 @@
   "compiled_plan": {
     "slug": "wild-estate-cure-720",
     "source_url": "installed-native-quest-map-and-scenario",
-    "source_sha256": "1e85770fe0bf4d1f6ff91bb21b4a9633e98a7c7ddc5d895efbecbf839eeb1ce9",
-    "document_sha256": "ddaac1211a93321dc073cbffc310ade6866918969602481b297d36fc00d36442",
+    "source_sha256": "6cee3608bacea9b19b37cab3e4414c44192f98c863ee22d13e2dea4f93a2fd16",
+    "document_sha256": "8dfbfe3f0e1022d03cb71739aeb44bb4e36f2d0e4a969860b38870a5e81baa59",
     "definition_id": 1000720,
     "template_id": 1000720,
     "asset_map_id": 720,
@@ -145,7 +145,7 @@
     "asset_map_id": 720,
     "policy": "owned-story-controller-v1",
     "official_room_order_verified": false,
-    "progression_authority": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+    "progression_authority": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story.",
     "rooms": [
       {
         "order": 1,
@@ -1636,12 +1636,12 @@
             -32,
             72
           ],
-          "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+          "provenance": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story."
         },
         "encounter_scene": {
           "schema_version": 1,
           "policy_id": "wild-estate-cure-720-room-1",
-          "authority": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+          "authority": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story.",
           "source_uri": "server/wakfu_server/maps/owned_story_profiles/wild-estate-cure-720.native.v1.json",
           "full_room_scope": true,
           "fixed_actor_placements": [
@@ -1666,7 +1666,33 @@
               "reference": 630,
               "level": 0,
               "cell": [
+                1,
+                -28,
+                72
+              ],
+              "neutral_faw_constructor": {
+                "schema": "native-neutral-removal-hp-faw-v1",
+                "prototype_sha256": "c60423d7b4fa44cc5c7519c1cd7413ff25cf2d0f9857be6eaa2d901d53f4ef74"
+              }
+            },
+            {
+              "reference": 630,
+              "level": 0,
+              "cell": [
                 2,
+                -28,
+                72
+              ],
+              "neutral_faw_constructor": {
+                "schema": "native-neutral-removal-hp-faw-v1",
+                "prototype_sha256": "c60423d7b4fa44cc5c7519c1cd7413ff25cf2d0f9857be6eaa2d901d53f4ef74"
+              }
+            },
+            {
+              "reference": 630,
+              "level": 0,
+              "cell": [
+                3,
                 -28,
                 72
               ],
@@ -283921,7 +283947,7 @@
         "objective_id": null,
         "continuation_quest_id": 1641
       },
-      "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+      "provenance": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story.",
       "steps": [
         {
           "id": "foo-zero-cured",
@@ -283935,7 +283961,7 @@
               "objective_id": 3087
             }
           ],
-          "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+          "evidence": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story."
         }
       ],
       "initial_elements": [],
@@ -283949,7 +283975,7 @@
           "original_monster_reference": 2803,
           "native_effect_reference": 107114,
           "native_area_reference": 630,
-          "evidence": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+          "evidence": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story."
         }
       ],
       "interaction_approach_policy": "pinned_native_qv",
@@ -283971,7 +283997,7 @@
   },
   "context_policy": {
     "route_key": "quest-generic-720-20449-477",
-    "policy_version": 1,
+    "policy_version": 2,
     "template_id": 1000720,
     "definition_id": 1000720,
     "max_level": 0,
@@ -283981,16 +284007,16 @@
     "can_increase_difficulty": false,
     "is_competitive_cancelled": false,
     "allowed_ids": [],
-    "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    "provenance": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story."
   },
   "level_policy": {
     "mode": "native_minimum",
-    "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition."
+    "provenance": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story."
   },
-  "provenance": "Reviewed reconstruction on original native Wild Estate floors: actual beer cask area630 (Foo Zero2803) and633 (Bwork Foo2802) retain HP100, original null Qf, native10011 removal subscription, original3x3 state2365 appliers107101/107415 and exact native107114 class28 breed-qualified cure. One original Bwork and one original cask per declared room, their fixed floor positions, and the actual HP-death to self-area-center removal publisher are explicit reviewed server reconstruction; no original serialized roster, placement or server callback is claimed. The native effects, HP, levels, monster books, initial states and AI remain unchanged. Only the actual original roster killed by107114 from a declared cask UID qualifies, never an ordinary attack, admin victory,4057 suicide or client callback. Original1655 and1653 empty combat callbacks corroborate separate confrontation and three excavation wins without providing server composition.",
+  "provenance": "This local encounter uses three existing 630 beer casks near Foo Zero 2803. Each retains the neutral HP100 constructor and adds one level of state 2365 through native removal event 10011 and applicator 107101. The third level triggers the existing breed-qualified cure 107114. Only a declared cask and its qualified native cure can settle the story.",
   "evidence_hashes": {
-    "plan": "5267b8c8aa165329c473fc1d2485ded2c31f01cd543f5a663469d8ace1745b54",
-    "topology": "d58e528ea8c65896289b23f3d97f02671003a13ff24392e12ba0e4eabd8f80e4",
+    "plan": "666ad5335ca076b53666e37a7ebb425fe970a6725930c02a006c231a0dabb15c",
+    "topology": "fe1554bd146ff128873a47a8f6171fe9fcf95c92abe016c133e96e5c587d844f",
     "route": "6f8b59c2fec98a9167f75f9dc96c16df83b8fefd48b9134ecbf5475cbbc13ea1"
   }
 }

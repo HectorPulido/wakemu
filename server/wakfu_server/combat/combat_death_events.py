@@ -13,6 +13,71 @@ Wakemu reconstruction, not a recovered original server caller.
 from dataclasses import replace
 from .combat_event_replay import NativeEventSource
 
+_CONVOY_ROUTE = "quest-map-947-25104-2199"
+_CONVOY_CARRIERS = {
+    "wakemu.kelba.native-cargo-stage-1.v1": (1, 3589),
+    "wakemu.kelba.native-cargo-stage-2.v1": (2, 3711),
+}
+
+
+def _convoy_last_ally_reaction(fight, source, *, replay, authority):
+    """Deliver the pinned convoy's 3478/152002 listener on the last allied KO."""
+    record = getattr(fight, "native_encounter_scene", None)
+    if (
+        fight.phase != "active"
+        or record is None
+        or record["scope"]["route_key"] != _CONVOY_ROUTE
+    ):
+        return ()
+    from .combat_encounter_scene_policy import _verified
+
+    record = _verified(record)
+    scope, descriptor = record["scope"], record["descriptor"]
+    policy = _CONVOY_CARRIERS.get(descriptor["policy_id"])
+    if policy is None or scope["map_id"] != 947 or scope["room_order"] != policy[0]:
+        return ()
+    bindings = {row["actor_id"]: row["ref"] for row in scope["actor_bindings"]}
+    carriers = [identity for identity, ref in bindings.items() if ref == policy[1]]
+    if len(carriers) != 1:
+        raise ValueError("Convoy death reaction requires its bound carrier")
+    carrier_id = carriers[0]
+    if source.target_id == carrier_id or source.target_id not in bindings:
+        return ()
+
+    carrier = fight.actors.get(carrier_id)
+    if carrier is None or not fight._in_play(carrier):
+        return ()
+    # The frozen bindings contain only this convoy's initial NPCs. The
+    # retained listener independently checks the complete native ally count,
+    # including any later summons and its property exclusions.
+    if any(
+        (actor := fight.actors.get(identity)) is not None and fight._in_play(actor)
+        for identity in bindings
+        if identity != carrier_id
+    ):
+        return ()
+    owned_states = getattr(fight, "native_owned_state_containers", {})
+    listeners = frozenset(
+        uid
+        for uid, row in getattr(fight, "native_owned_group_effects", {}).items()
+        if row["target_id"] == carrier_id
+        and row["invocation"]["caster_id"] == carrier_id
+        and row["invocation"]["reference"] == 152002
+        and (state := owned_states.get(row["state_uid"])) is not None
+        and state["reference"] == 3478
+        and state["caster_id"] == state["target_id"] == carrier_id
+    )
+    if len(listeners) != 1:
+        return ()
+    from .combat_external_read_pass import external_recipient_read
+
+    with external_recipient_read(fight, carrier_id, replay):
+        return replay(
+            replace(source, event_ids=(1041,), channel=61, manager_actor_id=carrier_id),
+            authority=authority,
+            eligible_uids=listeners,
+        )
+
 
 def deliver_owned_death(
     fight, actor_id, *, source, replay, authority, retention=None, finisher_cleanup=None
@@ -165,4 +230,7 @@ def _deliver_death_reactions(fight, source, replay, authority, retention):
                 "KO/death event requires native global collection or subscription authority"
             )
     outcomes.extend(replay(source, authority=authority))
+    outcomes.extend(
+        _convoy_last_ally_reaction(fight, source, replay=replay, authority=authority)
+    )
     return tuple(outcomes)

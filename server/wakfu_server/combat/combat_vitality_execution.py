@@ -182,10 +182,13 @@ def apply_damage_consumption(
             target_stats[stat] = result[key]
 
 
-def apply_healing_consumption(fight, source, target, result, target_stats):
+def apply_healing_consumption(fight, source, target, result, target_stats, effect):
     """Apply HP first and preserve copied raw-current PA setter semantics."""
     fight.apply_effect_healing(
-        source.id, target.id, result.get("hp_requested", result["hp_gain"])
+        source.id,
+        target.id,
+        result.get("hp_requested", result["hp_gain"]),
+        native_runner_effect=effect,
     )
     if getattr(target, "native_copy_pa_source", None) is not None:
         from .combat_copied_pa import shift_copied_current, set_copied_current

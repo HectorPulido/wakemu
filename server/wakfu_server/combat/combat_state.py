@@ -919,12 +919,18 @@ class Fight:
 
         return settle_deaths_shared(self)
 
-    def apply_effect_healing(self, source_id, target_id, amount):
+    def apply_effect_healing(
+        self, source_id, target_id, amount, *, native_runner_effect=None
+    ):
         """Trusted healing effect; resurrection has a separate native path."""
+        if source_id not in self.actors:
+            from .combat_healing_handler import native_healing_source
+
+            if native_healing_source(self, source_id, native_runner_effect) is None:
+                raise ValueError("Invalid dispatched healing context")
         if (
             self.phase != "active"
             or self.current is None
-            or source_id not in self.actors
             or type(amount) is not int
             or amount < 0
         ):

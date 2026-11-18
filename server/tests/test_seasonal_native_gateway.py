@@ -105,6 +105,40 @@ class SeasonalNativeGatewayTests(unittest.TestCase):
                 gateway.activation(actor, struct.pack(">qHH", 17452, 0, 0))
             )
 
+    def test_kelba_port_keeps_multiple_native_destinations(self):
+        from wakfu_server.maps.dungeon_transport import resolve_request
+
+        map_id, source_id = 943, 25104
+        actor = dict(map_id=map_id, instance_id=0)
+        source = generic_transports.source(map_id, source_id)
+        destinations = {row["destination_id"]: row for row in source["destinations"]}
+        for destination_id, destination_map in ((2195, 946), (2199, 947)):
+            destination = destinations[destination_id]
+            route = dungeon_instances.EntryRoute(
+                key=f"kelba-port-{destination_id}",
+                template_id=1000000 + destination_map,
+                definition_id=1000000 + destination_map,
+                entry_map_id=map_id,
+                entry_object_id=source_id,
+                destination_id=destination_id,
+                start_map_id=destination_map,
+                criterion=destination["criterion"],
+                native_template_id=destination["cyZ"],
+            )
+            self.routes[route.key] = route
+            request = struct.pack(">qiBi", source_id, destination_id, 0, 2)
+            self.assertEqual(resolve_request(map_id, request)["route"], route)
+
+        self.assertIsNone(gateway.attachment(self.row(map_id, source_id), actor))
+        self.assertIsNone(
+            gateway.activation(actor, struct.pack(">qHH", source_id, 0, 0))
+        )
+        del self.routes["kelba-port-2195"]
+        self.assertIsNone(gateway.attachment(self.row(map_id, source_id), actor))
+        self.assertIsNone(
+            gateway.activation(actor, struct.pack(">qHH", source_id, 0, 0))
+        )
+
     def test_first_attachment_replay_unload_and_map_reset_have_one_gateway(self):
         map_id, identity = 472, 17452
         row = self.row(map_id, identity)

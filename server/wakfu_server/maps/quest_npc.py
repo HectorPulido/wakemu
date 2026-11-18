@@ -25,7 +25,7 @@ from wakfu_server.dungeon_achievement_authority import queries_from_state, queri
 
 PREFIX = "wakemu.qualified-quest-conversation.v1:"
 SETTING = "native_quest_conversation_contracts"
-SOURCE_SHA256 = "214146018906f10394823086619cdda6d1845e7307bd6b34ad5ba41648f8f12a"
+SOURCE_SHA256 = "75ba1098589649bfcbdf2c4f4930dbfb42bf7f5a5d3736dca087aada11af8f70"
 
 
 @lru_cache(maxsize=1)

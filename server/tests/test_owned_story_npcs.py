@@ -1,6 +1,7 @@
 """Owner-scoped noncombat NPCs preserve native dialogue and event authority."""
 
 import gzip
+from hashlib import sha256
 import json
 import struct
 import tempfile
@@ -12,7 +13,6 @@ from unittest.mock import patch
 from wakfu_server import owned_story_npcs, npc_dialogue, npc_world
 from wakfu_server.application import owned_story_npc_dispatch
 from wakfu_server.achievements import mission_toolkit
-
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -152,20 +152,24 @@ class OwnedStoryNpcTests(unittest.TestCase):
         second = owned_story_npcs.actor_id((1 << 57) + 48, 1)
         self.assertNotEqual(first, second)
         native = native_dialogue()
-        with patch.object(
-            owned_story_npcs, "profiles", return_value=(profile(),)
-        ), patch.object(
-            owned_story_npcs.owned_story_controller,
-            "recognizes_instance",
-            return_value=True,
-        ), patch.object(
-            owned_story_npcs.owned_story_controller,
-            "_scope",
-            return_value=({"id": "zinit-reef-980"}, {"voyage-stage-3-victory"}),
-        ), patch.object(
-            owned_story_npcs.owned_story_refresh, "pending", return_value=None
-        ), patch(
-            "wakfu_server.achievements.storage.load_locked", return_value=state()
+        with (
+            patch.object(owned_story_npcs, "profiles", return_value=(profile(),)),
+            patch.object(
+                owned_story_npcs.owned_story_controller,
+                "recognizes_instance",
+                return_value=True,
+            ),
+            patch.object(
+                owned_story_npcs.owned_story_controller,
+                "_scope",
+                return_value=({"id": "zinit-reef-980"}, {"voyage-stage-3-victory"}),
+            ),
+            patch.object(
+                owned_story_npcs.owned_story_refresh, "pending", return_value=None
+            ),
+            patch(
+                "wakfu_server.achievements.storage.load_locked", return_value=state()
+            ),
         ):
             store = _Store()
             opcode, body = owned_story_npcs.spawn_packets(
@@ -355,6 +359,122 @@ class OwnedStoryNpcTests(unittest.TestCase):
         self.assertEqual(len(selected), 1)
         self.assertEqual(selected[0]["npcs"][0]["objective_id"], 5305)
         owned_story_npcs.profiles.cache_clear()
+
+    def test_temple_native_gem_profiles_preserve_both_pinned_versions(self):
+        directory = ROOT / "server/wakfu_server/maps/owned_story_npc_profiles"
+        profiles = []
+        for element in ("air", "earth", "fire", "water"):
+            original = json.loads(
+                (directory / f"wild-temple-718-{element}.json").read_text()
+            )
+            filename = f"wild-temple-718-{element}.v2.json"
+            raw = (directory / filename).read_bytes()
+            self.assertEqual(
+                sha256(raw).hexdigest(), owned_story_npcs.SOURCE_FILES[filename]
+            )
+            updated = json.loads(raw)
+            self.assertEqual(updated, dict(original, policy_version=2))
+            profiles.extend((original, updated))
+        store = _Store(
+            dict(
+                id=41,
+                account_id=7,
+                map_id=718,
+                instance_id=(1 << 57) + 47,
+                x=11,
+                y=-37,
+                z=0,
+            )
+        )
+        completed = {
+            "temple-entered",
+            "air-archaeologist-rescued",
+            "earth-archaeologist-rescued",
+            "fire-archaeologist-rescued",
+            "water-safe-floor-crossed",
+        }
+        with (
+            patch.object(owned_story_npcs, "profiles", return_value=tuple(profiles)),
+            patch.object(
+                owned_story_npcs.owned_story_controller,
+                "recognizes_instance",
+                return_value=True,
+            ),
+            patch.object(
+                owned_story_npcs.owned_story_controller,
+                "_scope",
+                return_value=({"id": "wild-temple-718"}, completed),
+            ),
+            patch.object(
+                owned_story_npcs.owned_story_refresh, "pending", return_value=None
+            ),
+            patch(
+                "wakfu_server.achievements.storage.load_locked",
+                return_value=state(running=(1684,)),
+            ),
+            patch("wakfu_server.environment_interactions._guard"),
+            patch.object(owned_story_npcs, "_criterion", return_value=True),
+            patch.object(
+                owned_story_npcs.owned_story_controller,
+                "pending_scene",
+                return_value=None,
+            ),
+            patch(
+                "wakfu_server.owned_story_mechanics.executor",
+                return_value=lambda *_args: [],
+            ),
+            patch.object(
+                owned_story_npcs.owned_story_controller,
+                "_settle",
+                return_value={"packets": [(13405, b"gem")]},
+            ) as settle,
+        ):
+            for version in (1, 2):
+                with self.subTest(version=version):
+                    store.db.version = version
+                    rows = owned_story_npcs.rows(store.db, store, store.current)
+                    self.assertEqual(len({row["actor_id"] for row in rows}), 4)
+                    self.assertEqual(
+                        {row["reference_id"] for row in rows}, {2813, 2814, 2794, 2815}
+                    )
+                    self.assertEqual(
+                        len(
+                            owned_story_npcs.spawn_packets(
+                                store.db, store, store.current
+                            )
+                        ),
+                        4,
+                    )
+                    for row in rows:
+                        store.current.update(row["interaction_anchor"])
+                        session, packets = owned_story_npcs.begin(
+                            store,
+                            7,
+                            "generation",
+                            store.current,
+                            row["actor_id"],
+                            row["action_ids"][0],
+                        )
+                        self.assertIsNone(session)
+                        self.assertEqual(packets, [(13405, b"gem")])
+                        self.assertEqual(settle.call_args.kwargs["kind"], "npc_spoken")
+                        self.assertEqual(
+                            settle.call_args.kwargs["reference"], row["reference_id"]
+                        )
+            store.db.version = 3
+            self.assertEqual(owned_story_npcs.rows(store.db, store, store.current), [])
+            self.assertEqual(
+                owned_story_npcs.spawn_packets(store.db, store, store.current), []
+            )
+            with self.assertRaisesRegex(ValueError, "unavailable"):
+                owned_story_npcs.begin(
+                    store,
+                    7,
+                    "generation",
+                    store.current,
+                    rows[0]["actor_id"],
+                    rows[0]["action_ids"][0],
+                )
 
     def test_pending_refresh_allows_only_context_bootstrap_render(self):
         store = _Store()
@@ -760,8 +880,11 @@ class OwnedStoryNpcTests(unittest.TestCase):
             begin.assert_called_once()
 
         Session.state.fight = object()
-        with patch.object(owned_story_npcs, "recognizes", return_value=True), patch(
-            "wakfu_server.owned_story_actor_operations.handle", return_value=False
+        with (
+            patch.object(owned_story_npcs, "recognizes", return_value=True),
+            patch(
+                "wakfu_server.owned_story_actor_operations.handle", return_value=False
+            ),
         ):
             with self.assertRaisesRegex(ValueError, "ready idle owner"):
                 owned_story_npc_dispatch.handle(Session())
